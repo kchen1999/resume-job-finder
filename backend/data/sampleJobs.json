@@ -1,0 +1,48 @@
+[
+    {
+      "title": "software engineer",
+      "skills": ["javascript", "node.js", "react", "git", "sql"],
+      "url": "https://example.com/software-engineer"
+    },
+    {
+      "title": "frontend developer",
+      "skills": ["react", "javascript", "html", "css", "git"],
+      "url": "https://example.com/frontend-developer"
+    },
+    {
+      "title": "backend developer",
+      "skills": ["node.js", "express", "mongodb", "sql", "docker"],
+      "url": "https://example.com/backend-developer"
+    },
+    {
+      "title": "full stack developer",
+      "skills": ["javascript", "node.js", "react", "express", "mongodb", "git"],
+      "url": "https://example.com/full-stack-developer"
+    },
+    {
+      "title": "data scientist",
+      "skills": ["python", "java", "sql", "aws", "communication"],
+      "url": "https://example.com/data-scientist"
+    },
+    {
+      "title": "devops engineer",
+      "skills": ["docker", "kubernetes", "aws", "git", "teamwork"],
+      "url": "https://example.com/devops-engineer"
+    },
+    {
+      "title": "project manager",
+      "skills": ["leadership", "communication", "teamwork", "git"],
+      "url": "https://example.com/project-manager"
+    },
+    {
+      "title": "qa engineer",
+      "skills": ["javascript", "python", "git", "sql", "communication"],
+      "url": "https://example.com/qa-engineer"
+    },
+    {
+      "title": "product manager",
+      "skills": ["leadership", "communication", "teamwork", "aws", "git"],
+      "url": "https://example.com/product-manager"
+    }
+  ]
+  
