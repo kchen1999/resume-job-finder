@@ -1,8 +1,9 @@
 # app.py
 import asyncio
+import random
 from flask import Flask, request, jsonify
-from crawl import scrape_job, scrape_first_page_only, scrape_job_listing
-from utils import process_markdown_to_job_links
+from crawl import scrape_individual_job_url, scrape_first_page_only, scrape_job_listing
+from utils import process_markdown_to_job_links, extract_fields_from_job_link_with_groq
 from database import init_db, create_tables
 from crawl4ai import AsyncWebCrawler
 
@@ -67,20 +68,26 @@ async def scrape_and_process(base_url):
             return {'error': 'No markdown scraped'}
 
         # Extract job links
-        job_links = process_markdown_to_job_links(markdown)
-        if not job_links:
-            return {'error': 'Processing to job links failed'}
+        job_urls = process_markdown_to_job_links(markdown)
+        if not job_urls:
+            return {'error': 'Processing to job urls failed'}
 
         # Scrape each job link
-        all_job_markdowns = []
-        for link in job_links:
-            job_md = await scrape_job(link, crawler)
-            print(job_md)
-            if job_md:
-                all_job_markdowns.append(job_md)
+        for job_link in job_urls:
+            delay = random.uniform(1, 3)
+            print(f"Waiting for {delay:.2f} seconds...")
+            await asyncio.sleep(delay)
+            print("Scraping:", job_link)
+            #Scrape individiaul job markdown from job url
+            job_md = await scrape_individual_job_url(job_link, crawler)
+            #Extract JSON from each individual job markdown
+            job_json = await extract_fields_from_job_link_with_groq(job_md)
+            if not job_json:
+                return {'error': 'Unable to extract JSON fields from job link'}
+            print(job_json)
             break
-
-        return {'message': 'Job saved to DB', 'result': job_links}
+            
+        return {'message': 'Job saved to DB', 'result': job_urls}
 
 
 if __name__ == '__main__':

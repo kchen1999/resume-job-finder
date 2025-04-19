@@ -14,7 +14,7 @@ async def delay_request(page_num):
     else:
         delay = random.uniform(1, 3)
         print(f"Waiting for {delay:.2f} seconds...")
-        await asyncio.sleep(random.uniform(1, 3))
+        await asyncio.sleep(delay)
 
 # Extract total job count from markdown using regex
 def extract_total_job_count(markdown: str) -> int | None:
@@ -38,14 +38,14 @@ async def scrape_first_page_only(base_url, crawler):
         print("No markdown found on page 1")
         return []
         
-async def scrape_job(job_url, crawler): 
+async def scrape_individual_job_url(job_url, crawler): 
         page_url = f"{job_url}"
         await delay_request(1)
         result = await crawler.arun(page_url)
 
         if result.markdown:
             print("Successfully scraped job url")
-            return [result.markdown]
+            return result.markdown
         else:
             print("No markdown found in job url")
             return []
