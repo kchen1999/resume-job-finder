@@ -1,6 +1,6 @@
-require('dotenv').config();
-const { Job } = require('../models/index');
-const { sequelize } = require('../util/db');
+require('dotenv').config()
+const { Job } = require('../models/index')
+const { sequelize } = require('../util/db')
 
 const job = {
   title: 'Software Engineer (Frontend)',
@@ -15,7 +15,7 @@ const job = {
   submission_date: new Date(),
   expiration_date: new Date('2025-05-01'),
   apply_url: 'https://techinnovators.com/careers/software-engineer-frontend',
-};
+}
 
 async function generateEmbedding(jobData) {
   const input = [
@@ -23,7 +23,7 @@ async function generateEmbedding(jobData) {
     jobData.description,
     jobData.responsibilities,
     jobData.requirements,
-  ].filter(Boolean).join('\n');
+  ].filter(Boolean).join('\n')
 
   try {
     const response = await fetch('https://api.jina.ai/v1/embeddings', {
@@ -37,38 +37,38 @@ async function generateEmbedding(jobData) {
         task: 'text-matching',
         input: [input],
       }),
-    });
+    })
 
-    const data = await response.json();
+    const data = await response.json()
 
     if (!data.data || !data.data[0]?.embedding) {
       console.error('No embedding returned:', data);
-      return null;
+      return null
     }
     
     return data.data[0].embedding;
   } catch (err) {
     console.error('Error generating embedding:', err);
-    return null;
+    return null
   }
 }
 
 async function run() {
   try {
-    await sequelize.authenticate();
-    console.log('DB connection established.');
+    await sequelize.authenticate()
+    console.log('DB connection established.')
 
-    const embedding = await generateEmbedding(job);
-    if (!embedding) throw new Error('Failed to generate embedding.');
+    const embedding = await generateEmbedding(job)
+    if (!embedding) throw new Error('Failed to generate embedding.')
 
-    await Job.create({ ...job, embedding });
-    console.log('Job successfully seeded!');
+    await Job.create({ ...job, embedding })
+    console.log('Job successfully seeded!')
   } catch (err) {
-    console.error('Seeding error:', err);
+    console.error('Seeding error:', err)
   } finally {
-    await sequelize.close();
-    console.log('DB connection closed.');
+    await sequelize.close()
+    console.log('DB connection closed.')
   }
 }
 
-run();
+run()

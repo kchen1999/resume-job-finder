@@ -4,12 +4,9 @@ import random
 from flask import Flask, request, jsonify
 from crawl import scrape_individual_job_url, scrape_first_page_only, scrape_job_listing
 from utils import process_markdown_to_job_links, extract_fields_from_job_link_with_groq
-from database import init_db, create_tables
 from crawl4ai import AsyncWebCrawler
 
 app = Flask(__name__)
-init_db(app)
-create_tables(app)
 
 @app.route('/scrape', methods=['POST'])
 def scrape():
@@ -72,8 +69,13 @@ async def scrape_and_process(base_url):
         if not job_urls:
             return {'error': 'Processing to job urls failed'}
 
+        
+        job_data_list = []
         # Scrape each job link
+        count = 0
         for job_link in job_urls:
+            if count == 3: 
+                break
             delay = random.uniform(1, 3)
             print(f"Waiting for {delay:.2f} seconds...")
             await asyncio.sleep(delay)
@@ -85,9 +87,10 @@ async def scrape_and_process(base_url):
             if not job_json:
                 return {'error': 'Unable to extract JSON fields from job link'}
             print(job_json)
-            break
+            job_data_list.append(job_json)
+            count += 1
             
-        return {'message': 'Job saved to DB', 'result': job_urls}
+        return {'message': 'Job saved to DB', 'result': job_data_list}
 
 
 if __name__ == '__main__':

@@ -9,24 +9,28 @@ Job.init({
     primaryKey: true,
     autoIncrement: true
   },
+  logo_link: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   title: {
     type: DataTypes.STRING,
     allowNull: false
   },
   company: {
     type: DataTypes.STRING,
-    allowNull: true
+    allowNull: false
   },
   description: {
     type: DataTypes.TEXT,
     allowNull: true
   },
   responsibilities: {
-    type: DataTypes.TEXT,
+    type: DataTypes.ARRAY(DataTypes.STRING),
     allowNull: true
   },
   requirements: {
-    type: DataTypes.TEXT,
+    type: DataTypes.ARRAY(DataTypes.STRING),
     allowNull: true
   },
   location: {
@@ -34,33 +38,49 @@ Job.init({
     allowNull: true
   },
   experience_level: {
-    type: DataTypes.STRING, // e.g., 'entry', 'mid', 'senior'
-    allowNull: true
-  },
-  salary_min: {
-    type: DataTypes.INTEGER,
-    allowNull: true
-  },
-  salary_max: {
-    type: DataTypes.INTEGER,
-    allowNull: true
-  },
-  submission_date: {
-    type: DataTypes.DATE,
+    type: DataTypes.STRING, 
     allowNull: true,
-    defaultValue: DataTypes.NOW
+    validate: {
+      isIn: {
+        args: [['intern', 'junior', 'mid', 'senior', 'lead']],
+        msg: 'Experience level must be one of: intern, junior, mid, senior, lead'
+      }
+    }
   },
-  expiration_date: {
-    type: DataTypes.DATE,
+  salary: {
+    type: DataTypes.TEXT,
     allowNull: true
+  },
+  other: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    allowNull: true
+  },
+  posted_date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
   },
   embedding: {
     type: DataTypes.JSONB,
     allowNull: true // Will store embedding array (vector)
   },
-  apply_url: {
+  quick_apply_url: {
     type: DataTypes.STRING,
-    allowNull: true // This will store the job application link
+    allowNull: true, // This will store the job application link
+    validate: {
+      isUrl: {
+        msg: 'Must be a valid URL.'
+      }
+    }
+  }, 
+  job_url: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      isUrl: {
+        msg: 'Must be a valid URL.'
+      }
+    }
   }
 }, {
   sequelize,

@@ -1,5 +1,6 @@
-const axios = require('axios');
+//scraper/scrapeJob.js (dev tool for manual testing)
 
+const axios = require('axios');
 const scrapeJobMarkdown = async (job_title, location) => {
   try {
     const response = await axios.post('http://localhost:5000/scrape', {
@@ -16,13 +17,14 @@ const scrapeJobMarkdown = async (job_title, location) => {
   }
 };
 
-const testDbConnection = async (job_title, location) => {
+const scrapeJobJsonDataList  = async (job_title, location) => {
   try {
     const response = await axios.post('http://localhost:5000/test-db', {
       job_title,
       location,
     });
     console.log('Database test response:', response.data);
+    return response.data;
   } catch (error) {
     console.error('Database test failed:', error.response?.data || error.message);
   }
