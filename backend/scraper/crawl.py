@@ -10,7 +10,7 @@ async def delay_request(page_num):
     if page_num % 10 == 0:
         delay = random.uniform(3, 5)
         print(f"Waiting for {delay:.2f} seconds...")
-        await asyncio.sleep(delay)  # mimic taking a sip of coffee
+        await asyncio.sleep(delay)
     else:
         delay = random.uniform(1, 3)
         print(f"Waiting for {delay:.2f} seconds...")
@@ -20,7 +20,7 @@ async def delay_request(page_num):
 def extract_total_job_count(markdown: str) -> int | None:
     match = re.search(r'^#\s*([\d,]+)\s+.*?jobs', markdown, re.MULTILINE | re.IGNORECASE)
     if match:
-        number_str = match.group(1).replace(',', '')  # remove comma
+        number_str = match.group(1).replace(',', '') 
         return int(number_str)
     return None
 
@@ -32,7 +32,6 @@ async def scrape_first_page_only(base_url, crawler):
 
     if result.markdown:
         print("Successfully scraped page 1")
-        print(result.markdown)
         return [result.markdown]
     else:
         print("No markdown found on page 1")

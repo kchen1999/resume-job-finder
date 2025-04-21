@@ -1,12 +1,12 @@
 const fs = require('fs');
-const pdfParse = require('pdf-parse'); // You can use the pdf-parse library to extract text from PDFs
+const pdfParse = require('pdf-parse'); 
 
-// Function to parse a PDF file and extract text
+// Parses a PDF file and extract text
 const parseResume = async (filePath) => {
   try {
-    const dataBuffer = fs.readFileSync(filePath);  // Read the PDF file
+    const dataBuffer = fs.readFileSync(filePath); 
     const data = await pdfParse(dataBuffer);  // Extract text from the PDF
-    return data.text;  // Return the extracted text
+    return data.text; 
   } catch (error) {
     console.error('Error parsing the PDF file:', error);
     throw new Error('Error parsing the resume');

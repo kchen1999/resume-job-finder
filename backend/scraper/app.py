@@ -1,9 +1,10 @@
 # app.py
 import asyncio
 import random
+import re
 from flask import Flask, request, jsonify
 from crawl import scrape_individual_job_url, scrape_first_page_only, scrape_job_listing
-from utils import process_markdown_to_job_links, extract_fields_from_job_link_with_groq
+from utils import process_markdown_to_job_links, extract_job_data, truncate_logo_url
 from crawl4ai import AsyncWebCrawler
 
 app = Flask(__name__)
@@ -59,7 +60,6 @@ async def scrape_and_process(base_url):
     async with AsyncWebCrawler() as crawler:
         print("AsyncWebCrawler initialized successfully!")
         markdown = await scrape_first_page_only(base_url, crawler)
-        print(markdown)
 
         if not markdown:
             return {'error': 'No markdown scraped'}
@@ -74,18 +74,22 @@ async def scrape_and_process(base_url):
         # Scrape each job link
         count = 0
         for job_link in job_urls:
-            if count == 3: 
+            if count == 8: 
                 break
             delay = random.uniform(1, 3)
             print(f"Waiting for {delay:.2f} seconds...")
             await asyncio.sleep(delay)
             print("Scraping:", job_link)
-            #Scrape individiaul job markdown from job url
+            #Scrape individual job markdown from job url
             job_md = await scrape_individual_job_url(job_link, crawler)
             #Extract JSON from each individual job markdown
-            job_json = await extract_fields_from_job_link_with_groq(job_md)
+            job_url = re.search(r"https:\/\/www\.seek\.com\.au\/job\/\d+", job_link).group()
+            quick_apply_url = job_url + "/apply"
+            job_json = await extract_job_data(job_md, job_url, quick_apply_url)
             if not job_json:
                 return {'error': 'Unable to extract JSON fields from job link'}
+            if "logo_link" in job_json:
+                job_json["logo_link"] = truncate_logo_url(job_json["logo_link"])
             print(job_json)
             job_data_list.append(job_json)
             count += 1

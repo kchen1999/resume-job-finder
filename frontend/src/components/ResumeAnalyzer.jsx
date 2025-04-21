@@ -20,7 +20,7 @@ const ResumeAnalyzer = () => {
     formData.append("resume", fileToUse);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/resume/upload", formData);
+      const res = await axios.post("http://localhost:3000/api/resume/upload", formData);
       setResults(res.data.matchedJobs);
     } catch (err) {
       alert("Something went wrong.");

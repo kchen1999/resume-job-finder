@@ -5,7 +5,10 @@ const { sequelize } = require('../util/db')
 const { scrapeJobJsonDataList } = require('../services/scraperService')
 const { generateJobEmbedding } = require('../utils/jina')
 
-const seedJobsFromScraper = async (job_title, location) => {
+/* Scrapes job data from the web (using the scraper python service), 
+  generates embeddings for each job, and inserts them into the database. */
+
+const insertJobsFromScraper = async (job_title, location) => {
   try {
     await sequelize.authenticate()
     console.log('DB connection established.')
@@ -38,9 +41,9 @@ const seedJobsFromScraper = async (job_title, location) => {
 if (require.main === module) {
   const [,, job_title, location] = process.argv
   if (!job_title || !location) {
-    console.error('Usage: node scripts/seedJobsFromScraper.js "<job_title>" "<location>"')
+    console.error('Usage: node scripts/insertJobsFromScraper.js "<job_title>" "<location>"')
     process.exit(1)
   }
 
-  seedJobsFromScraper(job_title, location)
+  insertJobsFromScraper(job_title, location)
 }

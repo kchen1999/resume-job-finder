@@ -31,4 +31,4 @@ const scrapeJobJsonDataList  = async (job_title, location) => {
 };
 
 //scrapeJobMarkdown('software engineer', 'sydney');
-testDbConnection('software engineer', 'sydney');
+scrapeJobJsonDataList('software engineer', 'sydney');

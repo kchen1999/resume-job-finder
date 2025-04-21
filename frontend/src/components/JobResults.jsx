@@ -4,6 +4,8 @@ const JobResults = ({ results }) => {
     if (!results || results.length === 0) {
         return null;
     }
+    console.log("Results: ");
+    console.log(results);
     return (
       <Box mt={6}>
         <Typography variant="h5" gutterBottom>
@@ -16,7 +18,7 @@ const JobResults = ({ results }) => {
               <Typography variant="body2" color="text.secondary">
                 {job.company}
               </Typography>
-              <Link href={job.url} target="_blank" rel="noopener">
+              <Link href={job.job_url} target="_blank" rel="noopener">
                 View Job
               </Link>
             </CardContent>

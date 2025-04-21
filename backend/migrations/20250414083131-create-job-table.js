@@ -2,81 +2,74 @@ const { DataTypes } = require('sequelize');
 
 module.exports = {
   up: async ({ context: queryInterface }) => {
-    // Create the 'jobs' table
     await queryInterface.createTable('jobs', {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true,
+        autoIncrement: true
+      },
+      logo_link: {
+        type: DataTypes.STRING,
+        allowNull: true
       },
       title: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: false
       },
       company: {
         type: DataTypes.STRING,
-        allowNull: true,
+        allowNull: false
       },
       description: {
         type: DataTypes.TEXT,
-        allowNull: true,
+        allowNull: true
       },
       responsibilities: {
-        type: DataTypes.TEXT,
-        allowNull: true,
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: true
       },
       requirements: {
-        type: DataTypes.TEXT,
-        allowNull: true,
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: true
       },
       location: {
         type: DataTypes.STRING,
-        allowNull: true,
+        allowNull: true
       },
       experience_level: {
-        type: DataTypes.STRING, // e.g., 'entry', 'mid', 'senior'
-        allowNull: true,
+        type: DataTypes.STRING,
+        allowNull: true
       },
-      salary_min: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
+      salary: {
+        type: DataTypes.TEXT,
+        allowNull: true
       },
-      salary_max: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
+      other: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: true
       },
-      submission_date: {
+      posted_date: {
         type: DataTypes.DATE,
-        allowNull: true,
-        defaultValue: DataTypes.NOW,
-      },
-      expiration_date: {
-        type: DataTypes.DATE,
-        allowNull: true,
+        allowNull: false,
+        defaultValue: DataTypes.NOW
       },
       embedding: {
         type: DataTypes.JSONB,
-        allowNull: true, // Will store embedding array (vector)
+        allowNull: true
       },
-      apply_url: {
+      quick_apply_url: {
         type: DataTypes.STRING,
-        allowNull: true, // This will store the job application link
+        allowNull: true
       },
-      created_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-      },
-      updated_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW,
-      },
+      job_url: {
+        type: DataTypes.STRING,
+        allowNull: true
+      }
     });
   },
 
   down: async ({ context: queryInterface }) => {
-    // Revert the changes: Drop the 'jobs' table
     await queryInterface.dropTable('jobs');
-  },
+  }
 };
+

@@ -1,21 +1,15 @@
 import os
 import re
 import json
-from datetime import datetime, date
-from models import Job
-from database import db
+from datetime import date
 from groq import Groq
+from dotenv import load_dotenv
+from json_repair import repair_json
 
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-def handle_missing_fields(job):
-    job.setdefault("responsibilities", "N/A")
-    job.setdefault("requirements", "N/A")
-    job.setdefault("location", "N/A")
-    job.setdefault("experience_level", "N/A")
-    job.setdefault("salary", "N/A")
-    job.setdefault("job_url", "N/A")
-    return job
+load_dotenv()
+client = Groq(
+    api_key=os.environ.get("GROQ_API_KEY")
+)
 
 def extract_json_from_response(response):
     try:
@@ -38,30 +32,37 @@ def extract_job_links(markdown):
     job_links.extend(links)
     return job_links 
 
-async def extract_fields_from_job_link_with_groq(markdown):
+async def extract_fields_from_job_link_with_groq(markdown, job_url, quick_apply_url):
     try:
         current_date = date.today().strftime("%d/%m/%Y")
         prompt = (
-            "You are a helpful assistant. Extract structured job posting data from the text below. "
-            "Description should be an overview of the role otherwise put empty string if not provided"
-            "Responsibilities should include actual responsibilities not any headers"
-            "Requirements must also include technical skills/experience if provided - include word for word as per the job posting data (remove any headings)"
-            "Salary should include range and/or rate i.e. per day/year otherwise put empty string if not provided"
-            "Infer the experience level using the following categories - intern, junior, mid, senior, lead"
-            "Logo link is the company logo link otherwise put empty string if not provided"
-            "Other is all other job-related information provided in the job posting that hasn't been included in any other field in dot point form."
-            f"Extract 'posted_date' as DD/MM/YYYY by subtracting the number of days in phrases like 'X days ago' from the current date ({current_date})."
+            "You are a strict JSON data extraction tool. Extract structured job posting data from the text below.\n\n"
+            "- 'description': a short summary of the role. Return an empty string if not found.\n"
+            "- 'responsibilities': actual tasks/duties. Do not include headers or unrelated content.\n"
+            "- 'requirements': include all technical skills, technologies, years of experience, cloud platforms, front-end/back-end stacks,"
+            "architecture knowledge, tools, frameworks, databases, testing tools/methodologies, and certifications" 
+            "— even if mentioned outside the 'requirements' section. Use original wording. Do not include section headers.\n"
+            "- 'salary': return the full range and/or rate (e.g., per day, per year). Return empty string if not mentioned.\n"
+            "- 'experience_level': infer based on the content. Choose one of: intern, junior, mid, senior, lead.\n"
+            "- 'logo_link': return any image URL that appears to be a company logo, else empty string. It must start with https://image-service-cdn.seek.com.au"
+            " or https://bx-branding-gateway.cloud.seek.com.au or https://cpp-prod-seek-company-image-uploads.s3.ap-southeast-2.amazonaws.com\n"
+            "- 'other': include any extra job-relevant details not captured above. Must be bullet points. Do not include tools, tech, or experience level here.\n\n"
+            "Notes:\n"
+            "- 'responsibilities', 'requirements', and 'other' must be arrays of strings.\n"
+            f"- 'posted_date': return as a string in DD/MM/YYYY format by subtracting the number of days in phrases like 'X days ago' from the current date({current_date}).\n\n"
+            f"- job_url: {job_url}\n"
+            f"- quick_apply_url: {quick_apply_url}\n\n"
             "Return a single JSON object with the following fields:\n\n"
             "- title\n- company\nlogo-link\n- description\n- responsibilities\n- requirements\n"
             "-location\n- experience_level\n- salary\n-other\n"
             "-posted_date\n-quick_apply_url\n- job_url\n\n"
             "Only return valid JSON. Do not include explanations or markdown formatting.\n\n"
-            f"Data:\n{markdown}"
+            "Respond with nothing else — no backticks, no extra sentences, no formatting. Just a single JSON object."
+            f"Job Posting Text:\n{markdown}"
         )
 
         chat_completion = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[
+            messages= [
                 {
                     "role": "system",
                     "content": "You extract structured job data from markdown."
@@ -70,7 +71,8 @@ async def extract_fields_from_job_link_with_groq(markdown):
                     "role": "user",
                     "content": prompt
                 }
-            ]
+            ],
+            model="llama-3.1-8b-instant",
         )
 
         response_text = chat_completion.choices[0].message.content
@@ -79,31 +81,6 @@ async def extract_fields_from_job_link_with_groq(markdown):
     except Exception as e:
         print("Error calling Groq API (refine_data):", e)
         return None
-
-async def save_jobs_to_db(jobs):
-    try:
-        for job in jobs:
-            job = handle_missing_fields(job)
-            db_job = Job(
-                title=job.get("title"),
-                company=job.get("company"),
-                description=job.get("description"),
-                responsibilities=job.get("responsibilities"),
-                requirements=job.get("requirements"),
-                location=job.get("location"),
-                experience_level=job.get("experience_level"),
-                salary_min=job.get("salary"),
-                submission_date=datetime.fromisoformat(job.get("submission_date")) if job.get("submission_date") else None,
-                expiration_date=datetime.fromisoformat(job.get("expiration_date")) if job.get("expiration_date") else None,
-                job_url=job.get("job_url"),
-            )
-            db.session.add(db_job)
-
-        await db.session.commit()
-        print("Jobs saved successfully")
-    except Exception as e:
-        await db.session.rollback()
-        print("Error saving jobs to DB:", e)
 
 def process_markdown_to_job_links(markdown):
     try:
@@ -119,3 +96,32 @@ def process_markdown_to_job_links(markdown):
     except Exception as e:
         print("Processing error:", e)
         return None
+
+def truncate_logo_url(url):
+    if isinstance(url, str) and "https://cpp-prod-seek-company-image-uploads.s3.ap-southeast-2.amazonaws.com/" in url:
+        logo_index = url.find("/logo/")
+        if logo_index != -1:
+            return url[:logo_index + len("/logo/")]
+    return url  # or return "" if you want to clear it instead
+
+async def extract_job_data(job_md, job_url, quick_apply_url):
+    # Run the job extraction logic
+    raw_result = await extract_fields_from_job_link_with_groq(job_md, job_url, quick_apply_url)
+    print(f"Type of raw_result: {type(raw_result)}")
+
+     # If it's already a dict (parsed JSON), no need to decode
+    if isinstance(raw_result, dict):
+        return raw_result
+    
+    # Clean the extracted JSON using json_repair (if needed)
+    try:
+        job_json = json.loads(raw_result)
+    except json.JSONDecodeError:
+        try:
+            repaired = repair_json(raw_result)  # Raw string goes here
+            print("repairing json...")
+            job_json = json.loads(repaired)
+        except Exception as e:
+            return {'error': f'JSON repair failed: {str(e)}'}
+
+    return job_json
