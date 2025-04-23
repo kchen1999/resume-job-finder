@@ -38,6 +38,45 @@ const ResumeAnalyzer = () => {
     }
   };
 
+  const parseDDMMYYYY = (str) => {
+    const [day, month, year] = str.split('/');
+    return new Date(`${year}-${month}-${day}`); // converts safely to YYYY-MM-DD
+  };
+
+  const applyFilters = (jobs, filters) => {
+    return jobs.filter(job => {
+      // Experience filter (if set and not empty)
+      if (filters.experience && filters.experience.length > 0) {
+        const normalizedExperience = filters.experience.map(level => level.toLowerCase().trim());
+        if (!normalizedExperience.includes(job.experience_level.toLowerCase().trim())) return false;
+      }
+  
+      // Location filter
+      if (filters.location && filters.location !== '') {
+        console.log("b")
+        console.log(filters.location)
+        console.log(job.location)
+        if (filters.location.length > 0) {
+          if (!filters.location.includes(job.location)) return false;
+        }
+      }
+  
+      // Posted Within filter (e.g. "7" for 7 days ago)
+      if (filters.posted && filters.posted !== '') {
+        console.log("c")
+        const daysAgo = parseInt(filters.posted, 10);
+        const postedCutoff = new Date();
+        postedCutoff.setDate(postedCutoff.getDate() - daysAgo);
+  
+        const jobPostedDate = parseDDMMYYYY(job.posted_date);
+  
+        if (jobPostedDate < postedCutoff) return false;
+      }
+  
+      return true;
+    });
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
@@ -55,7 +94,7 @@ const ResumeAnalyzer = () => {
         </form>
       </Box>
       <JobFilters filters={filters} setFilters={setFilters} />
-      <JobResults results={results} />
+      <JobResults results={applyFilters(results, filters)} />
     </Box>
   );
 };
