@@ -28,6 +28,7 @@ const ResumeDropzone = ({ file, setFile, loading }) => {
         cursor: "pointer",
         backgroundColor: isDragActive ? "#f0f0f0" : "transparent",
         width: "100%",
+        minWidth: '270px',
         mt: 3,
       }}
     >

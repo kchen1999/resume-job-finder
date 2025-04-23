@@ -2,11 +2,19 @@ import { useState } from "react";
 import axios from "axios";
 import ResumeDropzone from "./ResumeDropzone";
 import JobResults from "./JobResults";
+import JobFilters from "./JobFilters";
+import { Box } from '@mui/material';
 
 const ResumeAnalyzer = () => {
   const [file, setFile] = useState(null);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    experience: '',
+    posted: '',
+    domain: '',
+    location: '',
+  });
 
   const handleSubmit = async (uploadedFile) => {
     const fileToUse = uploadedFile || file;
@@ -20,28 +28,37 @@ const ResumeAnalyzer = () => {
     formData.append("resume", fileToUse);
 
     try {
-      const res = await axios.post("http://localhost:3000/api/resume/upload", formData);
-      setResults(res.data.matchedJobs);
+        const res = await axios.post("http://localhost:3000/api/resume/upload", formData);
+        setResults(res.data.matchedJobs);
     } catch (err) {
-      alert("Something went wrong.");
-      console.error(err);
+        alert("Something went wrong.");
+        console.error(err);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
   return (
-    <>
-      <form onSubmit={handleSubmit}>
-        <ResumeDropzone file={file} setFile={(newFile) => {
-            setFile(newFile);
-            if (newFile) {
-                handleSubmit(newFile); // trigger upload when file is selected
-            }}} loading={loading} />
-      </form>
+    <Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', justifyContent: 'center' }}>
+        <form onSubmit={handleSubmit}>
+          <ResumeDropzone
+              file={file}
+              setFile={(newFile) => {
+                setFile(newFile);
+                if (newFile) {
+                  handleSubmit(newFile);
+                }
+              }}
+              loading={loading}
+          />
+        </form>
+      </Box>
+      <JobFilters filters={filters} setFilters={setFilters} />
       <JobResults results={results} />
-    </>
+    </Box>
   );
 };
 
 export default ResumeAnalyzer;
+
