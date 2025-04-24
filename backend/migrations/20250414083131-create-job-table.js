@@ -36,6 +36,10 @@ module.exports = {
         type: DataTypes.STRING,
         allowNull: true
       },
+      location_search: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
       experience_level: {
         type: DataTypes.STRING,
         allowNull: true
@@ -49,9 +53,16 @@ module.exports = {
         allowNull: true
       },
       posted_date: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW
+        type: DataTypes.STRING,
+        allowNull: true
+      },
+      posted_within: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
+      work_type: {
+        type: DataTypes.STRING,
+        allowNull: true
       },
       embedding: {
         type: DataTypes.JSONB,

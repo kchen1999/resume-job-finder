@@ -36,8 +36,8 @@ const JobResults = ({ results }) => {
                   <Box
                     component="img"
                     src={job.logo_link}
-                    alt={`${job.company} logo`}
-                    sx={{ height: 20, maxWidth: '100%', objectFit: 'contain' }}
+                    alt=""
+                    sx={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
                   />
                 </Box>
               )}
@@ -49,7 +49,7 @@ const JobResults = ({ results }) => {
                 {job.location}
               </Typography>
   
-              {job.salary && (
+              {job.work_type && (
                 <Box
                   sx={{
                     display: 'inline-block',
@@ -63,7 +63,7 @@ const JobResults = ({ results }) => {
                     mb: 1,
                   }}
                 >
-                  {job.salary}
+                  {job.work_type}
                 </Box>
               )}
             </CardContent>

@@ -1,7 +1,7 @@
 import os
 import re
 import json
-from datetime import date
+from datetime import date, datetime
 from groq import Groq
 from dotenv import load_dotenv
 from json_repair import repair_json
@@ -21,7 +21,7 @@ def extract_json_from_response(response):
     except Exception as e:
         print(f"Raw response: {repr(response)}")
         print("Error parsing JSON:", e)
-        return None
+        return response
 
 def extract_job_links(markdown):
     job_links = []
@@ -32,7 +32,7 @@ def extract_job_links(markdown):
     job_links.extend(links)
     return job_links 
 
-async def extract_fields_from_job_link_with_groq(markdown, job_url, quick_apply_url):
+async def extract_fields_from_job_link_with_groq(markdown):
     try:
         current_date = date.today().strftime("%d/%m/%Y")
         prompt = (
@@ -40,24 +40,26 @@ async def extract_fields_from_job_link_with_groq(markdown, job_url, quick_apply_
             "- 'description': a short summary of the role. Return an empty string if not found.\n"
             "- 'responsibilities': actual tasks/duties. Do not include headers or unrelated content.\n"
             "- 'requirements': include all technical skills, technologies, years of experience, cloud platforms, front-end/back-end stacks,"
-            "architecture knowledge, tools, frameworks, databases, testing tools/methodologies, and certifications" 
+            " architecture knowledge, tools, frameworks, databases, testing tools/methodologies, and certifications" 
             "— even if mentioned outside the 'requirements' section. Use original wording. Do not include section headers.\n"
-            "- 'salary': return the full range and/or rate (e.g., per day, per year). Return empty string if not mentioned.\n"
+            " - 'salary': Extract only the actual salary range or rate (e.g., $500 per day, $80k–$100k per year). Do not return suggestions, or advice. If a salary is not explicitly mentioned in the text, return an empty string.\n}"
             "- 'experience_level': infer based on the content. Choose one of: intern, junior, mid, senior, lead.\n"
-            "- 'logo_link': return any image URL that appears to be a company logo, else empty string. It must start with https://image-service-cdn.seek.com.au"
-            " or https://bx-branding-gateway.cloud.seek.com.au or https://cpp-prod-seek-company-image-uploads.s3.ap-southeast-2.amazonaws.com\n"
+            "- 'work_type': Identify the job type. Choose one of: 'Full time', 'Part time', 'Casual/Vacation', 'Contract/temp'. If unclear, return an empty string.\n"
             "- 'other': include any extra job-relevant details not captured above. Must be bullet points. Do not include tools, tech, or experience level here.\n\n"
             "Notes:\n"
             "- 'responsibilities', 'requirements', and 'other' must be arrays of strings.\n"
-            f"- 'posted_date': return as a string in DD/MM/YYYY format by subtracting the number of days in phrases like 'X days ago' from the current date({current_date}).\n\n"
-            f"- job_url: {job_url}\n"
-            f"- quick_apply_url: {quick_apply_url}\n\n"
+            f"- 'posted_date': Return a string strictly in DD/MM/YYYY format. If the job posting mentions 'X minutes ago' or 'X hours ago', then treat it as posted today and return: {current_date}."
+            f"Only if the posting mentions 'X days ago;, subtract that number from today’s date ({current_date}) and return the result."
+            "Do not return the posted_date in any other format like YYYY-MM-DD"
+            f"- 'posted_within': Based strictly on the 'posted_date' field. Return one of the following strings based on how far the date is from today ({current_date}):\n"
+            "    • If the job was posted today, return 'Today'.\n"
+            "    • If the job was posted 1 day ago, return '1 day ago'.\n"
+            "    • If the job was posted 2 to 6 days ago, return 'X days ago' where X is the number of days.\n"
+            "    • If the job was posted more than 6 days ago, return '7+ days ago'.\n"
             "Return a single JSON object with the following fields:\n\n"
-            "- title\n- company\nlogo-link\n- description\n- responsibilities\n- requirements\n"
-            "-location\n- experience_level\n- salary\n-other\n"
-            "-posted_date\n-quick_apply_url\n- job_url\n\n"
+            "- title\n- company\n- description\n- responsibilities\n- requirements\n"
+            "-location\n- experience_level\n-work_type\n- salary\n-other\n-posted_date\n-posted_within\n\n"
             "Only return valid JSON. Do not include explanations or markdown formatting.\n\n"
-            "Respond with nothing else — no backticks, no extra sentences, no formatting. Just a single JSON object."
             f"Job Posting Text:\n{markdown}"
         )
 
@@ -104,9 +106,9 @@ def truncate_logo_url(url):
             return url[:logo_index + len("/logo/")]
     return url  # or return "" if you want to clear it instead
 
-async def extract_job_data(job_md, job_url, quick_apply_url):
+async def extract_job_data(job_md):
     # Run the job extraction logic
-    raw_result = await extract_fields_from_job_link_with_groq(job_md, job_url, quick_apply_url)
+    raw_result = await extract_fields_from_job_link_with_groq(job_md)
     print(f"Type of raw_result: {type(raw_result)}")
 
      # If it's already a dict (parsed JSON), no need to decode
@@ -115,13 +117,30 @@ async def extract_job_data(job_md, job_url, quick_apply_url):
     
     # Clean the extracted JSON using json_repair (if needed)
     try:
-        job_json = json.loads(raw_result)
-    except json.JSONDecodeError:
-        try:
-            repaired = repair_json(raw_result)  # Raw string goes here
-            print("repairing json...")
-            job_json = json.loads(repaired)
-        except Exception as e:
-            return {'error': f'JSON repair failed: {str(e)}'}
+        repaired_json_string = repair_json(raw_result)  # Raw string goes here
+        print("repairing json...")
+        job_json = json.loads(repaired_json_string)
+        print("repaired json: ")
+    except Exception as e:
+        return {'error': f'JSON repair failed: {str(e)}'}
 
     return job_json
+
+def is_within_last_n_days(job_json, within_days=21):
+    try:
+        posted_date_str = job_json.get("posted_date", "")
+        posted_date = datetime.strptime(posted_date_str, "%d/%m/%Y").date()
+        today = datetime.today().date()
+        return (today - posted_date).days <= within_days
+    except Exception as e:
+        print("Date parsing error:", e)
+        return None
+    
+def enrich_job_data(job_json, location_search, job_url, quick_apply_url, logo_link):
+    job_json["job_url"] = job_url
+    job_json["quick_apply_url"] = quick_apply_url
+    job_json["location_search"] = location_search
+    job_json["logo_link"] = logo_link
+    return job_json
+
+

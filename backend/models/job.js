@@ -37,6 +37,10 @@ Job.init({
     type: DataTypes.STRING,
     allowNull: true
   },
+  location_search: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   experience_level: {
     type: DataTypes.STRING, 
     allowNull: true,
@@ -56,9 +60,16 @@ Job.init({
     allowNull: true
   },
   posted_date: {
-    type: DataTypes.DATE,
+    type: DataTypes.TEXT,
     allowNull: false,
-    defaultValue: DataTypes.NOW
+  },
+  posted_within: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
+  work_type: {
+    type: DataTypes.TEXT,
+    allowNull: false,
   },
   embedding: {
     type: DataTypes.JSONB,
@@ -89,4 +100,4 @@ Job.init({
   timestamps: false
 });
 
-module.exports = Job;
+module.exports = Job; 

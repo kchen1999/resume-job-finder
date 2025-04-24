@@ -39,7 +39,7 @@ const JobDetail = ({ job }) => {
           <Box
             component="img"
             src={job.logo_link}
-            alt={`${job.company} logo`}
+            alt=""
             sx={{
               height: 50,
               objectFit: 'contain',
@@ -60,7 +60,7 @@ const JobDetail = ({ job }) => {
       {/* Tags */}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
         {job.salary && <Chip label={job.salary} color="success" />}
-        {job.posted_date && <Chip label={job.posted_date} />}
+        {job.posted_date && <Chip label={job.posted_within} />}
         {job.location && <Chip label={job.location} />}
       </Box>
 

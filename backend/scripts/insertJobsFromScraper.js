@@ -10,30 +10,35 @@ const { generateJobEmbedding } = require('../utils/jina')
 
 const insertJobsFromScraper = async (job_title, location) => {
   try {
-    await sequelize.authenticate()
-    console.log('DB connection established.')
-
     const jobDataResponse = await scrapeJobJsonDataList(job_title, location)
     const jobDataList = jobDataResponse.result
 
+    const bulkInsertData = []
     for (const jobData of jobDataList) {
       const embedding = await generateJobEmbedding(jobData)
       if (!embedding) {
         console.warn('Skipping job due to embedding failure:', jobData.title)
         continue
       }
-      const [day, month, year] = jobData['posted_date'].split('/');
-      const formattedDate = `${year}-${month}-${day}`;
-      await Job.create({ ...jobData, quick_apply_url: jobData['quick_apply_url'] || null, posted_date: formattedDate, embedding })
+      const [day, month, year] = jobData['posted_date'].split('/')
+      jobData.posted_date = `${year}-${month}-${day}`
+      jobData.embedding = embedding
+      jobData.quick_apply_url = jobData['quick_apply_url'] || null
+      bulkInsertData.push(jobData)
       console.log(`Inserted job: ${jobData.title}`)
     }
+      await sequelize.authenticate()
+      console.log('DB connection established.')
 
-    console.log('All jobs seeded successfully.')
+      await Job.bulkCreate(bulkInsertData)
+      console.log('All jobs seeded successfully.')
+
   } catch (err) {
-    console.error('Seeding error:', err)
+      console.error('Seeding error:', err)
+
   } finally {
-    await sequelize.close()
-    console.log('DB connection closed.')
+      await sequelize.close()
+      console.log('DB connection closed.')
   }
 }
 

@@ -1,6 +1,6 @@
 require('dotenv').config()
 const { Job } = require('../models/index')
-const { sequelize } = require('../util/db')
+//const { sequelize } = require('../util/db')
 
 const job = {
   title: 'Software Engineer (Frontend)',
@@ -55,18 +55,18 @@ async function generateEmbedding(jobData) {
 
 async function run() {
   try {
-    await sequelize.authenticate()
+    //await sequelize.authenticate()
     console.log('DB connection established.')
 
     const embedding = await generateEmbedding(job)
     if (!embedding) throw new Error('Failed to generate embedding.')
 
-    await Job.create({ ...job, embedding })
+    //await Job.create({ ...job, embedding })
     console.log('Job successfully seeded!')
   } catch (err) {
     console.error('Seeding error:', err)
   } finally {
-    await sequelize.close()
+    //await sequelize.close()
     console.log('DB connection closed.')
   }
 }

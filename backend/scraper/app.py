@@ -4,7 +4,7 @@ import random
 import re
 from flask import Flask, request, jsonify
 from crawl import scrape_individual_job_url, scrape_first_page_only, scrape_job_listing
-from utils import process_markdown_to_job_links, extract_job_data, truncate_logo_url
+from utils import process_markdown_to_job_links, extract_job_data, truncate_logo_url, enrich_job_data, is_within_last_n_days
 from crawl4ai import AsyncWebCrawler
 
 app = Flask(__name__)
@@ -45,17 +45,16 @@ def test_db():
         data = request.get_json()
         job_title = data.get('job_title', 'software engineer')
         location = data.get('location', 'sydney')
-        base_url = f"https://www.seek.com.au/jobs?keywords={job_title}&where={location}"
+        base_url = f"https://www.seek.com.au/jobs?keywords={job_title}&where={location}&sortmode=ListedDate"
 
-        result = asyncio.run(scrape_and_process(base_url))
+        result = asyncio.run(scrape_and_process(base_url, location))
         return jsonify(result), 200
 
     except Exception as e:
         print("Test DB error:", e)
         return jsonify({'error': str(e)}), 500
-
-
-async def scrape_and_process(base_url):
+    
+async def scrape_and_process(base_url, location_search):
     # First scrape job listing page
     async with AsyncWebCrawler() as crawler:
         print("AsyncWebCrawler initialized successfully!")
@@ -69,27 +68,32 @@ async def scrape_and_process(base_url):
         if not job_urls:
             return {'error': 'Processing to job urls failed'}
 
-        
         job_data_list = []
-        # Scrape each job link
         count = 0
+        # Scrape each job link
         for job_link in job_urls:
-            if count == 8: 
+            print("Scraping job:", count)
+            if count == 10:
                 break
-            delay = random.uniform(1, 3)
-            print(f"Waiting for {delay:.2f} seconds...")
-            await asyncio.sleep(delay)
+            #delay = random.uniform(1, 3)
+            #print(f"Waiting for {delay:.2f} seconds...")
+            #await asyncio.sleep(delay)
             print("Scraping:", job_link)
             #Scrape individual job markdown from job url
-            job_md = await scrape_individual_job_url(job_link, crawler)
+            job_md, logo_link = await scrape_individual_job_url(job_link, crawler)
             #Extract JSON from each individual job markdown
             job_url = re.search(r"https:\/\/www\.seek\.com\.au\/job\/\d+", job_link).group()
             quick_apply_url = job_url + "/apply"
-            job_json = await extract_job_data(job_md, job_url, quick_apply_url)
+            job_json = await extract_job_data(job_md)
             if not job_json:
                 return {'error': 'Unable to extract JSON fields from job link'}
+            print(job_json)
+            if not is_within_last_n_days(job_json, 2):
+                break
             if "logo_link" in job_json:
                 job_json["logo_link"] = truncate_logo_url(job_json["logo_link"])
+            enrich_job_data(job_json, location_search, job_url, quick_apply_url, logo_link)
+            print("Enriched job json: ")
             print(job_json)
             job_data_list.append(job_json)
             count += 1

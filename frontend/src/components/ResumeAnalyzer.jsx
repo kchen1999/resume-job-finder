@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import ResumeDropzone from "./ResumeDropzone";
 import JobResults from "./JobResults";
@@ -15,6 +15,20 @@ const ResumeAnalyzer = () => {
     domain: '',
     location: '',
   });
+
+   // Fetch the jobs when the component mounts
+   useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const res = await axios.get("http://localhost:3000/api/jobs");
+        setResults(res.data); // Set the initial results (jobs from DB)
+      } catch (err) {
+        console.error("Failed to fetch jobs", err);
+      }
+    };
+
+    fetchJobs();
+  }, []); 
 
   const handleSubmit = async (uploadedFile) => {
     const fileToUse = uploadedFile || file;
@@ -53,17 +67,13 @@ const ResumeAnalyzer = () => {
   
       // Location filter
       if (filters.location && filters.location !== '') {
-        console.log("b")
-        console.log(filters.location)
-        console.log(job.location)
         if (filters.location.length > 0) {
-          if (!filters.location.includes(job.location)) return false;
+          if (!filters.location.includes(job.location_search)) return false;
         }
       }
   
       // Posted Within filter (e.g. "7" for 7 days ago)
       if (filters.posted && filters.posted !== '') {
-        console.log("c")
         const daysAgo = parseInt(filters.posted, 10);
         const postedCutoff = new Date();
         postedCutoff.setDate(postedCutoff.getDate() - daysAgo);

@@ -24,6 +24,12 @@ def extract_total_job_count(markdown: str) -> int | None:
         return int(number_str)
     return None
 
+def extract_logo_link(html):
+    match = re.search(r'<img[^>]*src="([^"]+)"[^>]*class="[^"]*\b_3txkbm0\b[^"]*"', html)
+    if match:
+        return match.group(1)
+    return ""
+
 #Function to scrape first page of job listings only
 async def scrape_first_page_only(base_url, crawler):
     page_url = f"{base_url}&page=1"
@@ -41,10 +47,11 @@ async def scrape_individual_job_url(job_url, crawler):
         page_url = f"{job_url}"
         await delay_request(1)
         result = await crawler.arun(page_url)
+        logo_link = extract_logo_link(result.html)
 
         if result.markdown:
             print("Successfully scraped job url")
-            return result.markdown
+            return [result.markdown, logo_link]
         else:
             print("No markdown found in job url")
             return []
