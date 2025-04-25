@@ -64,6 +64,10 @@ module.exports = {
         type: DataTypes.STRING,
         allowNull: true
       },
+      work_model: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
       embedding: {
         type: DataTypes.JSONB,
         allowNull: true

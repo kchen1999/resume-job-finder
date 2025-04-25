@@ -202,7 +202,7 @@ const JobDetailsPanel = ({ job }) => {
         {/* Requirements */}
         {job.requirements?.length > 0 && (
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>Requirements</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }} gutterBottom>Requirements</Typography>
             <ul>
               {job.requirements.map((item, index) => (
                 <li key={index}>
@@ -216,7 +216,7 @@ const JobDetailsPanel = ({ job }) => {
         {/* Responsibilities */}
         {job.responsibilities?.length > 0 && (
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Responsibilities</Typography>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2, fontWeight: 'bold' }}>Responsibilities</Typography>
             <ul>
               {job.responsibilities.map((item, index) => (
                 <li key={index}>
@@ -230,7 +230,7 @@ const JobDetailsPanel = ({ job }) => {
         {/* Other */}
         {job.other?.length > 0 && (
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>Other</Typography>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2, fontWeight: 'bold' }}>Other</Typography>
             <ul>
               {job.other.map((item, index) => (
                 <li key={index}>

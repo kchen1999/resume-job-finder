@@ -79,7 +79,6 @@ const ResumeAnalyzer = () => {
         postedCutoff.setDate(postedCutoff.getDate() - daysAgo);
   
         const jobPostedDate = parseDDMMYYYY(job.posted_date);
-  
         if (jobPostedDate < postedCutoff) return false;
       }
   

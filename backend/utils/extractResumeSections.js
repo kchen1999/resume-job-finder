@@ -34,7 +34,7 @@ const extractResumeSections = async (resumeText, jobTitle) => {
             content: prompt 
         }
       ],
-        model: "llama-3.3-70b-versatile",
+        model: "llama3-70b-8192",
     })
   
     const extractedText = response.choices[0].message.content;

@@ -71,6 +71,10 @@ Job.init({
     type: DataTypes.TEXT,
     allowNull: false,
   },
+  work_model: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
   embedding: {
     type: DataTypes.JSONB,
     allowNull: true // Will store embedding array (vector)

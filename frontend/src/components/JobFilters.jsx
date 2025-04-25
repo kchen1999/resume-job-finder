@@ -15,7 +15,6 @@ const JobFilters = ({ filters, setFilters }) => {
       case '3': return '3 days ago';
       case '7': return '7 days ago';
       case '14': return '14 days ago';
-      case '21': return '21 days ago';
       default: return '';
     }
   };
@@ -55,9 +54,9 @@ const JobFilters = ({ filters, setFilters }) => {
                 <Checkbox checked={filters.experience.includes('Senior')} />
                 <ListItemText primary="Senior" />
             </MenuItem>
-            <MenuItem value="Lead">
-                <Checkbox checked={filters.experience.includes('Lead')} />
-                <ListItemText primary="Lead" />
+            <MenuItem value="Lead+">
+                <Checkbox checked={filters.experience.includes('Lead+')} />
+                <ListItemText primary="Lead+" />
             </MenuItem>
             </Select>
             </FormControl>
@@ -82,7 +81,6 @@ const JobFilters = ({ filters, setFilters }) => {
             <MenuItem value="3">3 days ago</MenuItem>
             <MenuItem value="7">7 days ago</MenuItem>
             <MenuItem value="14">14 days ago</MenuItem>
-            <MenuItem value="21">21 days ago</MenuItem>
             </Select>
         </FormControl>
         </Grid>
