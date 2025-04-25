@@ -1,99 +1,57 @@
-import React, { useState } from 'react';
-import { Box, Card, CardContent, Typography } from '@mui/material';
-import JobDetail from './JobDetail';
+import React, { useState, useEffect } from 'react';
+import { Box, Typography, Skeleton } from '@mui/material';
+import JobDetailsPanel from './JobDetailsPanel';
+import JobListPanel from './JobListPanel';
 
 const JobResults = ({ results }) => {
-  const [selectedJob, setSelectedJob] = useState(results[0]);
+  const [selectedJob, setSelectedJob] = useState(results[0])
+
+  useEffect(() => {
+    if (results && results.length > 0) {
+      setSelectedJob(results[0]);
+    }
+  }, [results])
+
 
   const handleJobClick = (job) => {
     setSelectedJob(job);
-  };
+  }
 
-  if (!results || results.length === 0) return null;
+  if (results === undefined) {
+    // While loading: show skeleton
+    return (
+      <Box sx={{ p: 2 }}>
+        <Skeleton variant="text" width={200} height={30} />
+        <Skeleton variant="rectangular" width="100%" height={120} sx={{ my: 2 }} />
+        <Skeleton variant="rectangular" width="100%" height={120} />
+      </Box>
+    )
+  }
+
+  if (results.length === 0) {
+    // Empty state
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Typography variant="h6" color="text.secondary">
+          No jobs found for filters applied.
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          Try adjusting your filters or check back later.
+        </Typography>
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ display: 'flex', gap: 2 }}>
-      {/* Job List - 40% */}
-      <Box sx={{ width: '36%' }}>
-        {results.map((job) => (
-          <Card
-            key={job.id}
-            variant="outlined"
-            sx={{ mb: 2, cursor: 'pointer' }}
-            onClick={() => handleJobClick(job)}
-          >
-            <CardContent>
-              {job.logo_link && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'flex-start',
-                    alignItems: 'center',
-                    px: 0.25,
-                    py: 0.5,
-                  }}
-                >
-                  <Box
-                    component="img"
-                    src={job.logo_link}
-                    alt=""
-                    sx={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
-                  />
-                </Box>
-              )}
-              <Typography variant="h6">{job.title}</Typography>
-              <Typography variant="body2" gutterBottom>
-                {job.company}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {job.location}
-              </Typography>
-  
-              {job.work_type && (
-                <Box
-                  sx={{
-                    display: 'inline-block',
-                    backgroundColor: '#e0f2f1',
-                    color: '#00695c',
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 1,
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    mb: 1,
-                  }}
-                >
-                  {job.work_type}
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
-  
-      {/* Job Detail - 60% */}
-      <Box
-        sx={{
-          width: '64%',
-          maxHeight: 'calc(100vh - 32px)',
-          position: 'sticky',
-          top: 16,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          border: '1px solid #ddd',
-          borderRadius: 2,
-          backgroundColor: '#fff',
-          boxShadow: 1,
-        }}
-      >
-        <JobDetail job={selectedJob} />
-      </Box>
+      <JobListPanel results={results} onJobClick={handleJobClick}/>
+      {selectedJob && <JobDetailsPanel job={selectedJob} />}
     </Box>
-  );
+  )
   
-};
+}
 
-export default JobResults;
+export default JobResults
 
 
   

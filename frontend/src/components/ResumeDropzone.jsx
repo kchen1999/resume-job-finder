@@ -40,7 +40,7 @@ const ResumeDropzone = ({ file, setFile, loading }) => {
         ) : (
           <Typography>Drag & drop resume (PDF)</Typography>
         )}
-        <Button variant="contained" sx={{ textTransform: "none" }} disabled={loading}>
+        <Button variant="contained" sx={{ textTransform: "none", backgroundColor: '#3B82F6' }} disabled={loading}>
           {loading ? <CircularProgress size={24} /> : "Click to browse"}
         </Button>
       </Box>
