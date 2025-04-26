@@ -70,10 +70,12 @@ async def extract_job_data(job_md):
         print("repairing json...")
         job_json = json.loads(repaired_json_string)
         print("repaired json: ")
+        print(job_json)
     except Exception as e:
         return {'error': f'JSON repair failed: {str(e)}'}
 
     return job_json
+
 
 def is_within_last_n_days(job_json, within_days=21):
     try:

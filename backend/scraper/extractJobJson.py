@@ -21,7 +21,7 @@ async def extract_fields_from_job_link_with_groq(markdown):
             " - 'salary': Extract only the actual salary range or rate (e.g., $500 per day, $80k–$100k per year). Do not return suggestions, or advice. If a salary is not explicitly mentioned in the text, return an empty string."
             "- 'experience_level': infer based primarily on the job title. Choose one of: intern, junior, mid, senior, lead+.\n"
             " If job title includes 'Lead', 'Manager', 'Head' or similar leadership terms, classify as 'lead+'\n"
-            "- 'work_type': Identify the job type. Choose one of: 'Full time', 'Part time', 'Casual/Vacation', 'Contract/Temp' (exact formatting). If unclear, return an empty string.\n"
+            "- 'work_type': Identify the job type. Choose one of: 'Full time', 'Part time', 'Casual/Vacation', 'Contract/Temp' (exact formatting). If unclear, return 'Full time'.\n"
             "- 'work_model': Identify the job model. Choose one of: 'Hybrid', 'On-site', or 'Remote' (exact formatting). Treat 'flexible' or 'WFH' as 'Hybrid' unless it's clearly full-time remote. If unclear, return 'On-site'\n"
             "- 'other': include any extra job-relevant details not captured above. Must be bullet points. Do not include tools, tech, or experience level here.\n\n"
             "Notes:\n"
@@ -32,7 +32,7 @@ async def extract_fields_from_job_link_with_groq(markdown):
             "Return a single JSON object with the following fields:\n\n"
             "- title\n- company\n- description\n- responsibilities\n- requirements\n"
             "- location\n- experience_level\n- work_type\n- salary\n- work_model\n- other\n- posted_date\n\n"
-            "Only return **raw, minified** JSON without explanations or markdown formatting. The JSON must be directly parsable.\n\n"
+            "Only return **raw, minified** JSON without explanations or markdown formatting. The JSON must be directly parsable. Do not include markdown, backticks, or code fencing of any kind. \n\n"
             f"Job Posting Text:\n{markdown}"
         )
 
