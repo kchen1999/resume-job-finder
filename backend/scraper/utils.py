@@ -116,3 +116,5 @@ def enrich_job_data(job_json, location_search, job_url, quick_apply_url, logo_li
     return job_json
 
 
+
+
