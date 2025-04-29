@@ -2,11 +2,14 @@ const { DataTypes } = require('sequelize');
 
 module.exports = {
   up: async ({ context: queryInterface }) => {
+    await queryInterface.sequelize.query('DROP SEQUENCE IF EXISTS jobs_id_seq CASCADE;');
+    await queryInterface.sequelize.query('DROP TABLE IF EXISTS jobs CASCADE;');
     await queryInterface.createTable('jobs', {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true
+        autoIncrement: true,
+        allowNull: false
       },
       logo_link: {
         type: DataTypes.STRING,
@@ -17,6 +20,10 @@ module.exports = {
         allowNull: false
       },
       company: {
+        type: DataTypes.STRING,
+        allowNull: false
+      },
+      classification: {
         type: DataTypes.STRING,
         allowNull: false
       },
@@ -85,6 +92,7 @@ module.exports = {
 
   down: async ({ context: queryInterface }) => {
     await queryInterface.dropTable('jobs');
+    await queryInterface.sequelize.query('DROP SEQUENCE IF EXISTS jobs_id_seq CASCADE;');
   }
 };
 

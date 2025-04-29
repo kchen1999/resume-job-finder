@@ -1,13 +1,14 @@
 # app.py
 import asyncio
-import random
-from flask import Flask, request, jsonify
-from crawl import scrape_all_jobs, scrape_job_listing
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from flask import jsonify
+from scraper.crawl import scrape_all_jobs, scrape_job_listing
 
-app = Flask(__name__)
+app = FastAPI()
 
-@app.route('/scrape', methods=['POST'])
-def scrape():
+@app.post('/scrape')
+async def scrape(request: Request):
     try:
         print("Received POST request to /scrape")
         data = request.get_json()
@@ -36,20 +37,19 @@ def scrape():
         print("Scraping failed:", e)
         return jsonify({'error': 'Scraping failed', 'details': str(e)}), 500
     
-@app.route('/test-db', methods=['POST'])
-def test_db():
+@app.post("/jobs")
+async def get_jobs(request: Request):
     try:
-        data = request.get_json()
+        data = await request.json()
         job_title = data.get('job_title', 'software engineer')
         location = data.get('location', 'sydney')
         base_url = f"https://www.seek.com.au/jobs?keywords={job_title}&where={location}&sortmode=ListedDate"
 
-        result = asyncio.run(scrape_all_jobs(base_url, location))
-        return jsonify(result), 200
+        result = await scrape_all_jobs(base_url, location)
+        return JSONResponse(content=result, status_code=200)
 
     except Exception as e:
-        print("Test DB error:", e)
-        return jsonify({'error': str(e)}), 500
+        print("Scraping all jobs error:", e)
+        return JSONResponse(content={'error': str(e)}, status_code=500)
     
-if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port=5000)
+

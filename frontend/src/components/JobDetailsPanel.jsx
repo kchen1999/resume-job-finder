@@ -152,10 +152,51 @@ const JobDetailsPanel = ({ job }) => {
             />
           }
         </Box>
+        <Box>
+        {job.classification &&
+          <Chip 
+            sx={{
+              height: 'auto', // allow Chip to grow in height
+              '& .MuiChip-label': {
+                display: 'block', // make label block so it wraps
+                whiteSpace: 'normal', // allow normal wrapping
+                wordBreak: 'break-word', 
+                overflowWrap: 'break-word',
+                paddingTop: '8px', // optional nicer padding
+                paddingBottom: '8px',
+              }
+            }}
+            label={job.classification}
+            icon={
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                stroke-linecap="round" 
+                stroke-linejoin="round" 
+                width="18" 
+                height="18" 
+                stroke-width="2"
+              > 
+                <path d="M3 21l18 0"></path> 
+                <path d="M9 8l1 0"></path> 
+                <path d="M9 12l1 0"></path> 
+                <path d="M9 16l1 0"></path>
+                <path d="M14 8l1 0"></path> 
+                <path d="M14 12l1 0"></path> 
+                <path d="M14 16l1 0"></path> 
+                <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16">
+                </path> 
+              </svg> 
+            }
+          />
+        }
+        </Box>
         
-        {/* See Job Button */}
+        {/* Job Button */}
         {job.job_url && (
-          <Box sx={{ display: 'flex', mb: 3, gap: 1 }}>
+          <Box sx={{ display: 'flex', mb: 3, mt: 2, gap: 1 }}>
             <Button
               variant="contained"
               href={job.quick_apply_url}

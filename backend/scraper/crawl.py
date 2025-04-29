@@ -3,12 +3,15 @@ import asyncio
 import random
 import math
 import re
+import logging
+
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
-from utils import process_markdown_to_job_links, extract_job_data, truncate_logo_url, enrich_job_data, is_within_last_n_days, get_posted_within, extract_job_url_and_quick_apply_url
+from scraper.utils import process_markdown_to_job_links, extract_job_data, enrich_job_data, is_within_last_n_days, get_posted_within, extract_job_url_and_quick_apply_url
 
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 # Function to add a delay between requests to mimic human behavior
 async def delay_request(page_num):
     if page_num % 10 == 0:
@@ -48,41 +51,69 @@ async def create_browser_context():
     return playwright, browser, context
 
 async def scrape_logo_src(page):
-    await asyncio.sleep(random.uniform(1.5, 2.5))
-    await page.wait_for_load_state('networkidle')
+    logging.debug("Starting scrape_logo_src function.")
+    await asyncio.sleep(random.uniform(2, 4))
+    logging.debug("Trying to find logo image..")
 
     logo_element = await page.query_selector('img._3txkbm0')
     if logo_element:
-        return await logo_element.get_attribute('src')
+        logo_src = await logo_element.get_attribute('src')
+        logging.debug(f"Logo found with src: {logo_src}")
+        return logo_src
     else:
+        logging.warning("Logo element not found.")
         return ""
 
 async def extract_multiple_texts_by_automation(page, automation_ids):
     results = {}
+    logging.debug(f"Extracting texts for automation IDs: {automation_ids}")
     for key, automation_id in automation_ids.items():
         try:
             elem = await page.query_selector(f'[data-automation="{automation_id}"]')
             if elem:
                 text = (await elem.inner_text()).strip()
                 results[key] = text
+                logging.debug(f"Extracted {key}: {text}")
             else:
                 results[key] = ""
+                logging.warning(f"Element not found for automation ID: {automation_id}")
         except Exception as e:
-            print(f"Error extracting {automation_id}: {e}")
+            logging.error(f"Error extracting {automation_id}: {e}")
             results[key] = ""
+        if random.random() < 0.8:  # 80% chance
+            pause_duration = random.uniform(0.2, 0.6)  
+            logging.debug(f"Pausing for {pause_duration:.2f} seconds.")
+            await asyncio.sleep(pause_duration)
     return results
 
 async def scrape_job_details(url, automation_ids):
+    logging.debug(f"Scraping job details for URL: {url}")
     playwright, browser, context = await create_browser_context()
     page = await context.new_page()
-    await page.goto(url)
+    try:
+        await page.goto(url)
+        logging.debug(f"Page loaded: {url}")
+        
+        logo_src = await scrape_logo_src(page)
+        logging.debug(f"Logo src: {logo_src}")
+        
+        texts = await extract_multiple_texts_by_automation(page, automation_ids)
+        logging.debug(f"Extracted texts: {texts}")
+        
+    except Exception as e:
+        logging.error(f"Error during scraping job details: {e}")
+        return {"error": f"Failed to scrape job details: {e}"}
 
-    logo_src = await scrape_logo_src(page)
-    texts = await extract_multiple_texts_by_automation(page, automation_ids)
-
-    await browser.close()
-    await playwright.stop()
-
+    finally:
+        try:
+            if browser:  
+                await browser.close()
+            if playwright:
+                await playwright.stop()
+        except Exception as close_error:
+            logging.error(f"Error during browser close: {close_error}")
+    
+    logging.debug("Finished scraping job details.")
     return {
         "logo_src": logo_src,
         **texts
@@ -102,6 +133,8 @@ async def scrape_first_page_only(base_url, crawler):
         return []
         
 async def scrape_individual_job_url(job_url, crawler): 
+        logging.debug(f"Starting to scrape job URL: {job_url}")
+
         prune_filter = PruningContentFilter(
             threshold=0.5,
             threshold_type="fixed",
@@ -117,6 +150,9 @@ async def scrape_individual_job_url(job_url, crawler):
             "location": "job-detail-location",
             "classification": "job-detail-classifications",
             "work_type": "job-detail-work-type",
+            "salary": "job-detail-salary",
+            "title": "job-detail-title",
+            "company": "advertiser-name"
         }
         page_url = f"{job_url}"
         await delay_request(1)
@@ -124,10 +160,10 @@ async def scrape_individual_job_url(job_url, crawler):
         job_data = await scrape_job_details(page_url, automation_ids)
 
         if result.markdown:
-            print("Successfully scraped job url")
+            logging.debug("Successfully scraped job markdown.")
             return [result.markdown.fit_markdown, job_data]
         else:
-            print("No markdown found in job url")
+            logging.warning(f"Skipping job URL {job_url}, no markdown extracted.")
             return []
 
 # Function to scrape job listings
@@ -189,14 +225,8 @@ async def scrape_all_jobs(base_url, location_search):
 
         for job_link in job_urls:
             print("Scraping job:", count + 1)
-            if count == 1:
-                break
             print("Scraping:", job_link)
             job_md, job_data = await scrape_individual_job_url(job_link, crawler)
-            print("logo url: ", job_data["logo_src"])
-            print("location: ", job_data["location"])
-            print("classification: ", job_data["classification"])
-            print("work type: ", job_data["work_type"])
             job_json = await extract_job_data(job_md)
             if not job_json:
                 print(f"Skipping job {job_link}, no JSON extracted.")
@@ -207,17 +237,16 @@ async def scrape_all_jobs(base_url, location_search):
                 break
 
             job_url, quick_apply_url = extract_job_url_and_quick_apply_url(job_link)
-
-            if "logo_link" in job_json:
-                job_json["logo_link"] = truncate_logo_url(job_json["logo_link"])
-                    
             posted_within = get_posted_within(job_json)
-            #enrich_job_data(job_json, location_search, job_url, quick_apply_url, logo_link, posted_within)
+            enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_data, posted_within)
                 
             print("Enriched Job JSON: ", job_json)
             job_data_list.append(job_json)
             count += 1
        
-    return {'message': 'Job saved to DB', 'result': job_data_list}
+    if job_data_list:
+        return {'message': 'Jobs scraped successfully', 'result': job_data_list}
+    else:
+        return {'error': 'No jobs found or scraped.'}
 
 

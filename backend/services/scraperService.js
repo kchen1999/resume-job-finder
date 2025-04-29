@@ -2,7 +2,7 @@ const axios = require('axios')
 
 const scrapeJobJsonDataList = async (job_title, location) => {
   try {
-    const response = await axios.post('http://localhost:5000/test-db', {
+    const response = await axios.post('http://localhost:8000/jobs', {
       job_title,
       location,
     });

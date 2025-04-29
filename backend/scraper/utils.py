@@ -1,7 +1,7 @@
 import re
 import json
 from datetime import datetime
-from extractJobJson import extract_fields_from_job_link_with_groq
+from scraper.extractJobJson import extract_fields_from_job_link_with_groq
 
 from json_repair import repair_json
 
@@ -107,12 +107,18 @@ def get_posted_within(job_json):
     else:
         return '7+ days ago'
     
-def enrich_job_data(job_json, location_search, job_url, quick_apply_url, logo_link, posted_within):
+def enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_data, posted_within):
     job_json["job_url"] = job_url
     job_json["quick_apply_url"] = quick_apply_url
     job_json["location_search"] = location_search
-    job_json["logo_link"] = logo_link
     job_json["posted_within"] = posted_within
+    job_json["logo_link"] = truncate_logo_url(job_data["logo_src"])
+    job_json["location"] = job_data["location"]
+    job_json["classification"] = job_data["classification"]
+    job_json["work_type"] = job_data["work_type"]
+    job_json["salary"] = job_data["salary"]
+    job_json["title"] = job_data["title"]
+    job_json["company"] = job_data["company"]
     return job_json
 
 

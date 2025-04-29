@@ -34,4 +34,15 @@ const connectToDatabase = async () => {
   return null
 }
 
+process.on('SIGINT', async () => {
+  try {
+    await sequelize.close();
+    console.log('Sequelize pool closed successfully.');
+    process.exit(0);
+  } catch (err) {
+    console.error('Error during shutdown:', err);
+    process.exit(1);
+  }
+});
+
 module.exports = { connectToDatabase, sequelize }
