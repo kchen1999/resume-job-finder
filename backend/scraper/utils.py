@@ -2,6 +2,7 @@ import re
 import json
 from datetime import datetime, timedelta
 from scraper.extractJobJson import extract_fields_from_job_link_with_groq
+from urllib.parse import urlparse
 import httpx
 
 from json_repair import repair_json
@@ -62,14 +63,17 @@ def clean_string(raw_string):
     cleaned = raw_string.replace('\\', '').replace('\n', '')
     return cleaned
 
-async def extract_job_data(job_md):
+async def extract_job_data(job_md, count):
     # Run the job extraction logic
-    response_text = await extract_fields_from_job_link_with_groq(job_md)
+
+    response_text = await extract_fields_from_job_link_with_groq(job_md, count)
     raw_result = extract_json_from_response(response_text)
     print(f"Type of raw_result: {type(raw_result)}")
 
      # If it's already a dict (parsed JSON), no need to decode
     if isinstance(raw_result, dict):
+        #print("Raw result:")
+        #print(raw_result)
         return raw_result
     
     # Clean the extracted JSON using json_repair (if needed)
@@ -150,6 +154,39 @@ async def send_page_jobs_to_node(job_data_list):
     except httpx.HTTPStatusError as exc:
         print(f"Failed to insert jobs: {exc.response.status_code} - {exc.response.text}")
         raise
+
+def validate_job(job):
+    required_fields = [
+        "title", "company", "classification",
+        "posted_date", "posted_within", "work_type", "work_model"
+    ]
+    job_url = job.get("job_url", "Unknown URL")
+
+    for field in required_fields:
+        if not job.get(field):
+            print(f"[INVALID] {job_url}: Missing required field '{field}'")
+            return False
+
+    exp = job.get("experience_level")
+    if exp and exp not in ["intern", "junior", "mid", "senior", "lead+"]:
+        print(f"[INVALID] {job_url}: experience_level '{exp}' is not valid.")
+        return False
+
+    for url_field in ["quick_apply_url", "job_url"]:
+        url = job.get(url_field)
+        if url:
+            parsed = urlparse(url)
+            if not (parsed.scheme in ('http', 'https') and parsed.netloc):
+                print(f"[INVALID] {job_url}: Invalid URL in '{url_field}' -> {url}")
+                return False
+
+    for list_field in ["responsibilities", "requirements", "other"]:
+        val = job.get(list_field)
+        if val is not None and not isinstance(val, list):
+            print(f"[INVALID] {job_url}: '{list_field}' should be a list, got {type(val).__name__}")
+            return False
+
+    return True
 
 
 

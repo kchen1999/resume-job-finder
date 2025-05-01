@@ -1,11 +1,7 @@
 require('dotenv').config()
 
-const generateJobEmbedding = async (jobData) => {
-  const input = [
-    jobData.title,
-    jobData.responsibilities,
-    jobData.requirements
-  ].filter(Boolean).join('\n')
+const generateJobEmbeddings = async (jobDataList) => {
+  const inputs = jobDataList
 
   try {
     const response = await fetch('https://api.jina.ai/v1/embeddings', {
@@ -17,20 +13,20 @@ const generateJobEmbedding = async (jobData) => {
       body: JSON.stringify({
         model: 'jina-embeddings-v3',
         task: 'text-matching',
-        input: [input],
+        input: inputs,
       }),
     })
 
     const data = await response.json()
-    if (!data.data || !data.data[0]?.embedding) {
+    if (!data.data || !Array.isArray(data.data)) {
       console.error('No embedding returned:', data)
       return null
     }
 
-    return data.data[0].embedding
+    return data.data.map(item => item.embedding);
   } catch (err) {
-    console.error('Error generating embedding:', err)
-    return null
+      console.error('Error generating embedding:', err)
+      return null
   }
 }
 
@@ -63,4 +59,4 @@ const generateResumeEmbedding = async (resumeText) => {
     }
   }
 
-module.exports = { generateJobEmbedding, generateResumeEmbedding }
+module.exports = { generateJobEmbeddings, generateResumeEmbedding }

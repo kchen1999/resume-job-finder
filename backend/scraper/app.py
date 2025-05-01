@@ -1,4 +1,3 @@
-import asyncio
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import JSONResponse
 from scraper.crawl import scrape_job_listing

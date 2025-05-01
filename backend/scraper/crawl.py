@@ -9,7 +9,7 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
-from scraper.utils import process_markdown_to_job_links, extract_job_data, enrich_job_data, is_within_last_n_days, get_posted_within, extract_job_url_and_quick_apply_url, get_posted_date, POSTED_TIME_SPAN_CLASS
+from scraper.utils import send_page_jobs_to_node, process_markdown_to_job_links, extract_job_data, enrich_job_data, is_within_last_n_days, get_posted_within, extract_job_url_and_quick_apply_url, get_posted_date, validate_job, POSTED_TIME_SPAN_CLASS
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 # Function to add a delay between requests to mimic human behavior
@@ -201,6 +201,33 @@ async def scrape_individual_job_url(job_url, crawler):
         else:
             logging.warning(f"Skipping job URL {job_url}, no markdown extracted.")
             return []
+        
+
+async def validate_and_insert_jobs(page_job_data, page, job_total_count, all_errors):
+    valid_jobs = []
+    invalid_jobs = []
+
+    for job in page_job_data:
+        if validate_job(job):
+            valid_jobs.append(job)
+        else:
+            invalid_jobs.append(job)
+
+    if invalid_jobs:
+        print(f"Skipping {len(invalid_jobs)} invalid jobs from page {page}.\n")
+
+    if valid_jobs:
+        print("Valid job data:")
+        print(valid_jobs)
+        try:
+            await send_page_jobs_to_node(valid_jobs)
+            job_total_count += len(valid_jobs)
+            print(f"Inserted {len(valid_jobs)} jobs from page {page}")
+        except Exception as db_error:
+            logging.error(f"DB insert error on page {page}:", exc_info=True)
+            all_errors.append(f"DB insert error on page {page}: {str(db_error)}")
+
+    return job_total_count
 
 async def scrape_job_listing(base_url, location_search, pagesize=22):
     async with AsyncWebCrawler() as crawler:
@@ -221,7 +248,7 @@ async def scrape_job_listing(base_url, location_search, pagesize=22):
         job_total_count = 0
         all_errors = []
 
-        for page in range(1, 4):
+        for page in range(1, 2):
         #for page in range(1, total_pages + 1):
             markdown = await scrape_page_markdown(base_url, crawler, page)
             if not markdown:
@@ -242,7 +269,12 @@ async def scrape_job_listing(base_url, location_search, pagesize=22):
                     print("Scraping job:", count + 1)
                     print("Scraping:", job_link)
                     job_md, job_data = await scrape_individual_job_url(job_link, crawler)
-                    job_json = await extract_job_data(job_md)
+
+                    # Early exit for invalid job_data
+                    if not job_data.get("title"):  # skips if title is None or ""
+                        print(f"Skipping job {job_link}, title is missing (possibly expired job).")
+                        continue
+                    job_json = await extract_job_data(job_md, count)
 
                     if not job_json:
                         print(f"Skipping job {job_link}, no JSON extracted.")
@@ -252,7 +284,7 @@ async def scrape_job_listing(base_url, location_search, pagesize=22):
                     enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_data)
                     print("Enriched Job JSON: ", job_json)
 
-                    if not is_within_last_n_days(job_json, 3):
+                    if not is_within_last_n_days(job_json, 2):
                         print(f"Skipping job {job_link}, posted too old.")
                         print(f"Job date: {job_json['posted_date']}")
                         terminate_early = True
@@ -264,15 +296,9 @@ async def scrape_job_listing(base_url, location_search, pagesize=22):
                     all_errors.append(f"{job_link} failed: {str(e)}")
             
             if page_job_data:
-                # Insert to DB 
-                print("Page job data:")
-                print(page_job_data)
-                try:
-                    #await send_page_jobs_to_node(page_job_data)
-                    job_total_count += len(page_job_data)
-                    print(f"Inserted {len(page_job_data)} jobs from page {page}")
-                except Exception as db_error:
-                    all_errors.append(f"DB insert error on page {page}: {str(db_error)}")
+                job_total_count = await validate_and_insert_jobs(
+                    page_job_data, page, job_total_count, all_errors
+                )
 
             if terminate_early:
                 print("Terminating early due to job out of day range limit.")
@@ -305,7 +331,7 @@ async def scrape_all_jobs(base_url, location_search):
             print("Scraping job:", count + 1)
             print("Scraping:", job_link)
             job_md, job_data = await scrape_individual_job_url(job_link, crawler)
-            job_json = await extract_job_data(job_md)
+            job_json = await extract_job_data(job_md, count)
             if not job_json:
                 print(f"Skipping job {job_link}, no JSON extracted.")
                 continue
