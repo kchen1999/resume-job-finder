@@ -9,7 +9,7 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
-from scraper.utils import process_markdown_to_job_links, extract_job_data, enrich_job_data, is_within_last_n_days, get_posted_within, extract_job_url_and_quick_apply_url
+from scraper.utils import process_markdown_to_job_links, extract_job_data, enrich_job_data, is_within_last_n_days, get_posted_within, extract_job_url_and_quick_apply_url, get_posted_date, POSTED_TIME_SPAN_CLASS
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 # Function to add a delay between requests to mimic human behavior
@@ -30,12 +30,6 @@ def extract_total_job_count(markdown: str) -> int | None:
         number_str = match.group(1).replace(',', '') 
         return int(number_str)
     return None
-
-#def extract_logo_link(html):
- #   match = re.search(r'<img[^>]*src="([^"]+)"[^>]*class="[^"]*\b_3txkbm0\b[^"]*"', html)
-  #  if match:
-   #     return match.group(1)
-    #return ""
 
 async def create_browser_context():
     playwright = await async_playwright().start()
@@ -80,11 +74,37 @@ async def extract_multiple_texts_by_automation(page, automation_ids):
         except Exception as e:
             logging.error(f"Error extracting {automation_id}: {e}")
             results[key] = ""
-        if random.random() < 0.8:  # 80% chance
+        if random.random() < 0.8:  
             pause_duration = random.uniform(0.2, 0.6)  
             logging.debug(f"Pausing for {pause_duration:.2f} seconds.")
             await asyncio.sleep(pause_duration)
     return results
+
+async def extract_posted_date_by_class(page, class_name: str) -> str:
+    if random.random() < 0.8:  
+            pause_duration = random.uniform(0.2, 0.6)  
+            logging.debug(f"Pausing for {pause_duration:.2f} seconds.")
+            await asyncio.sleep(pause_duration)
+    try:
+        selector = f'span.{class_name.replace(" ", ".")}'
+        elements = await page.query_selector_all(selector)
+        for elem in elements:
+            text = (await elem.inner_text()).strip()
+            logging.debug(f"Found element text: {text}")
+            # Extract the number and unit (e.g., 2d, 13h, 45m)
+            match = re.search(r'Posted (\d+)([dhm]) ago', text)
+            if match:
+                value, unit = int(match.group(1)), match.group(2)
+                days_ago = value if unit == 'd' else 0
+                posted_date = get_posted_date(days_ago)
+                logging.debug(f"Extracted posted date: {posted_date}")
+                return posted_date
+    
+        logging.warning("No matching 'Posted X ago' text found.")
+        return ""
+    except Exception as e:
+        logging.error(f"Error extracting posted date: {e}")
+        return ""
 
 async def scrape_job_details(url, automation_ids):
     logging.debug(f"Scraping job details for URL: {url}")
@@ -99,6 +119,8 @@ async def scrape_job_details(url, automation_ids):
         
         texts = await extract_multiple_texts_by_automation(page, automation_ids)
         logging.debug(f"Extracted texts: {texts}")
+
+        posted_time = await extract_posted_date_by_class(page, POSTED_TIME_SPAN_CLASS)
         
     except Exception as e:
         logging.error(f"Error during scraping job details: {e}")
@@ -116,6 +138,7 @@ async def scrape_job_details(url, automation_ids):
     logging.debug("Finished scraping job details.")
     return {
         "logo_src": logo_src,
+        "posted_time": posted_time,
         **texts
     }
 
@@ -127,6 +150,19 @@ async def scrape_first_page_only(base_url, crawler):
 
     if result.markdown:
         print("Successfully scraped page 1")
+        return [result.markdown]
+    else:
+        print("No markdown found on page 1")
+        return []
+    
+#Function to scrape first page of job listings only
+async def scrape_page_markdown(base_url, crawler, page):
+    page_url = f"{base_url}&page={page}"
+    await delay_request(1)
+    result = await crawler.arun(page_url)
+
+    if result.markdown:
+        print(f"Successfully scraped page {page}")
         return [result.markdown]
     else:
         print("No markdown found on page 1")
@@ -166,44 +202,86 @@ async def scrape_individual_job_url(job_url, crawler):
             logging.warning(f"Skipping job URL {job_url}, no markdown extracted.")
             return []
 
-# Function to scrape job listings
-async def scrape_job_listing(base_url, pagesize=22):
-    all_results = []
-
+async def scrape_job_listing(base_url, location_search, pagesize=22):
     async with AsyncWebCrawler() as crawler:
-        # First page to get total job count
+        print("AsyncWebCrawler initialized successfully!")
+
+        # Scrape first page
         first_page_url = f"{base_url}&page=1"
         await delay_request(1)
         first_result = await crawler.arun(first_page_url)
 
         if not first_result.markdown:
-            print("No markdown on page 1")
-            return []
+            return {'error': 'No markdown scraped'}
 
-        all_results.append(first_result.markdown)
-
-        # Extract total job count and calculate pages
         total_jobs = extract_total_job_count(first_result.markdown)
-        if not total_jobs:
-            print("Couldn't extract total job count, scraping just the first page.")
-            return all_results
+        total_pages = math.ceil(total_jobs / pagesize) if total_jobs else 1
+        print(f"Detected {total_jobs or '?'} jobs — scraping {total_pages} pages.")
 
-        total_pages = math.ceil(total_jobs / pagesize)
-        print(f"Detected {total_jobs} jobs — scraping {total_pages} pages total.")
+        job_total_count = 0
+        all_errors = []
 
-        # Now scrape the remaining pages
-        for page in range(2, total_pages + 1):
-            page_url = f"{base_url}&page={page}"
-            await delay_request(page)
-            result = await crawler.arun(page_url)
+        for page in range(1, 4):
+        #for page in range(1, total_pages + 1):
+            markdown = await scrape_page_markdown(base_url, crawler, page)
+            if not markdown:
+                return {'error': 'No markdown scraped'}
+            job_urls = process_markdown_to_job_links(markdown)
+            if not job_urls:
+                print(f"No job links found on page {page}")
+                continue
 
-            if result.markdown:
-                all_results.append(result.markdown)
-                print(f"Scraped page {page}")
-            else:
-                print(f"Skipping page {page}, no markdown found.")
+            page_job_data = []
+            count = 0
+            terminate_early = False 
 
-    return all_results
+            for job_link in job_urls:
+                try:
+                    #if count == 1:
+                     #  break
+                    print("Scraping job:", count + 1)
+                    print("Scraping:", job_link)
+                    job_md, job_data = await scrape_individual_job_url(job_link, crawler)
+                    job_json = await extract_job_data(job_md)
+
+                    if not job_json:
+                        print(f"Skipping job {job_link}, no JSON extracted.")
+                        continue
+
+                    job_url, quick_apply_url = extract_job_url_and_quick_apply_url(job_link)
+                    enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_data)
+                    print("Enriched Job JSON: ", job_json)
+
+                    if not is_within_last_n_days(job_json, 3):
+                        print(f"Skipping job {job_link}, posted too old.")
+                        print(f"Job date: {job_json['posted_date']}")
+                        terminate_early = True
+                        break
+
+                    page_job_data.append(job_json)
+                    count += 1
+                except Exception as e:
+                    all_errors.append(f"{job_link} failed: {str(e)}")
+            
+            if page_job_data:
+                # Insert to DB 
+                print("Page job data:")
+                print(page_job_data)
+                try:
+                    #await send_page_jobs_to_node(page_job_data)
+                    job_total_count += len(page_job_data)
+                    print(f"Inserted {len(page_job_data)} jobs from page {page}")
+                except Exception as db_error:
+                    all_errors.append(f"DB insert error on page {page}: {str(db_error)}")
+
+            if terminate_early:
+                print("Terminating early due to job out of day range limit.")
+                break 
+
+        return {
+            'message': f"Scraped and inserted {job_total_count} jobs.",
+            'errors': all_errors if all_errors else None
+        }
 
 
 async def scrape_all_jobs(base_url, location_search):

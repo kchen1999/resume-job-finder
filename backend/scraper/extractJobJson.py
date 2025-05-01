@@ -1,4 +1,3 @@
-from datetime import date
 import os
 from groq import Groq
 from dotenv import load_dotenv
@@ -10,7 +9,6 @@ client = Groq(
 
 async def extract_fields_from_job_link_with_groq(markdown):
     try:
-        current_date = date.today().strftime("%d/%m/%Y")
         prompt = (
             "You are a strict JSON data extraction tool. Extract job posting data into a valid JSON object, strictly following these rules.\n\n"
             "- 'description': a short summary of what the role is about. Prefer text under 'About the Role', or similar. Return an empty string if not found.\n"
@@ -18,16 +16,13 @@ async def extract_fields_from_job_link_with_groq(markdown):
             "- 'requirements': include all technical skills, technologies, years of experience, cloud platforms, front-end/back-end stacks,"
             " architecture knowledge, tools, frameworks, databases, testing tools/methodologies, and certifications" 
             "— even if mentioned outside the 'requirements' section. Use original wording. Do not include section headers.\n"
-             "- 'experience_level': infer based on the job title. Choose one of: intern, junior, mid, senior, lead+.\n"
+            "- 'experience_level': infer based on the job title. Choose one of: intern, junior, mid, senior, lead+.\n"
             " If job title includes 'Lead', 'Manager', 'Principal', 'Head' or similar leadership terms, classify as 'lead+'\n"
             "- 'work_model': Identify the job model. Choose one of: 'Hybrid', 'On-site', or 'Remote' (exact formatting). Treat 'flexible' or 'WFH' as 'Hybrid'. If unclear, return 'On-site'\n"
             "- 'other': list of extra job-relevant details not captured above. Must be bullet points. No tech/tools/experience level here. Each array element must be a simple double-quoted string.\n\n"
-             "- 'posted_date': String in DD/MM/YYYY format.\n"
-            f"  - If posting mentions 'X minutes ago' or 'X hours ago', use today's date ({current_date}).\n"
-            f"  - If it mentions 'X days ago', subtract that number from today's date ({current_date}).\n\n"
             "Return a single JSON object with the following fields:\n\n"
             "- description\n- responsibilities\n- requirements\n"
-            "- experience_level\n- work_model\n- other\n- posted_date\n\n"
+            "- experience_level\n- work_model\n- other\n\n"
             "**Rules:**\n"
             "- Always return a single valid JSON object.\n"
             "- All property names MUST be enclosed in double quotes.\n"
@@ -36,7 +31,6 @@ async def extract_fields_from_job_link_with_groq(markdown):
             "- Do not include markdown, backticks, or code blocks.\n"
             "- No \n or backslash (\) characters inside keys or values\n"
             "- No explanations, comments, or extra text — only raw minified JSON output.\n"
-            "- Do not return posted_date in any other format like YYYY-MM-DD\n\n"
             f"Job Posting Text:\n{markdown}"
         )
 

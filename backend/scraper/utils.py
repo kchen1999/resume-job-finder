@@ -1,9 +1,12 @@
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from scraper.extractJobJson import extract_fields_from_job_link_with_groq
+import httpx
 
 from json_repair import repair_json
+
+POSTED_TIME_SPAN_CLASS = "gg45di0 _1ubeeig4z _1oxsqkd0 _1oxsqkd1 _1oxsqkd22 _18ybopc4 _1oxsqkd7"
 
 def extract_json_from_response(response):
     try:
@@ -54,6 +57,11 @@ def truncate_logo_url(url):
             return url[:logo_index + len("/logo/")]
     return url  # or return "" if you want to clear it instead
 
+def clean_string(raw_string):
+    # Remove backslashes and newline characters
+    cleaned = raw_string.replace('\\', '').replace('\n', '')
+    return cleaned
+
 async def extract_job_data(job_md):
     # Run the job extraction logic
     response_text = await extract_fields_from_job_link_with_groq(job_md)
@@ -66,6 +74,10 @@ async def extract_job_data(job_md):
     
     # Clean the extracted JSON using json_repair (if needed)
     try:
+        if isinstance(raw_result, str):
+            raw_result = clean_string(raw_result)
+            print("Cleaned json: ")
+            print(raw_result)
         repaired_json_string = repair_json(raw_result)  # Raw string goes here
         print("repairing json...")
         job_json = json.loads(repaired_json_string)
@@ -77,7 +89,7 @@ async def extract_job_data(job_md):
     return job_json
 
 
-def is_within_last_n_days(job_json, within_days=21):
+def is_within_last_n_days(job_json, within_days=7):
     try:
         posted_date_str = job_json.get("posted_date", "")
         posted_date = datetime.strptime(posted_date_str, "%d/%m/%Y").date()
@@ -86,7 +98,13 @@ def is_within_last_n_days(job_json, within_days=21):
     except Exception as e:
         print("Date parsing error:", e)
         return None
-    
+
+def get_posted_date(posted_days_ago: int) -> str:
+    """
+    Given the number of days ago a job was posted, return the date in DD/MM/YYYY format.
+    """
+    posted_date = datetime.today() - timedelta(days=posted_days_ago)
+    return posted_date.strftime("%d/%m/%Y")   
 
 def get_posted_within(job_json):
     try: 
@@ -102,16 +120,15 @@ def get_posted_within(job_json):
         return 'Today'
     elif delta == 1:
         return 'Yesterday'
-    elif 2 <= delta <= 6:
+    elif 2 <= delta <= 7:
         return f'{delta} days ago'
-    else:
-        return '7+ days ago'
     
-def enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_data, posted_within):
+def enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_data):
     job_json["job_url"] = job_url
     job_json["quick_apply_url"] = quick_apply_url
     job_json["location_search"] = location_search
-    job_json["posted_within"] = posted_within
+    job_json["posted_date"] = job_data["posted_time"]
+    job_json["posted_within"] = get_posted_within(job_json)
     job_json["logo_link"] = truncate_logo_url(job_data["logo_src"])
     job_json["location"] = job_data["location"]
     job_json["classification"] = job_data["classification"]
@@ -120,6 +137,19 @@ def enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_dat
     job_json["title"] = job_data["title"]
     job_json["company"] = job_data["company"]
     return job_json
+
+async def send_page_jobs_to_node(job_data_list):
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "http://localhost:3000/api/jobs/page-batch",  # or your deployed URL
+                json={"jobs": job_data_list}
+            )
+            response.raise_for_status()
+            print("Successfully sent jobs to Node")
+    except httpx.HTTPStatusError as exc:
+        print(f"Failed to insert jobs: {exc.response.status_code} - {exc.response.text}")
+        raise
 
 
 

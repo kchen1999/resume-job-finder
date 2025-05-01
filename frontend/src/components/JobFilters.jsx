@@ -14,7 +14,6 @@ const JobFilters = ({ filters, setFilters }) => {
       case '1': return '1 day ago';
       case '3': return '3 days ago';
       case '7': return '7 days ago';
-      case '14': return '14 days ago';
       default: return '';
     }
   };
@@ -80,7 +79,6 @@ const JobFilters = ({ filters, setFilters }) => {
             <MenuItem value="1">1 day ago</MenuItem>
             <MenuItem value="3">3 days ago</MenuItem>
             <MenuItem value="7">7 days ago</MenuItem>
-            <MenuItem value="14">14 days ago</MenuItem>
             </Select>
         </FormControl>
         </Grid>

@@ -4,8 +4,7 @@ const generateJobEmbedding = async (jobData) => {
   const input = [
     jobData.title,
     jobData.responsibilities,
-    jobData.requirements,
-    jobData.company
+    jobData.requirements
   ].filter(Boolean).join('\n')
 
   try {
