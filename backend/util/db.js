@@ -1,8 +1,21 @@
 const Sequelize = require('sequelize')
+const fs = require('fs');
+const path = require('path');
 const { DATABASE_URL } = require('./config')
 const { Umzug, SequelizeStorage } = require('umzug')
 
-const sequelize = new Sequelize(DATABASE_URL)
+const caCertificate = fs.readFileSync(path.join(__dirname, '..', 'certs', 'ca.pem')).toString();
+
+const sequelize = new Sequelize(DATABASE_URL, {
+  dialect: 'postgres',
+  dialectOptions: {
+    ssl: {
+      require: true,
+      rejectUnauthorized: true,
+      ca: caCertificate,
+    },
+  },
+})
 
 const runMigrations = async () => {
   const migrator = new Umzug({

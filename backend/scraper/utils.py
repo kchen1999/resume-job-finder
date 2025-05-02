@@ -4,10 +4,12 @@ from datetime import datetime, timedelta
 from scraper.extractJobJson import extract_fields_from_job_link_with_groq
 from urllib.parse import urlparse
 import httpx
+import logging
 
 from json_repair import repair_json
 
 POSTED_TIME_SPAN_CLASS = "gg45di0 _1ubeeig4z _1oxsqkd0 _1oxsqkd1 _1oxsqkd22 _18ybopc4 _1oxsqkd7"
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def extract_json_from_response(response):
     try:
@@ -144,7 +146,7 @@ def enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_dat
 
 async def send_page_jobs_to_node(job_data_list):
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
             response = await client.post(
                 "http://localhost:3000/api/jobs/page-batch",  # or your deployed URL
                 json={"jobs": job_data_list}
@@ -187,6 +189,32 @@ def validate_job(job):
             return False
 
     return True
+
+async def validate_and_insert_jobs(page_job_data, page, job_total_count, all_errors):
+    valid_jobs = []
+    invalid_jobs = []
+
+    for job in page_job_data:
+        if validate_job(job):
+            valid_jobs.append(job)
+        else:
+            invalid_jobs.append(job)
+
+    if invalid_jobs:
+        print(f"Skipping {len(invalid_jobs)} invalid jobs from page {page}.\n")
+
+    if valid_jobs:
+        print("Valid job data:")
+        print(valid_jobs)
+        try:
+            await send_page_jobs_to_node(valid_jobs)
+            job_total_count += len(valid_jobs)
+            print(f"Inserted {len(valid_jobs)} jobs from page {page}")
+        except Exception as db_error:
+            logging.error(f"DB insert error on page {page}:", exc_info=True)
+            all_errors.append(f"DB insert error on page {page}: {str(db_error)}")
+
+    return job_total_count
 
 
 

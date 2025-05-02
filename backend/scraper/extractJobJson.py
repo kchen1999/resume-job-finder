@@ -26,7 +26,7 @@ async def extract_fields_from_job_link_with_groq(markdown, count):
             "   'mid': Default if 2-4 years experience or moderate responsibility.\n"
             "   'junior': Entry-level title or 0-1 year experience with limited scope.\n"
             "   'intern': Internship or student-related title.\n"
-            "- 'work_model': Identify the job model. Choose one of: 'Hybrid', 'On-site', or 'Remote' (exact formatting). Treat 'flexible' or 'WFH' as 'Hybrid'. If unclear, default to 'On-site'.  Never leave this blank.\n"
+            "- 'work_model': Identify the job model. Choose one of: 'Hybrid', 'On-site', or 'Remote' (exact formatting). Treat 'flexible' or 'WFH' as 'Hybrid'. If unclear, default to 'On-site'.\n"
             "- 'other': list of extra job-relevant details not captured above. Must be bullet points. No tech/tools/experience level here. Each array element must be a simple double-quoted string.\n\n"
             "Return a single JSON object with the following fields:\n\n"
             "- description\n- responsibilities\n- requirements\n"
@@ -38,6 +38,7 @@ async def extract_fields_from_job_link_with_groq(markdown, count):
             "- Arrays must use square brackets [] with double-quoted string values.\n"
             "- Do not include markdown, backticks, or code blocks.\n"
             "- No \n or backslash (\) characters inside keys or values\n"
+            "- Never leave 'work-model' field blank\n"
             "- No explanations, comments, or extra text — only raw minified JSON output.\n"
             f"Job Posting Text:\n{markdown}"
         )
