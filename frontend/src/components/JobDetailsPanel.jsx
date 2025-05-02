@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Chip, Button } from '@mui/material';
+import { Avatar, Box, Typography, Chip, Button } from '@mui/material';
+import CircleIcon from '@mui/icons-material/Circle';
 
 const JobDetailsPanel = ({ job }) => {
   if (!job) {
@@ -52,6 +53,23 @@ const JobDetailsPanel = ({ job }) => {
             />
           </Box>
         )}
+        {!job.logo_link && (
+          <Avatar 
+            alt="Company Logo" 
+            src={job.logo_link || undefined} 
+            sx={{ 
+              width: 59, 
+              height: 59, 
+              bgcolor: !job.logo_link ? '#f7c6b2' : undefined,
+              img: {
+                objectFit: 'contain',
+                width: '96%',
+                height: '96%',
+            }}} // Circular logo
+          >
+          {!job.logo_link && job.company?.[0]?.toUpperCase()}
+          </Avatar>     
+        )}
 
         {/* Title and Company */}
         <Typography variant="h5" fontWeight={600}>{job.title}</Typography>
@@ -63,6 +81,7 @@ const JobDetailsPanel = ({ job }) => {
             ? <Chip 
                 label={job.salary} 
                 color="default" 
+                sx={ { borderRadius: 2} }
                 icon={
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -85,6 +104,7 @@ const JobDetailsPanel = ({ job }) => {
             : <Chip 
                 label="No salary specified"
                 color="default" 
+                sx={ { borderRadius: 2} }
                 icon={
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -108,6 +128,7 @@ const JobDetailsPanel = ({ job }) => {
           {job.posted_within && 
             <Chip 
               label={job.posted_within} 
+              sx={ { borderRadius: 2} }
               icon={
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -133,6 +154,7 @@ const JobDetailsPanel = ({ job }) => {
           {job.location && 
             <Chip 
               label={job.location} 
+              sx={ { borderRadius: 2} }
               icon={
                 <svg 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -164,6 +186,7 @@ const JobDetailsPanel = ({ job }) => {
                 overflowWrap: 'break-word',
                 paddingTop: '8px', // optional nicer padding
                 paddingBottom: '8px',
+                borderRadius: 2,
               }
             }}
             label={job.classification}
@@ -206,7 +229,7 @@ const JobDetailsPanel = ({ job }) => {
                 textTransform: 'none' ,
                 px: 1.5, // horizontal padding
                 py: 0.4, // vertical padding
-                backgroundColor: '#10B981',
+                backgroundColor: '#b85c8e',
                 fontWeight: 'bold',
                 color: 'white'
               }}
@@ -246,7 +269,8 @@ const JobDetailsPanel = ({ job }) => {
             <Typography variant="h6" sx={{ fontWeight: 'bold' }} gutterBottom>Requirements</Typography>
             <ul>
               {job.requirements.map((item, index) => (
-                <li key={index}>
+                <li key={index} style={{ display: 'flex', alignItems: 'start', gap: 8 }}>
+                  <CircleIcon sx={{ fontSize: 8, mt: '6px', color: '#bbb' }} />
                   <Typography variant="body1" sx={{ mb: 1}}>{item}</Typography>
                 </li>
               ))}
@@ -260,7 +284,8 @@ const JobDetailsPanel = ({ job }) => {
             <Typography variant="h6" gutterBottom sx={{ mt: 2, fontWeight: 'bold' }}>Responsibilities</Typography>
             <ul>
               {job.responsibilities.map((item, index) => (
-                <li key={index}>
+                <li key={index} style={{ display: 'flex', alignItems: 'start', gap: 8 }}>
+                  <CircleIcon sx={{ fontSize: 8, mt: '6px', color: '#bbb' }} />
                   <Typography variant="body1" sx={{ mb: 1 }}>{item}</Typography>
                 </li>
               ))}
@@ -274,7 +299,8 @@ const JobDetailsPanel = ({ job }) => {
             <Typography variant="h6" gutterBottom sx={{ mt: 2, fontWeight: 'bold' }}>Other</Typography>
             <ul>
               {job.other.map((item, index) => (
-                <li key={index}>
+                <li key={index} style={{ display: 'flex', alignItems: 'start', gap: 8 }}>
+                  <CircleIcon sx={{ fontSize: 8, mt: '6px', color: '#bbb' }} />
                   <Typography variant="body1" sx={{ mb: 1 }}>{item}</Typography>
                 </li>
               ))}

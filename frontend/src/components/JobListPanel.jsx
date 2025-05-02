@@ -1,6 +1,6 @@
 // JobListPanel.jsx
 import React from 'react';
-import { Box, Card, CardContent, Chip, Typography } from '@mui/material';
+import { Avatar, Box, Card, CardContent, Chip, Typography } from '@mui/material';
 
 const JobListPanel = ({ results, onJobClick }) => {
   return (
@@ -9,10 +9,26 @@ const JobListPanel = ({ results, onJobClick }) => {
         <Card
           key={job.id}
           variant="outlined"
-          sx={{ mb: 2, cursor: 'pointer' }}
+          sx={{ mb: 2, cursor: 'pointer', backgroundColor: '#fafafa' }}
           onClick={() => onJobClick(job)}
         >
           <CardContent>
+            <Avatar 
+              alt="Company Logo" 
+              src={job.logo_link || undefined} 
+              sx={{ 
+                width: 59, 
+                height: 59, 
+                bgcolor: !job.logo_link ? '#f7c6b2' : undefined,
+                img: {
+                  objectFit: 'contain',
+                  width: '96%',
+                  height: '96%',
+              }}} // Circular logo
+            >
+              {!job.logo_link && job.company?.[0]?.toUpperCase()}
+            </Avatar>
+      
             <Typography variant="h6" sx={{ fontWeight: 'bold'}}>{job.title}</Typography>
             <Typography variant="body2" gutterBottom>{job.company}</Typography>
             <Typography variant="body2" color="text.secondary" gutterBottom>{job.location}</Typography>
@@ -38,11 +54,13 @@ const JobListPanel = ({ results, onJobClick }) => {
                         <path d="M14 3h-4"></path>
                         </svg>
                     }
+                    sx={ { borderRadius: 2} }
                 />
                 }
                 {job.work_model &&
                 <Chip 
                     label={job.work_model} 
+                    sx={{ backgroundColor: '#bbb', color: 'white', borderRadius: 2 }}
                 />
                 }
             </Box>
