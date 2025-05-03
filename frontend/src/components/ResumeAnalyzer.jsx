@@ -34,35 +34,35 @@ const ResumeAnalyzer = () => {
     const fileToUse = uploadedFile || file;
     if (!fileToUse) {
         alert("Please upload a resume before submitting.");
-        return; 
-    };
+        return
+    }
 
     setLoading(true);
     const formData = new FormData();
     formData.append("resume", fileToUse);
 
     try {
-        const res = await axios.post("http://localhost:3000/api/resume/upload", formData);
-        setResults(res.data.matchedJobs);
+        const res = await axios.post("http://localhost:3000/api/resume/upload", formData)
+        setResults(res.data.matchedJobs)
     } catch (err) {
-        alert("Something went wrong.");
-        console.error(err);
+        alert("Something went wrong.")
+        console.error(err)
     } finally {
-        setLoading(false);
+        setLoading(false)
     }
-  };
+  }
 
   const parseDDMMYYYY = (str) => {
-    const [day, month, year] = str.split('/');
-    return new Date(`${year}-${month}-${day}`); // converts safely to YYYY-MM-DD
+    const [day, month, year] = str.split('/')
+    return new Date(`${year}-${month}-${day}`) // converts safely to YYYY-MM-DD
   };
 
   const applyFilters = (jobs, filters) => {
     return jobs.filter(job => {
       // Experience filter (if set and not empty)
       if (filters.experience && filters.experience.length > 0) {
-        const normalizedExperience = filters.experience.map(level => level.toLowerCase().trim());
-        const jobExperience = job.experience_level?.toLowerCase().trim();
+        const normalizedExperience = filters.experience.map(level => level.toLowerCase().trim())
+        const jobExperience = job.experience_level?.toLowerCase().trim()
 
         if (!jobExperience || !normalizedExperience.includes(jobExperience)) {
           return false;
@@ -72,23 +72,23 @@ const ResumeAnalyzer = () => {
       // Location filter
       if (filters.location && filters.location !== '') {
         if (filters.location.length > 0) {
-          if (!filters.location.includes(job.location_search)) return false;
+          if (!filters.location.includes(job.location_search)) return false
         }
       }
   
       // Posted Within filter (e.g. "7" for 7 days ago)
       if (filters.posted && filters.posted !== '') {
-        const daysAgo = parseInt(filters.posted, 10);
-        const postedCutoff = new Date();
-        postedCutoff.setDate(postedCutoff.getDate() - daysAgo);
+        const daysAgo = parseInt(filters.posted, 10)
+        const postedCutoff = new Date()
+        postedCutoff.setDate(postedCutoff.getDate() - daysAgo)
   
-        const jobPostedDate = parseDDMMYYYY(job.posted_date);
-        if (jobPostedDate < postedCutoff) return false;
+        const jobPostedDate = parseDDMMYYYY(job.posted_date)
+        if (jobPostedDate < postedCutoff) return false
       }
   
-      return true;
-    });
-  };
+      return true
+    })
+  }
 
   return (
     <Box>
@@ -97,9 +97,9 @@ const ResumeAnalyzer = () => {
           <ResumeDropzone
               file={file}
               setFile={(newFile) => {
-                setFile(newFile);
+                setFile(newFile)
                 if (newFile) {
-                  handleSubmit(newFile);
+                  handleSubmit(newFile)
                 }
               }}
               loading={loading}
@@ -109,8 +109,8 @@ const ResumeAnalyzer = () => {
       <JobFilters filters={filters} setFilters={setFilters} />
       <JobResults results={applyFilters(results, filters)} />
     </Box>
-  );
-};
+  )
+}
 
-export default ResumeAnalyzer;
+export default ResumeAnalyzer
 

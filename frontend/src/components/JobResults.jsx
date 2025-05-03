@@ -8,7 +8,7 @@ const JobResults = ({ results }) => {
 
   useEffect(() => {
     if (results && results.length > 0) {
-      setSelectedJob(results[0]);
+      setSelectedJob(results[0])
     }
   }, [results])
 

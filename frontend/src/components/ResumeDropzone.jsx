@@ -1,18 +1,18 @@
-import { Box, Button, Chip, CircularProgress, Typography } from "@mui/material";
-import { useDropzone } from "react-dropzone";
+import { Box, Button, CircularProgress, Typography } from "@mui/material"
+import { useDropzone } from "react-dropzone"
   
 const ResumeDropzone = ({ file, setFile, loading }) => {
   const onDrop = (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
+      setFile(acceptedFiles[0])
     }
-  };
+  }
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
       accept: { "application/pdf": [".pdf"] },
       multiple: false,
-    });
+    })
   
   return (
     <Box
@@ -60,7 +60,7 @@ const ResumeDropzone = ({ file, setFile, loading }) => {
         {isDragActive ? (
           <Typography>Drop the file here...</Typography>
         ) : file ? (
-          <Typography color="success.main">{file.name}</Typography>
+          <Typography>{file.name}</Typography>
         ) : (
           <Typography>Drag & drop resume (PDF)</Typography>
         )}
@@ -68,8 +68,8 @@ const ResumeDropzone = ({ file, setFile, loading }) => {
           {loading ? <CircularProgress size={24} /> : "Click to browse"}
         </Button>
       </Box>
-    );
-  };
+    )
+  }
   
-  export default ResumeDropzone;
+  export default ResumeDropzone
   
