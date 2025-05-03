@@ -62,7 +62,11 @@ const ResumeAnalyzer = () => {
       // Experience filter (if set and not empty)
       if (filters.experience && filters.experience.length > 0) {
         const normalizedExperience = filters.experience.map(level => level.toLowerCase().trim());
-        if (!normalizedExperience.includes(job.experience_level.toLowerCase().trim())) return false;
+        const jobExperience = job.experience_level?.toLowerCase().trim();
+
+        if (!jobExperience || !normalizedExperience.includes(jobExperience)) {
+          return false;
+        }
       }
   
       // Location filter

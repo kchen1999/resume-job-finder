@@ -5,7 +5,7 @@ function App() {
   return (
     <Container maxWidth="lg" sx={{ mt: 6 }}>
       <Typography variant="h4" align="center" gutterBottom>
-        Smart Resume Analyzer
+        ResumeMatcher AI
       </Typography>
       <ResumeAnalyzer />
     </Container>

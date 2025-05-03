@@ -1,7 +1,7 @@
 import re
 import json
 from datetime import datetime, timedelta
-from scraper.extractJobJson import extract_fields_from_job_link_with_groq
+from scraper.extractJobJson import extract_fields_from_job_link_with_groq, extract_missing_work_model_with_groq, extract_missing_experience_level_with_groq
 from urllib.parse import urlparse
 import httpx
 import logging
@@ -157,12 +157,27 @@ async def send_page_jobs_to_node(job_data_list):
         print(f"Failed to insert jobs: {exc.response.status_code} - {exc.response.text}")
         raise
 
-def validate_job(job):
+async def validate_job(job):
     required_fields = [
         "title", "company", "classification",
         "posted_date", "posted_within", "work_type", "work_model"
     ]
     job_url = job.get("job_url", "Unknown URL")
+
+    if not job.get("work_model"):
+        print(f"[INFO] {job_url}: 'work_model' missing, inferring...")
+        job_text = "\n".join([
+            job.get("description", ""), 
+            job.get("responsibilities", ""), 
+            job.get("requirements", "")
+        ])
+        inferred_work_model = await extract_missing_work_model_with_groq(job_text)
+        if inferred_work_model:
+            job["work_model"] = inferred_work_model
+            print(f"[INFO] {job_url}: 'work_model' inferred as '{inferred_work_model}'")
+        else:
+            print(f"[WARNING] {job_url}: Unable to infer 'work_model', defaulting to 'On-site'.")
+            job["work_model"] = "On-site"  
 
     for field in required_fields:
         if not job.get(field):
@@ -170,9 +185,20 @@ def validate_job(job):
             return False
 
     exp = job.get("experience_level")
-    if exp and exp not in ["intern", "junior", "mid", "senior", "lead+"]:
-        print(f"[INVALID] {job_url}: experience_level '{exp}' is not valid.")
-        return False
+    if not exp or exp not in ["intern", "junior", "mid", "senior", "lead+"]:
+        print(f"[INFO] {job_url}: Invalid or missing experience_level '{exp}', inferring...")
+        job_text = "\n".join([
+            job.get("description", ""),
+            job.get("responsibilities", ""),
+            job.get("requirements", "")
+        ])
+        inferred_exp = await extract_missing_experience_level_with_groq(job.get("title", ""), job_text)
+        if inferred_exp:
+            job["experience_level"] = inferred_exp
+            print(f"[INFO] {job_url}: Inferred experience_level as '{inferred_exp}'")
+        else:
+            print(f"[INVALID] {job_url}: Unable to infer valid experience_level.")
+            return False
 
     for url_field in ["quick_apply_url", "job_url"]:
         url = job.get(url_field)
@@ -195,7 +221,7 @@ async def validate_and_insert_jobs(page_job_data, page, job_total_count, all_err
     invalid_jobs = []
 
     for job in page_job_data:
-        if validate_job(job):
+        if await validate_job(job):
             valid_jobs.append(job)
         else:
             invalid_jobs.append(job)
