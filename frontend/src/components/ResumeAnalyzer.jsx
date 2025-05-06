@@ -32,7 +32,7 @@ const ResumeAnalyzer = () => {
     fetchJobs();
   }, []); 
 
-    // ⏱ Re-match jobs whenever selected resume experienceIds change
+    // Re-match jobs whenever selected resume experienceIds change
   useEffect(() => {
     const rematch = async () => {
       if (filters.experienceIds.length === 0) return;

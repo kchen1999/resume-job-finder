@@ -11,7 +11,7 @@ from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
 from scraper.utils import process_markdown_to_job_links, extract_job_data, enrich_job_data, is_within_last_n_days, extract_job_url_and_quick_apply_url, get_posted_date, validate_and_insert_jobs, POSTED_TIME_SPAN_CLASS
 
-DAY_RANGE_LIMIT = 1
+DAY_RANGE_LIMIT = 7
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 semaphore = asyncio.Semaphore(4)
@@ -52,7 +52,7 @@ async def scrape_logo_src(page):
     await asyncio.sleep(random.uniform(2, 4))
     logging.debug("Trying to find logo image..")
 
-    logo_element = await page.query_selector('img._3txkbm0')
+    logo_element = await page.query_selector('div[data-testid="bx-logo-image"] img')
     if logo_element:
         logo_src = await logo_element.get_attribute('src')
         logging.debug(f"Logo found with src: {logo_src}")

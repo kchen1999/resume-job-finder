@@ -34,13 +34,7 @@ const ResumeDropzone = ({ file, setFile, loading }) => {
     >
       <input {...getInputProps()} />
         <Box
-          sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: 'white',
-          height: '100%', // ensure vertical centering
-          }}
+          sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'white', height: '100%' }}
         >
         <svg xmlns="http://www.w3.org/2000/svg" 
           viewBox="0 0 24 24" 
