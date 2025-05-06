@@ -1,10 +1,11 @@
 import { Box } from '@mui/material'
-import ExperienceLevelFilter from './ExperienceLevelFilter'
-import PostedWithinFilter from './PostedWithinFilter'
-import DomainFilter from './DomainFilter'
-import LocationFilter from './LocationFilter'
+import ExperienceLevelFilter from './filters/ExperienceLevelFilter'
+import PostedWithinFilter from './filters/PostedWithinFilter'
+import DomainFilter from './filters/DomainFilter'
+import LocationFilter from './filters/LocationFilter'
+import ResumeExperienceFilter from './filters/ResumeExperienceFilter'
 
-const JobFilters = ({ filters, setFilters }) => {
+const JobFilters = ({ filters, setFilters, userExperiences }) => {
   const handleChange = (field) => (event) => {
     setFilters((prev) => ({
       ...prev,
@@ -30,6 +31,7 @@ const JobFilters = ({ filters, setFilters }) => {
       </Box>
       <Box sx={{ mt: 1.5, mb: 3, display: 'flex', justifyContent: 'space-between' }}>
         <LocationFilter filters={filters} handleChange={handleChange} />
+        <ResumeExperienceFilter selected={filters.experienceIds} experiences={userExperiences} onChange={handleChange('experienceIds')}/>
       </Box>  
     </Box>
   )

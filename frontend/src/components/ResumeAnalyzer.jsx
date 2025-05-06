@@ -9,8 +9,10 @@ const ResumeAnalyzer = () => {
   const [file, setFile] = useState(null);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [userExperiences, setUserExperiences] = useState([]); // Store resume experiences
   const [filters, setFilters] = useState({
     experience: '',
+    experienceIds: [],
     posted: '',
     domain: '',
     location: '',
@@ -30,10 +32,27 @@ const ResumeAnalyzer = () => {
     fetchJobs();
   }, []); 
 
+    // ⏱ Re-match jobs whenever selected resume experienceIds change
+  useEffect(() => {
+    const rematch = async () => {
+      if (filters.experienceIds.length === 0) return;
+      try {
+        const res = await axios.post("http://localhost:3000/api/resume/rematch", {
+          experienceIds: filters.experienceIds,
+        });
+        setResults(res.data.matchedJobs);
+      } catch (err) {
+        console.error("Failed to re-match jobs", err);
+      }
+    };
+  
+      rematch();
+    }, [filters.experienceIds]);
+
   const handleSubmit = async (uploadedFile) => {
-    const fileToUse = uploadedFile || file;
+    const fileToUse = uploadedFile || file
     if (!fileToUse) {
-        alert("Please upload a resume before submitting.");
+        alert("Please upload a resume before submitting.")
         return
     }
 
@@ -43,7 +62,24 @@ const ResumeAnalyzer = () => {
 
     try {
         const res = await axios.post("http://localhost:3000/api/resume/upload", formData)
-        setResults(res.data.matchedJobs)
+        if (res.data.matchedJobs.length > 0) {
+          setResults(res.data.matchedJobs)
+          console.log("matchedJobs:")
+          console.log(res.data.matchedJobs)
+          setUserExperiences(res.data.experiences);      // Set parsed resume experiences
+          if (res.data.experiences.length > 0) {
+            setFilters(prev => ({
+              ...prev,
+              experienceIds: [res.data.experiences[0].id] // Default selection
+            }));
+          }
+        } else {
+          console.log("matchedJobs empty:")
+          console.log(res.data.matchedJobs)
+          console.log("experiences:")
+          console.log(res.data.experiences)
+        }
+
     } catch (err) {
         alert("Something went wrong.")
         console.error(err)
@@ -58,13 +94,15 @@ const ResumeAnalyzer = () => {
   };
 
   const applyFilters = (jobs, filters) => {
+    console.log("jobs:")
+    console.log(jobs)
     return jobs.filter(job => {
       // Experience filter (if set and not empty)
       if (filters.experience && filters.experience.length > 0) {
         const normalizedExperience = filters.experience.map(level => level.toLowerCase().trim())
-        const jobExperience = job.experience_level?.toLowerCase().trim()
+        const jobLevel = job.experience_level?.toLowerCase().trim()
 
-        if (!jobExperience || !normalizedExperience.includes(jobExperience)) {
+        if (!jobLevel || !normalizedExperience.includes(jobLevel)) {
           return false;
         }
       }
@@ -106,7 +144,7 @@ const ResumeAnalyzer = () => {
           />
         </form>
       </Box>
-      <JobFilters filters={filters} setFilters={setFilters} />
+      <JobFilters filters={filters} setFilters={setFilters} userExperiences={userExperiences}/>
       <JobResults results={applyFilters(results, filters)} />
     </Box>
   )

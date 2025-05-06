@@ -1,6 +1,7 @@
 const router = require('express').Router()
-const { Job, JobEmbedding } = require('../models')
-const { generateJobEmbeddings } = require('../utils/jina')
+const { Job } = require('../models')
+const { sequelize } = require("../util/db");
+const { generateJobEmbeddings } = require('../utils/jinaEmbedding')
 
 // Existing GET /jobs endpoint
 router.get('/', async (req, res) => {
@@ -38,13 +39,16 @@ router.post('/page-batch', async (req, res) => {
 
     const insertedJobs = await Job.bulkCreate(pageJobDataList, { returning: true })
 
-    const bulkEmbeddingData = insertedJobs.map((job, index) => ({
-      job_id: job.id,
-      embedding: embeddings[index],
-    }))
-
-    await JobEmbedding.bulkCreate(bulkEmbeddingData)
-
+    const values = insertedJobs.map((job, index) => {
+      const embeddingVector = '[' + embeddings[index].join(',') + ']'; // convert to '0.1,0.2,...'
+      return `(${job.id}, '${embeddingVector}')`;
+    }).join(', ');
+    
+    await sequelize.query(`
+      INSERT INTO job_embeddings (job_id, embedding)
+      VALUES ${values}
+    `);
+    
     return res.status(200).json({ inserted: insertedJobs.length })
   } catch (err) {
     console.error('Error inserting job page:', err)

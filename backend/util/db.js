@@ -3,8 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const { DATABASE_URL } = require('./config')
 const { Umzug, SequelizeStorage } = require('umzug')
+const pgvector = require('pgvector/sequelize')
 
-const caCertificate = fs.readFileSync(path.join(__dirname, '..', 'certs', 'ca.pem')).toString();
+const caCertificate = fs.readFileSync(path.join(__dirname, '..', 'certs', 'ca.pem')).toString()
+
+pgvector.registerType(Sequelize)
 
 const sequelize = new Sequelize(DATABASE_URL, {
   dialect: 'postgres',

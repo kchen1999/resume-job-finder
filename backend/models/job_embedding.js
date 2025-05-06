@@ -15,7 +15,7 @@ JobEmbedding.init({
     onDelete: 'CASCADE',
   },
   embedding: {
-    type: DataTypes.JSONB, 
+    type: DataTypes.VECTOR(768),
     allowNull: false
   }
 }, {

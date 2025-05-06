@@ -13,6 +13,7 @@ const generateJobEmbeddings = async (jobDataList) => {
       body: JSON.stringify({
         model: 'jina-embeddings-v3',
         task: 'text-matching',
+        dimensions: 768,
         input: inputs,
       }),
     })

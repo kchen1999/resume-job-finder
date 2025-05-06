@@ -2,6 +2,7 @@ const { DataTypes } = require('sequelize');
 
 module.exports = {
   up: async ({ context: queryInterface }) => {
+    await queryInterface.sequelize.query(`CREATE EXTENSION IF NOT EXISTS vector`);
     await queryInterface.createTable('job_embeddings', {
       job_id: {
         type: DataTypes.INTEGER,
@@ -14,8 +15,8 @@ module.exports = {
         onDelete: 'CASCADE',
       },
       embedding: {
-        type: DataTypes.JSONB,
-        allowNull: true
+        type: 'VECTOR(768)',
+        allowNull: false
       }
     });
   },

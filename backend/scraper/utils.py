@@ -144,6 +144,11 @@ def enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_dat
     job_json["company"] = job_data["company"]
     return job_json
 
+def flatten_field(field):
+    if isinstance(field, list):
+        return " ".join(str(item) for item in field)
+    return str(field)
+
 async def send_page_jobs_to_node(job_data_list):
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
@@ -189,8 +194,8 @@ async def validate_job(job):
         print(f"[INFO] {job_url}: Invalid or missing experience_level '{exp}', inferring...")
         job_text = "\n".join([
             job.get("description", ""),
-            job.get("responsibilities", ""),
-            job.get("requirements", "")
+            flatten_field(job.get("responsibilities", "")),
+            flatten_field(job.get("requirements", ""))
         ])
         inferred_exp = await extract_missing_experience_level_with_groq(job.get("title", ""), job_text)
         if inferred_exp:
