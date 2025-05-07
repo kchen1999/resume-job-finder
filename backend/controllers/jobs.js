@@ -17,12 +17,8 @@ router.post('/page-batch', async (req, res) => {
     return res.status(400).json({ error: 'Empty or invalid job data batch.' })
   }
 
-  // Format embedding input and normalize job data
+  // Format embedding input
   const embeddingInputs = pageJobDataList.map(jobData => {
-    const [day, month, year] = jobData['posted_date'].split('/')
-    jobData.posted_date = `${year}-${month}-${day}`
-    jobData.quick_apply_url = jobData['quick_apply_url'] || null
-
     return [
       jobData.title,
       jobData.responsibilities,

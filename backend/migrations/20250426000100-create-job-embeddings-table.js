@@ -4,10 +4,14 @@ module.exports = {
   up: async ({ context: queryInterface }) => {
     await queryInterface.sequelize.query(`CREATE EXTENSION IF NOT EXISTS vector`);
     await queryInterface.createTable('job_embeddings', {
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
       job_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
-        primaryKey: true,
         references: {
           model: 'jobs', // references the jobs table
           key: 'id'

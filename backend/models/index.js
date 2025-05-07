@@ -3,8 +3,8 @@ const JobEmbedding = require('./job_embedding')
 const Resume = require('./resume')
 const Experience = require('./experience')
 
-Job.sync()
-JobEmbedding.sync()
+Job.hasOne(JobEmbedding, { foreignKey: 'job_id', onDelete: 'CASCADE' })
+JobEmbedding.belongsTo(Job, { foreignKey: 'job_id' })
 
 Resume.hasMany(Experience, { foreignKey: 'resume_id' })
 Experience.belongsTo(Resume, { foreignKey: 'resume_id' })

@@ -5,14 +5,19 @@ const Job = require('./job')
 class JobEmbedding extends Model {}
 
 JobEmbedding.init({
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true
+  },
   job_id: {
     type: DataTypes.INTEGER,
+    allowNull: false,
     references: {
-      model: Job, 
+      model: Job,
       key: 'id'
     },
-    primaryKey: true,
-    onDelete: 'CASCADE',
+    onDelete: 'CASCADE'
   },
   embedding: {
     type: DataTypes.VECTOR(768),
