@@ -1,7 +1,7 @@
 const router = require('express').Router()
 const multerValidation = require('../middleware/multerValidation')
 const jobMatchingService = require('../services/jobMatchingService')
-const {  Experience } = require('../models');
+const { Experience } = require('../models');
 const { sequelize } = require("../util/db");
 const { QueryTypes } = require('sequelize');
 
