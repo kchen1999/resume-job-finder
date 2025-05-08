@@ -287,8 +287,14 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
             return {'error': 'No markdown scraped'}
 
         total_jobs = extract_total_job_count(markdown)
+        if total_jobs == 0:
+            print("No jobs found.")
+            return {
+                'message': 'Scraped and inserted 0 jobs.',
+                'errors': None
+            }
         total_pages = math.ceil(total_jobs / pagesize) if total_jobs else 1
-        print(f"Detected {total_jobs or '0'} jobs — scraping {total_pages} pages.")
+        print(f"Detected {total_jobs} jobs — scraping {total_pages} pages.")
 
         job_count = 0
         all_errors = []

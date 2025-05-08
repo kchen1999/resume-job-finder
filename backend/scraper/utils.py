@@ -24,12 +24,12 @@ async def delay_request(page_num):
         await asyncio.sleep(delay)
 
 # Extract total job count from markdown using regex
-def extract_total_job_count(markdown: str) -> int | None:
-    match = re.search(r'^#\s*([\d,]+)\s+.*?jobs', markdown, re.MULTILINE | re.IGNORECASE)
+def extract_total_job_count(markdown: str) -> int:
+    match = re.search(r'#\s*([\d,]+)\s+.*?\bjob[s]?\b', markdown, re.MULTILINE | re.IGNORECASE)
     if match:
         number_str = match.group(1).replace(',', '') 
         return int(number_str)
-    return None
+    return 0
 
 
 def extract_json_from_response(response):
