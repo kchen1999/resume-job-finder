@@ -203,22 +203,19 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
             print("Scraping:", job_link)
             job_md, job_data = await scrape_individual_job_url(job_link, crawler)
             if not job_data.get("title"):
-                print(f"Skipping job {job_link}, title missing.")
-                return None
+                return {"status": "skipped", "job_link": job_link, "error": "Missing title"}
 
             job_json = await extract_job_data(job_md, count)
             if not job_json:
-                print(f"Skipping job {job_link}, no JSON extracted.")
-                return None
+                return {"status": "skipped", "job_link": job_link, "error": "No JSON extracted"}
 
             job_url, quick_apply_url = extract_job_url_and_quick_apply_url(job_link)
             enrich_job_data(job_json, location_search, job_url, quick_apply_url, job_data)
             print("Enriched Job JSON: ", job_json)
 
             if not is_within_last_n_days(job_json, DAY_RANGE_LIMIT):
-                print(f"Skipping job {job_link}, posted too old.")
                 terminate_event.set()
-                return {"status": "terminate", "job": None, "error": None}
+                return {"status": "terminate", "job_link": job_link, "error": None}
 
             return {"status": "success", "job": job_json, "error": None}
 
@@ -245,21 +242,22 @@ async def bounded_process_job(job_link, count, crawler, location_search, termina
     
 async def process_all_jobs_concurrently(job_urls, crawler, location_search):
     terminate_event = asyncio.Event()
-
     tasks = [
         bounded_process_job(job_link, idx, crawler, location_search, terminate_event)
         for idx, job_link in enumerate(job_urls)
     ]
     job_results = await asyncio.gather(*tasks)
-
     final_jobs = []
     early_termination = False
+
     for job_result in job_results:
-        if job_result["status"] == "terminate":
-            print("Terminating early due to outdated job.")
-            early_termination = True
-        elif job_result["status"] == "success":
+        if job_result["status"] == "success":
             final_jobs.append(job_result["job"])
+        elif job_result["status"] == "terminate":
+            print(f"Terminating early due to outdated job: {job_result["job_link"]}")
+            early_termination = True
+        elif job_result["status"] == "skipped":
+            print(f"Skipped: {job_result["job_link"]}", job_result["error"])
         elif job_result["status"] == "error":
             print("Error:", job_result["error"])
 
