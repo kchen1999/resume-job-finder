@@ -12,7 +12,7 @@ from playwright.async_api import async_playwright
 from scraper.utils import process_markdown_to_job_links, extract_job_data, enrich_job_data, is_within_last_n_days, extract_job_url_and_quick_apply_url, get_posted_date, delay_request, extract_total_job_count, POSTED_TIME_SPAN_CLASS
 from scraper.validation_and_db_insertion import validate_and_insert_jobs
 
-DAY_RANGE_LIMIT = 1
+DAY_RANGE_LIMIT = 0
 TOTAL_JOBS_PER_PAGE = 22
 MAX_RETRIES = 3
 TERMINATE_EARLY = "TERMINATE EARLY"
@@ -102,6 +102,10 @@ async def scrape_job_details(url, automation_ids):
     try:
         await page.goto(url)
         logging.debug(f"Page loaded: {url}")
+
+        print("PAGE:")
+        print("PAGE:")
+        print(page)
         
         logo_src = await scrape_logo_src(page)
         logging.debug(f"Logo src: {logo_src}")
@@ -198,7 +202,6 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
             print("Scraping job:", count + 1)
             print("Scraping:", job_link)
             job_md, job_data = await scrape_individual_job_url(job_link, crawler)
-
             if not job_data.get("title"):
                 print(f"Skipping job {job_link}, title missing.")
                 return None
@@ -215,9 +218,9 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
             if not is_within_last_n_days(job_json, DAY_RANGE_LIMIT):
                 print(f"Skipping job {job_link}, posted too old.")
                 terminate_event.set()
-                return TERMINATE_EARLY
+                return {"status": "terminate", "job": None, "error": None}
 
-            return job_json
+            return {"status": "success", "job": job_json, "error": None}
 
         except Exception as e:
             print(f"[Attempt {attempt+1}] Error scraping {job_link}: {e}")
@@ -225,7 +228,12 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
                 await asyncio.sleep(delay)
                 delay *= 2
             else:
-                return f"{job_link} failed after {max_retries} retries: {str(e)}"
+                print(f"{job_link} failed after {max_retries} retries: {str(e)}")
+                return {
+                    "status": "error",
+                    "job": None,
+                    "error": f"{job_link} failed after {max_retries} retries: {str(e)}"
+                }
             
 async def bounded_process_job(job_link, count, crawler, location_search, terminate_event):
     if terminate_event.is_set():
@@ -242,19 +250,18 @@ async def process_all_jobs_concurrently(job_urls, crawler, location_search):
         bounded_process_job(job_link, idx, crawler, location_search, terminate_event)
         for idx, job_link in enumerate(job_urls)
     ]
-    results = await asyncio.gather(*tasks)
+    job_results = await asyncio.gather(*tasks)
 
     final_jobs = []
     early_termination = False
-    for r in results:
-        if r == TERMINATE_EARLY:
+    for job_result in job_results:
+        if job_result["status"] == "terminate":
             print("Terminating early due to outdated job.")
             early_termination = True
-            break
-        elif isinstance(r, dict):
-            final_jobs.append(r)
-        elif isinstance(r, str):
-            print("Error:", r)
+        elif job_result["status"] == "success":
+            final_jobs.append(job_result["job"])
+        elif job_result["status"] == "error":
+            print("Error:", job_result["error"])
 
     return final_jobs, early_termination
 
@@ -262,12 +269,12 @@ async def scrape_job_listing_page(base_url, location_search, crawler, page, job_
     markdown = await scrape_page_markdown(base_url, crawler, page)
     if not markdown:
         print(f"No markdown scraped on page {page}")
-        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': False}
+        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True}
 
     job_urls = process_markdown_to_job_links(markdown)
     if not job_urls:
         print(f"No job links found on page {page}")
-        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': False}
+        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True}
 
     page_job_data, terminated_early = await process_all_jobs_concurrently(job_urls, crawler, location_search)
     if page_job_data:
@@ -282,7 +289,6 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
     async with AsyncWebCrawler() as crawler:
         print("AsyncWebCrawler initialized successfully!")
         markdown = await scrape_first_page_markdown(base_url, crawler)
-
         if not markdown:
             return {'error': 'No markdown scraped'}
 
