@@ -347,10 +347,10 @@ def test_enrich_job_json(mock_get_relative_posted_time):
         "posted_time": "01/05/2024",
         "logo_src": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
         "location": "Sydney NSW",
-        "classification": "Testing & Quality Assurance (Information & Communication Technology)",
+        "classification": "Software Design and Development",
         "work_type": "Remote",
         "salary": "$100,000 - $120,000",
-        "title": "Product Manager",
+        "title": "Software Engineer",
         "company": "Example Corp"
     }
     mock_get_relative_posted_time.return_value = "7 days ago"
@@ -366,10 +366,10 @@ def test_enrich_job_json(mock_get_relative_posted_time):
         "posted_within": "7 days ago",
         "logo_link": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
         "location": "Sydney NSW",
-        "classification": "Testing & Quality Assurance (Information & Communication Technology)",
+        "classification": "Software Design and Development",
         "work_type": "Remote",
         "salary": "$100,000 - $120,000",
-        "title": "Product Manager",
+        "title": "Software Engineer",
         "company": "Example Corp"
     }
     assert result == expected_result

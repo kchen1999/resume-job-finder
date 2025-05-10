@@ -90,16 +90,11 @@ def extract_total_job_count(markdown: str) -> int:
 
 def extract_json_from_response(response):
     try:
-        print("EXTRACT JSON FROM RESPONSE:")
-        print(type(response))
-        print(response)
         start = response.find('{')
         end = response.rfind('}') + 1
         return json.loads(response[start:end])
     except Exception as e:
-        #print(f"Raw response: {repr(response)}")
-        print("RAW RESPONSE:")
-        print(response)
+        print(f"Raw response: {repr(response)}")
         print("Error parsing JSON:", e)
         return response
 

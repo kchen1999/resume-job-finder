@@ -16,12 +16,14 @@ async def test_scrape_job_listing_happy_path(
     mock_scrape_page.return_value = {
         "job_count": 22,
         "all_errors": [],
-        "terminated_early": True
+        "terminated_early": True,
+        "invalid_jobs": []
     }
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
     assert result == {
         "message": "Scraped and inserted 22 jobs.",
-        "errors": None
+        "errors": None,
+        "invalid_jobs": []
     }
     mock_scrape_first_page.assert_awaited_once()
     mock_scrape_page.assert_awaited_once()
@@ -56,10 +58,37 @@ async def test_scrape_job_listing_zero_jobs(
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
     assert result == {
         "message": "Scraped and inserted 0 jobs.",
-        "errors": None
+        "errors": None,
+        "invalid_jobs": []
     }
     mock_scrape_first_page.assert_awaited_once()
     mock_scrape_page.assert_not_awaited()
+
+@pytest.mark.asyncio
+@patch("scraper.crawl.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.crawl.AsyncWebCrawler")
+async def test_scrape_job_listing_with_invalid_jobs(
+    mock_crawler_class, mock_scrape_first_page, mock_scrape_page
+):
+    mock_crawler_instance = AsyncMock()
+    mock_crawler_class.return_value.__aenter__.return_value = mock_crawler_instance
+    mock_scrape_first_page.return_value = ["# 44 jobs listed"]
+
+    mock_scrape_page.side_effect = [
+        {"job_count": 22, "all_errors": [], "terminated_early": False, "invalid_jobs": ["job123", "job124"]},
+        {"job_count": 44, "all_errors": [], "terminated_early": True, "invalid_jobs": ["job125"]},
+    ]
+
+    result = await scrape_job_listing("https://seek.com", location_search="sydney")
+    
+    assert result == {
+        "message": "Scraped and inserted 44 jobs.",
+        "errors": None,
+        "invalid_jobs": ["job123", "job124", "job125"]
+    }
+
+    assert mock_scrape_page.await_count == 2
 
 @pytest.mark.asyncio
 @patch("scraper.crawl.scrape_job_listing_page", new_callable=AsyncMock)
@@ -72,14 +101,15 @@ async def test_scrape_job_listing_multiple_pages_no_early_exit(
     mock_crawler_class.return_value.__aenter__.return_value = mock_crawler_instance
     mock_scrape_first_page.return_value = ["## 66 jobs listed"] 
     mock_scrape_page.side_effect = [
-        {"job_count": 22, "all_errors": [], "terminated_early": False},
-        {"job_count": 44, "all_errors": [], "terminated_early": False},
-        {"job_count": 66, "all_errors": [], "terminated_early": True},
+        {"job_count": 22, "all_errors": [], "terminated_early": False, "invalid_jobs": []},
+        {"job_count": 44, "all_errors": [], "terminated_early": False, "invalid_jobs": []},
+        {"job_count": 66, "all_errors": [], "terminated_early": True, "invalid_jobs": []},
     ]
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
     assert result == {
         "message": "Scraped and inserted 66 jobs.",
-        "errors": None
+        "errors": None,
+        "invalid_jobs": []
     }
     assert mock_scrape_page.await_count == 3
 
@@ -95,7 +125,7 @@ async def test_scrape_job_listing_page_empty_markdown(mock_scrape_page_markdown)
         job_count=0,
         all_errors=[]
     )
-    assert result == {"job_count": 0, "all_errors": [], "terminated_early": True}
+    assert result == {"job_count": 0, "all_errors": [], "terminated_early": True, "invalid_jobs": []}
 
 @pytest.mark.asyncio
 @patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
@@ -109,7 +139,7 @@ async def test_scrape_job_listing_page_no_links_in_markdown(mock_scrape_page_mar
         job_count=0,
         all_errors=[]
     )
-    assert result == {"job_count": 0, "all_errors": [], "terminated_early": True}
+    assert result == {"job_count": 0, "all_errors": [], "terminated_early": True, "invalid_jobs": []}
 
 @pytest.mark.asyncio
 @patch("scraper.crawl.bounded_process_job", new_callable=AsyncMock)

@@ -9,7 +9,7 @@ from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
 from scraper.utils import process_markdown_to_job_links, parse_job_json_from_markdown, enrich_job_json, is_job_within_date_range, pause_briefly
 from scraper.utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields
-from scraper.validation_and_db_insertion import validate_and_insert_jobs
+from scraper.validate_and_db_insert import validate_and_insert_jobs
 
 DAY_RANGE_LIMIT = 0
 TOTAL_JOBS_PER_PAGE = 22
@@ -202,20 +202,23 @@ async def scrape_job_listing_page(base_url, location_search, crawler, page_num, 
     markdown = await scrape_page_markdown(base_url, crawler, page_num)
     if not markdown:
         print(f"No markdown scraped on page {page_num}")
-        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True}
+        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True, 'invalid_jobs': []}
 
     job_urls = process_markdown_to_job_links(markdown)
     if not job_urls:
         print(f"No job links found on page {page_num}")
-        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True}
+        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True, 'invalid_jobs': []}
 
     page_job_data, terminated_early = await process_all_jobs_concurrently(job_urls, crawler, location_search)
     if page_job_data:
-        job_count = await validate_and_insert_jobs(page_job_data, page_num, job_count, all_errors)
+        job_count, invalid_jobs = await validate_and_insert_jobs(page_job_data, page_num, job_count, all_errors)
 
-    return {'job_count': job_count, 
-            'all_errors': all_errors, 
-            'terminated_early': terminated_early }
+    return {
+        'job_count': job_count, 
+        'all_errors': all_errors, 
+        'terminated_early': terminated_early,
+        'invalid_jobs': invalid_jobs  
+    }
 
 
 async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_PAGE):
@@ -230,19 +233,23 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
             print("No jobs found.")
             return {
                 'message': 'Scraped and inserted 0 jobs.',
-                'errors': None
+                'errors': None,
+                'invalid_jobs': []
             }
         total_pages = math.ceil(total_jobs / pagesize) if total_jobs else 1
         print(f"Detected {total_jobs} jobs — scraping {total_pages} pages.")
 
         job_count = 0
         all_errors = []
+        all_invalid_jobs = []
 
         #for page_num in range(1, 2):
         for page_num in range(1, total_pages + 1):
             result = await scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors)
             job_count = result['job_count']
             all_errors = result['all_errors']
+            if result['invalid_jobs']:
+                all_invalid_jobs.extend(result['invalid_jobs'])
             if result['terminated_early']:
                 print(f"Inserted {job_count} jobs before early termination.")
                 print(f"Early termination triggered on page {page_num}. Stopping scraping.")
@@ -250,7 +257,8 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
 
         return {
             'message': f"Scraped and inserted {job_count} jobs.",
-            'errors': all_errors if all_errors else None
+            'errors': all_errors if all_errors else None,
+            'invalid_jobs': all_invalid_jobs
         }
     
 

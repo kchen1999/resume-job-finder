@@ -4,26 +4,23 @@ from urllib.parse import urlparse
 from scraper.groq_utils import extract_missing_work_model_with_groq, extract_missing_experience_level_with_groq
 from scraper.utils import flatten_field
 
+REQUIRED_FIELDS = ["title", "company", "classification", "posted_date", "posted_within", "work_type", "work_model"]
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 async def send_page_jobs_to_node(job_data_list):
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
             response = await client.post(
-                "http://localhost:3000/api/jobs/page-batch",  # or your deployed URL
+                "http://localhost:3000/api/jobs/page-batch",  
                 json={"jobs": job_data_list}
             )
             response.raise_for_status()
-            print("Successfully sent jobs to Node")
+            logging.info("Successfully sent jobs to Node")
     except httpx.HTTPStatusError as exc:
-        print(f"Failed to insert jobs: {exc.response.status_code} - {exc.response.text}")
+        logging.error(f"Failed to insert jobs: {exc.response.status_code} - {exc.response.text}")
         raise
 
 async def validate_job(job):
-    required_fields = [
-        "title", "company", "classification",
-        "posted_date", "posted_within", "work_type", "work_model"
-    ]
     job_url = job.get("job_url", "Unknown URL")
 
     if not job.get("work_model"):
@@ -41,10 +38,18 @@ async def validate_job(job):
             logging.warning(f"{job_url}: Unable to infer 'work_model', defaulting to 'On-site'.")
             job["work_model"] = "On-site"  
 
-    for field in required_fields:
+    for field in REQUIRED_FIELDS:
         if not job.get(field):
             logging.error(f"{job_url}: Missing required field '{field}'")
             return False
+        
+    for url_field in ["quick_apply_url", "job_url"]:
+        url = job.get(url_field)
+        if url:
+            parsed = urlparse(url)
+            if not (parsed.scheme in ('http', 'https') and parsed.netloc):
+                logging.error(f"{job_url}: Invalid URL in '{url_field}' -> {url}")
+                return False
 
     exp = job.get("experience_level")
     if not exp or exp not in ["intern", "junior", "mid", "senior", "lead+"]:
@@ -62,14 +67,6 @@ async def validate_job(job):
             logging.error(f"{job_url}: Unable to infer valid experience_level.")
             return False
 
-    for url_field in ["quick_apply_url", "job_url"]:
-        url = job.get(url_field)
-        if url:
-            parsed = urlparse(url)
-            if not (parsed.scheme in ('http', 'https') and parsed.netloc):
-                logging.error(f"{job_url}: Invalid URL in '{url_field}' -> {url}")
-                return False
-
     for list_field in ["responsibilities", "requirements", "other"]:
         val = job.get(list_field)
         if val is not None and not isinstance(val, list):
@@ -78,18 +75,19 @@ async def validate_job(job):
 
     return True
 
-async def validate_and_insert_jobs(page_job_data, page, job_count, all_errors):
+async def validate_and_insert_jobs(page_job_data, page_num, job_count, all_errors):
     valid_jobs = []
     invalid_jobs = []
 
     for job in page_job_data:
-        if await validate_job(job):
+        is_valid = await validate_job(job)
+        if is_valid:
             valid_jobs.append(job)
         else:
             invalid_jobs.append(job)
 
     if invalid_jobs:
-        logging.warning(f"Skipping {len(invalid_jobs)} invalid jobs from page {page}.")
+        logging.warning(f"Skipping {len(invalid_jobs)} invalid jobs from page {page_num}.")
 
     if valid_jobs:
         logging.debug("Valid job data:")
@@ -97,9 +95,13 @@ async def validate_and_insert_jobs(page_job_data, page, job_count, all_errors):
         try:
             await send_page_jobs_to_node(valid_jobs)
             job_count += len(valid_jobs)
-            logging.info(f"Inserted {len(valid_jobs)} jobs from page {page}")
+            logging.info(f"Inserted {len(valid_jobs)} jobs from page {page_num}")
         except Exception as db_error:
-            logging.error(f"DB insert error on page {page}:", exc_info=True)
-            all_errors.append(f"DB insert error on page {page}: {str(db_error)}")
+            logging.error(f"DB insert error on page {page_num}:", exc_info=True)
+            all_errors.append(f"DB insert error on page {page_num}: {str(db_error)}")
 
-    return job_count
+    return job_count, invalid_jobs
+
+
+
+

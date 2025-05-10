@@ -1,0 +1,290 @@
+import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+from httpx import Response, Request, HTTPStatusError
+from scraper.validate_and_db_insert import validate_and_insert_jobs, validate_job, send_page_jobs_to_node
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.validate_job", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.send_page_jobs_to_node", new_callable=AsyncMock)
+async def test_validate_and_insert_jobs_happy_path(
+    mock_send_to_node, mock_validate_job
+):
+    job1 = {"title": "Dev 1"}
+    job2 = {"title": "Dev 2"}
+    job3 = {"title": "Invalid"}
+    mock_validate_job.side_effect = [True, True, False]
+    page_job_data = [job1, job2, job3]
+
+    job_count, invalid_jobs = await validate_and_insert_jobs(page_job_data, page_num=1, job_count=0, all_errors=[])
+    assert job_count == 2
+    assert invalid_jobs == [job3]
+    mock_send_to_node.assert_awaited_once_with([job1, job2])
+    assert mock_validate_job.await_count == 3
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.validate_job", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.send_page_jobs_to_node", new_callable=AsyncMock)
+async def test_validate_and_insert_jobs_all_invalid(mock_send_to_node, mock_validate_job):
+    mock_validate_job.side_effect = [False, False, False]
+    page_job_data = [
+        {"title": "Invalid 1"},
+        {"title": "Invalid 2"},
+        {"title": "Invalid 3"}
+    ]
+    all_errors = []
+    job_count, invalid_jobs = await validate_and_insert_jobs(page_job_data, page_num=2, job_count=0, all_errors=all_errors)
+    assert job_count == 0
+    assert invalid_jobs == page_job_data
+    assert mock_send_to_node.await_count == 0
+    assert mock_validate_job.await_count == 3
+    assert all_errors == []
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.validate_job", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.send_page_jobs_to_node", new_callable=AsyncMock)
+async def test_validate_and_insert_jobs_db_insert_exception(mock_send_to_node, mock_validate_job):
+    job1 = {"title": "Dev 1"}
+    job2 = {"title": "Dev 2"}
+    mock_validate_job.side_effect = [True, True]
+    mock_send_to_node.side_effect = Exception("DB connection failed")
+    all_errors = []
+
+    job_count, invalid_jobs = await validate_and_insert_jobs([job1, job2], page_num=3, job_count=5, all_errors=all_errors)
+    assert job_count == 5  
+    assert invalid_jobs == []
+    assert mock_send_to_node.await_count == 1
+    assert len(all_errors) == 1
+    assert "DB insert error on page 3: DB connection failed" in all_errors[0]
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+async def test_validate_job_valid_no_inference(mock_infer_exp, mock_infer_work_model):
+    job = {
+        "title": "Software Engineer",
+        "company": "Example Corp",
+        "classification": "Software Design and Development",
+        "description": "This is a job description.",
+        "logo_link": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
+        "posted_date": "09/05/2024",
+        "posted_within": "7 days",
+        "location_search": "Sydney",
+        "location": "Sydney NSW",
+        "work_type": "Full-time",
+        "work_model": "Hybrid",
+        "experience_level": "mid",
+        "job_url": "https://www.seek.com.au/job/12345678",
+        "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
+        "salary": "$100,000 - $120,000",
+        "responsibilities": ["Responsibility 1", "Responsibility 2"],
+        "requirements": ["Requirement 1", "Requirement 2"],
+        "other": ["Be cool"]
+    }
+    result = await validate_job(job)
+    assert result is True
+    mock_infer_exp.assert_not_awaited()
+    mock_infer_work_model.assert_not_awaited()
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+async def test_validate_job_infer_missing_work_model_success(mock_infer_exp, mock_infer_work_model):
+    job = {
+        "title": "Software Engineer",
+        "company": "Example Corp",
+        "classification": "Software Design and Development",
+        "description": "This is a job description.",
+        "logo_link": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
+        "posted_date": "09/05/2024",
+        "posted_within": "7 days",
+        "location_search": "Sydney",
+        "location": "Sydney NSW",
+        "work_type": "Full-time",
+        "experience_level": "mid",
+        "job_url": "https://www.seek.com.au/job/12345678",
+        "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
+        "salary": "$100,000 - $120,000",
+        "responsibilities": ["Responsibility 1", "Responsibility 2"],
+        "requirements": ["Requirement 1", "Requirement 2"],
+        "other": ["Be cool"]
+    }
+    mock_infer_work_model.return_value = "Remote"
+    result = await validate_job(job)
+    assert result is True
+    assert job["work_model"] == "Remote"
+    mock_infer_work_model.assert_awaited_once()
+    mock_infer_exp.assert_not_awaited()
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+async def test_validate_job_infer_missing_experience_level_success(mock_infer_exp, mock_infer_work_model):
+    job = {
+        "title": "Software Engineer",
+        "company": "Example Corp",
+        "classification": "Software Design and Development",
+        "description": "This is a job description.",
+        "logo_link": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
+        "posted_date": "09/05/2024",
+        "posted_within": "7 days",
+        "location_search": "Sydney",
+        "location": "Sydney NSW",
+        "work_type": "Full-time",
+        "work_model": "Hybrid",
+        "job_url": "https://www.seek.com.au/job/12345678",
+        "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
+        "salary": "$100,000 - $120,000",
+        "responsibilities": ["Responsibility 1", "Responsibility 2"],
+        "requirements": ["Requirement 1", "Requirement 2"],
+        "other": ["Be cool"]
+    }
+    mock_infer_exp.return_value = "mid"
+    result = await validate_job(job)
+    assert result is True
+    assert job["experience_level"] == "mid"
+    mock_infer_work_model.assert_not_awaited()
+    mock_infer_exp.assert_awaited_once()
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+async def test_validate_job_infer_invalid_experience_level_success(mock_infer_exp, mock_infer_work_model):
+    job = {
+        "title": "Software Engineer",
+        "company": "Example Corp",
+        "classification": "Software Design and Development",
+        "description": "This is a job description.",
+        "logo_link": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
+        "posted_date": "09/05/2024",
+        "posted_within": "7 days",
+        "location_search": "Sydney",
+        "location": "Sydney NSW",
+        "experience_level": "mid-senior",
+        "work_type": "Full-time",
+        "work_model": "Hybrid",
+        "job_url": "https://www.seek.com.au/job/12345678",
+        "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
+        "salary": "$100,000 - $120,000",
+        "responsibilities": ["Responsibility 1", "Responsibility 2"],
+        "requirements": ["Requirement 1", "Requirement 2"],
+        "other": ["Be cool"]
+    }
+    mock_infer_exp.return_value = "senior"
+    result = await validate_job(job)
+    assert result is True
+    assert job["experience_level"] == "senior"
+    mock_infer_work_model.assert_not_awaited()
+    mock_infer_exp.assert_awaited_once()
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+async def test_validate_job_missing_required_field(mock_infer_work_model, mock_infer_exp):
+    job = {
+        "company": "Example Corp",
+        "classification": "Software Design and Development",
+        "description": "This is a job description.",
+        "logo_link": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
+        "posted_date": "09/05/2024",
+        "posted_within": "7 days",
+        "location_search": "Sydney",
+        "location": "Sydney NSW",
+        "work_type": "Full-time",
+        "work_model": "Hybrid",
+        "experience_level": "mid",
+        "job_url": "https://www.seek.com.au/job/12345678",
+        "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
+        "salary": "$100,000 - $120,000",
+        "responsibilities": ["Responsibility 1", "Responsibility 2"],
+        "requirements": ["Requirement 1", "Requirement 2"],
+        "other": ["Be cool"]
+    }
+    result = await validate_job(job)
+    assert result is False
+    mock_infer_work_model.assert_not_awaited()
+    mock_infer_exp.assert_not_awaited()
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+async def test_validate_job_invalid_url(mock_infer_work_model, mock_infer_exp):
+    job = {
+        "title": "Software Engineer",
+        "company": "Example Corp",
+        "classification": "Software Design and Development",
+        "description": "This is a job description.",
+        "logo_link": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
+        "posted_date": "09/05/2024",
+        "posted_within": "7 days",
+        "location_search": "Sydney",
+        "location": "Sydney NSW",
+        "work_type": "Full-time",
+        "work_model": "Hybrid",
+        "experience_level": "mid",
+        "job_url": "wttps://www.seek.com.au/job/12345678",
+        "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
+        "salary": "$100,000 - $120,000",
+        "responsibilities": ["Responsibility 1", "Responsibility 2"],
+        "requirements": ["Requirement 1", "Requirement 2"],
+        "other": ["Be cool"]
+    }
+
+    result = await validate_job(job)
+    assert result is False
+    mock_infer_work_model.assert_not_awaited()
+    mock_infer_exp.assert_not_awaited()
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+async def test_validate_job_field_not_list(mock_infer_work_model, mock_infer_exp):
+    job = {
+        "title": "Software Engineer",
+        "company": "Example Corp",
+        "classification": "Software Design and Development",
+        "description": "This is a job description.",
+        "logo_link": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
+        "posted_date": "09/05/2024",
+        "posted_within": "7 days",
+        "location_search": "Sydney",
+        "location": "Sydney NSW",
+        "work_type": "Full-time",
+        "work_model": "Hybrid",
+        "experience_level": "mid",
+        "job_url": "https://www.seek.com.au/job/12345678",
+        "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
+        "salary": "$100,000 - $120,000",
+        "responsibilities": "Responsibility 1",
+        "requirements": ["Requirement 1", "Requirement 2"],
+        "other": ["Be cool"]
+    }
+
+    result = await validate_job(job)
+    assert result is False
+    mock_infer_work_model.assert_not_awaited()
+    mock_infer_exp.assert_not_awaited()
+
+@pytest.mark.asyncio
+@patch("httpx.AsyncClient.post", new_callable=AsyncMock)
+async def test_send_page_jobs_to_node_success(mock_post):
+    mock_post.return_value.status_code = 200
+    mock_post.return_value.raise_for_status = MagicMock()
+
+    await send_page_jobs_to_node([{"title": "test job"}])
+    mock_post.assert_awaited_once()
+    mock_post.return_value.raise_for_status.assert_called_once()
+
+@pytest.mark.asyncio
+@patch("httpx.AsyncClient.post", new_callable=AsyncMock)
+async def test_send_page_jobs_to_node_http_error(mock_post, caplog):
+    request = Request("POST", "http://localhost:3000/api/jobs/page-batch")
+    response = Response(400, request=request, content=b"Bad job data")
+
+    mock_post.return_value = response
+    with pytest.raises(HTTPStatusError):
+        await send_page_jobs_to_node([{"title": "bad job"}])
+    assert "Failed to insert jobs: 400 - Bad job data" in caplog.text
+    
+
+
+
