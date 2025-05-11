@@ -14,7 +14,6 @@ async def extract_fields_from_job_link_with_groq(markdown, count):
             "llama3-70b-8192" if count % 3 == 1 else
             "llama3-8b-8192"
         )
-
         prompt = (
             "You are a strict JSON data extraction tool. Extract job posting data into a valid JSON object, strictly following these rules.\n\n"
             "- 'description': Extract a short summary (1–3 sentences) of what the role is about (purpose, mission or scope). Prefer text under headers like 'About the Role', 'The Role', or similar. "
@@ -35,8 +34,11 @@ async def extract_fields_from_job_link_with_groq(markdown, count):
             "- description\n- responsibilities\n- requirements\n"
             "- experience_level\n- work_model\n- other\n\n"
             "**Rules:**\n"
-            "- Always return a single valid JSON object.\n"
-            "- All property names MUST be enclosed in double quotes.\n"
+            "- Always return a single valid **JSON object**, not a string.\n"
+            "- All keys MUST be double-quoted, as per strict JSON format.\n"
+            "- Do NOT wrap the entire output in quotes. Do NOT stringify the JSON.\n"
+            "- All string values (including those inside lists) MUST be properly closed with quotes.\n"
+            "- The first key must be \"description\".\n"
             "- 'responsibilities', 'requirements', and 'other' must be returned as arrays of strings not as a string.\n"
             "- Arrays must use square brackets [] with double-quoted string values.\n"
             "- Do not include markdown, backticks, or code blocks.\n"
@@ -44,7 +46,6 @@ async def extract_fields_from_job_link_with_groq(markdown, count):
             "- No explanations, comments, or extra text — only raw minified JSON output.\n"
             f"Job Posting Text:\n{markdown}"
         )
-
         chat_completion = client.chat.completions.create(
             messages= [
                 {
@@ -67,7 +68,6 @@ async def extract_fields_from_job_link_with_groq(markdown, count):
 async def extract_missing_work_model_with_groq(job_text):
     try:
         model = "llama-3.3-70b-versatile"
-        # Adjust the prompt to focus only on inferring the 'work_model' as a string.
         prompt = (
             "You are tasked with determining the 'work_model' (Hybrid, On-site, Remote) for a job posting. "
             "The 'work_model' should be inferred from the information in the job description, responsibilities, "
@@ -75,7 +75,6 @@ async def extract_missing_work_model_with_groq(job_text):
             "either 'Hybrid', 'On-site', or 'Remote'.\n\n"
             "Job Posting Text:\n{job_text}"
         )
-
         chat_completion = client.chat.completions.create(
             messages= [
                 {
@@ -89,11 +88,7 @@ async def extract_missing_work_model_with_groq(job_text):
             ],
             model=model,
         )
-        
-        # Extract the inferred work model (should be a string)
         inferred_work_model = chat_completion.choices[0].message.content.strip()
-        
-        # Return the inferred work model as a string
         return inferred_work_model
         
     except Exception as e:
@@ -116,7 +111,6 @@ async def extract_missing_experience_level_with_groq(job_title, job_text):
             "Job Title: {job_title}\n\n"
             "Job Posting Text:\n{job_text}"
         )
-
         chat_completion = client.chat.completions.create(
             messages=[
                 {
@@ -130,7 +124,6 @@ async def extract_missing_experience_level_with_groq(job_title, job_text):
             ],
             model=model,
         )
-
         inferred_experience = chat_completion.choices[0].message.content.strip().lower()
         allowed_levels = {"intern", "junior", "mid", "senior", "lead+"}
         return inferred_experience if inferred_experience in allowed_levels else None
