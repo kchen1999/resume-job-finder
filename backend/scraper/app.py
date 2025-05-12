@@ -27,10 +27,15 @@ async def start_scraping(request: Request, background_tasks: BackgroundTasks):
         data = await request.json()
         job_title = data.get('job_title', 'software engineer')
         location = data.get('location', 'sydney')
+        max_pages = data.get('max_pages')
         base_url = f"https://www.seek.com.au/jobs?keywords={job_title}&where={location}&sortmode=ListedDate"
 
-        # Fire off background scraping
-        background_tasks.add_task(scrape_job_listing, base_url, location)
+        background_tasks.add_task(
+            scrape_job_listing, 
+            base_url, 
+            location, 
+            max_pages=int(max_pages) if max_pages is not None else None
+        )
 
         return JSONResponse(content={"status": "Scraping started"}, status_code=202)
 

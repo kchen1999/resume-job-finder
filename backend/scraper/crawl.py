@@ -11,7 +11,7 @@ from scraper.utils import process_markdown_to_job_links, parse_job_json_from_mar
 from scraper.utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields
 from scraper.validate_and_db_insert import validate_and_insert_jobs
 
-DAY_RANGE_LIMIT = 0
+DAY_RANGE_LIMIT = 3
 TOTAL_JOBS_PER_PAGE = 22
 MAX_RETRIES = 3
 TERMINATE_EARLY = "TERMINATE EARLY"
@@ -99,7 +99,6 @@ async def scrape_page_markdown(base_url, crawler, page_num):
         
 async def scrape_individual_job_url(job_url, crawler): 
         logging.debug(f"Starting to scrape job URL: {job_url}")
-
         prune_filter = PruningContentFilter(
             threshold=0.5,
             threshold_type="fixed",
@@ -110,8 +109,7 @@ async def scrape_individual_job_url(job_url, crawler):
         )
         config = CrawlerRunConfig(
             markdown_generator=md_generator  
-        )
-        
+        )  
         page_url = f"{job_url}"
         await pause_briefly(1, 3)
         result = await crawler.arun(page_url, config=config)
@@ -221,7 +219,7 @@ async def scrape_job_listing_page(base_url, location_search, crawler, page_num, 
     }
 
 
-async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_PAGE):
+async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_PAGE, max_pages=None):
     async with AsyncWebCrawler() as crawler:
         print("AsyncWebCrawler initialized successfully!")
         markdown = await scrape_page_markdown(base_url, crawler, 1)
@@ -237,13 +235,14 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
                 'invalid_jobs': []
             }
         total_pages = math.ceil(total_jobs / pagesize) if total_jobs else 1
+        if max_pages is not None:
+            total_pages = min(total_pages, max_pages)
         print(f"Detected {total_jobs} jobs — scraping {total_pages} pages.")
 
         job_count = 0
         all_errors = []
         all_invalid_jobs = []
 
-        #for page_num in range(1, 2):
         for page_num in range(1, total_pages + 1):
             result = await scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors)
             job_count = result['job_count']

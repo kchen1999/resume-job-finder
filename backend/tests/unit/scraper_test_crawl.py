@@ -142,6 +142,32 @@ async def test_scrape_job_listing_page_no_links_in_markdown(mock_scrape_page_mar
     assert result == {"job_count": 0, "all_errors": [], "terminated_early": True, "invalid_jobs": []}
 
 @pytest.mark.asyncio
+@patch("scraper.crawl.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.crawl.AsyncWebCrawler")
+async def test_scrape_job_listing_respects_max_pages(
+    mock_crawler_class, mock_scrape_first_page, mock_scrape_page
+):
+    mock_crawler_instance = AsyncMock()
+    mock_crawler_class.return_value.__aenter__.return_value = mock_crawler_instance
+    mock_scrape_first_page.return_value = ["# 100 jobs listed"]
+    mock_scrape_page.return_value = {
+        "job_count": 22,
+        "all_errors": [],
+        "terminated_early": False,
+        "invalid_jobs": []
+    }
+    result = await scrape_job_listing("https://seek.com", location_search="sydney", max_pages=1)
+    assert result == {
+        "message": "Scraped and inserted 22 jobs.",
+        "errors": None,
+        "invalid_jobs": []
+    }
+    mock_scrape_first_page.assert_awaited_once()
+    mock_scrape_page.assert_awaited_once() 
+
+
+@pytest.mark.asyncio
 @patch("scraper.crawl.bounded_process_job", new_callable=AsyncMock)
 async def test_process_all_jobs_concurrently(mock_bounded_process_job):
     job_urls = ["https://www.seek.com.au/job/123", "https://www.seek.com.au/job/456","https://www.seek.com.au/job/789"]
