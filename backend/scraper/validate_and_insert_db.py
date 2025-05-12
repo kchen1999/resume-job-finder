@@ -1,24 +1,11 @@
 import logging
-import httpx
 from urllib.parse import urlparse
 from scraper.groq_utils import extract_missing_work_model_with_groq, extract_missing_experience_level_with_groq
 from scraper.utils import flatten_field
+from scraper.node_client import send_page_jobs_to_node
 
 REQUIRED_FIELDS = ["title", "company", "classification", "posted_date", "posted_within", "work_type", "work_model"]
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
-
-async def send_page_jobs_to_node(job_data_list):
-    try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
-            response = await client.post(
-                "http://localhost:3000/api/jobs/page-batch",  
-                json={"jobs": job_data_list}
-            )
-            response.raise_for_status()
-            logging.info("Successfully sent jobs to Node")
-    except httpx.HTTPStatusError as exc:
-        logging.error(f"Failed to insert jobs: {exc.response.status_code} - {exc.response.text}")
-        raise
 
 async def validate_job(job):
     job_url = job.get("job_url", "Unknown URL")

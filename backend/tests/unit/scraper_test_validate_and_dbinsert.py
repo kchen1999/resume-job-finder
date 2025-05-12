@@ -1,11 +1,10 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
-from httpx import Response, Request, HTTPStatusError
-from scraper.validate_and_db_insert import validate_and_insert_jobs, validate_job, send_page_jobs_to_node
+from unittest.mock import AsyncMock, patch
+from scraper.validate_and_insert_db import validate_and_insert_jobs, validate_job
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.validate_job", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.send_page_jobs_to_node", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.validate_job", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.send_page_jobs_to_node", new_callable=AsyncMock)
 async def test_validate_and_insert_jobs_happy_path(
     mock_send_to_node, mock_validate_job
 ):
@@ -22,8 +21,8 @@ async def test_validate_and_insert_jobs_happy_path(
     assert mock_validate_job.await_count == 3
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.validate_job", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.send_page_jobs_to_node", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.validate_job", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.send_page_jobs_to_node", new_callable=AsyncMock)
 async def test_validate_and_insert_jobs_all_invalid(mock_send_to_node, mock_validate_job):
     mock_validate_job.side_effect = [False, False, False]
     page_job_data = [
@@ -40,8 +39,8 @@ async def test_validate_and_insert_jobs_all_invalid(mock_send_to_node, mock_vali
     assert all_errors == []
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.validate_job", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.send_page_jobs_to_node", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.validate_job", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.send_page_jobs_to_node", new_callable=AsyncMock)
 async def test_validate_and_insert_jobs_db_insert_exception(mock_send_to_node, mock_validate_job):
     job1 = {"title": "Dev 1"}
     job2 = {"title": "Dev 2"}
@@ -57,8 +56,8 @@ async def test_validate_and_insert_jobs_db_insert_exception(mock_send_to_node, m
     assert "DB insert error on page 3: DB connection failed" in all_errors[0]
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
 async def test_validate_job_valid_no_inference(mock_infer_exp, mock_infer_work_model):
     job = {
         "title": "Software Engineer",
@@ -86,8 +85,8 @@ async def test_validate_job_valid_no_inference(mock_infer_exp, mock_infer_work_m
     mock_infer_work_model.assert_not_awaited()
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
 async def test_validate_job_infer_missing_work_model_success(mock_infer_exp, mock_infer_work_model):
     job = {
         "title": "Software Engineer",
@@ -116,8 +115,8 @@ async def test_validate_job_infer_missing_work_model_success(mock_infer_exp, moc
     mock_infer_exp.assert_not_awaited()
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
 async def test_validate_job_infer_missing_experience_level_success(mock_infer_exp, mock_infer_work_model):
     job = {
         "title": "Software Engineer",
@@ -146,8 +145,8 @@ async def test_validate_job_infer_missing_experience_level_success(mock_infer_ex
     mock_infer_exp.assert_awaited_once()
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
 async def test_validate_job_infer_invalid_experience_level_success(mock_infer_exp, mock_infer_work_model):
     job = {
         "title": "Software Engineer",
@@ -177,8 +176,8 @@ async def test_validate_job_infer_invalid_experience_level_success(mock_infer_ex
     mock_infer_exp.assert_awaited_once()
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_work_model_with_groq", new_callable=AsyncMock)
 async def test_validate_job_missing_required_field(mock_infer_work_model, mock_infer_exp):
     job = {
         "company": "Example Corp",
@@ -205,8 +204,8 @@ async def test_validate_job_missing_required_field(mock_infer_work_model, mock_i
     mock_infer_exp.assert_not_awaited()
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_work_model_with_groq", new_callable=AsyncMock)
 async def test_validate_job_invalid_url(mock_infer_work_model, mock_infer_exp):
     job = {
         "title": "Software Engineer",
@@ -235,8 +234,8 @@ async def test_validate_job_invalid_url(mock_infer_work_model, mock_infer_exp):
     mock_infer_exp.assert_not_awaited()
 
 @pytest.mark.asyncio
-@patch("scraper.validate_and_db_insert.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
-@patch("scraper.validate_and_db_insert.extract_missing_work_model_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.extract_missing_work_model_with_groq", new_callable=AsyncMock)
 async def test_validate_job_field_not_list(mock_infer_work_model, mock_infer_exp):
     job = {
         "title": "Software Engineer",
@@ -264,26 +263,6 @@ async def test_validate_job_field_not_list(mock_infer_work_model, mock_infer_exp
     mock_infer_work_model.assert_not_awaited()
     mock_infer_exp.assert_not_awaited()
 
-@pytest.mark.asyncio
-@patch("httpx.AsyncClient.post", new_callable=AsyncMock)
-async def test_send_page_jobs_to_node_success(mock_post):
-    mock_post.return_value.status_code = 200
-    mock_post.return_value.raise_for_status = MagicMock()
-
-    await send_page_jobs_to_node([{"title": "test job"}])
-    mock_post.assert_awaited_once()
-    mock_post.return_value.raise_for_status.assert_called_once()
-
-@pytest.mark.asyncio
-@patch("httpx.AsyncClient.post", new_callable=AsyncMock)
-async def test_send_page_jobs_to_node_http_error(mock_post, caplog):
-    request = Request("POST", "http://localhost:3000/api/jobs/page-batch")
-    response = Response(400, request=request, content=b"Bad job data")
-
-    mock_post.return_value = response
-    with pytest.raises(HTTPStatusError):
-        await send_page_jobs_to_node([{"title": "bad job"}])
-    assert "Failed to insert jobs: 400 - Bad job data" in caplog.text
     
 
 
