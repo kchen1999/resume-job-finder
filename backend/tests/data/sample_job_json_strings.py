@@ -16,7 +16,7 @@ VALID_JSON_STRING = """{
         "Strong communication and relationship-building skills, particularly with suppliers.",
         "Experience working with overseas suppliers (a plus, but not essential)"
         ],
-    "experience_level": "mid",
+    "experience_level": "mid_or_senior",
     "work_model": "On-site",
     "other": [
         "Must have Australian Working Rights",
@@ -44,7 +44,7 @@ MALFORMED_JSON_STRING = """{
         "A First or 2:1 degree (Bachelor’s or Master’s) — ideally in a technical field",
         "Curiosity, collaboration and a desire to make things better!"
         ],
-        "experience_level": "senior",
+        "experience_level": "mid_or_senior",
         "work_model": "Hybrid",
         "other": [
         "Competitive Salary | $120,000 - $140,000 + Super",

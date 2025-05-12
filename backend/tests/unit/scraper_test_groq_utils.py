@@ -7,7 +7,7 @@ from scraper.groq_utils import extract_fields_from_job_link_with_groq, extract_m
 async def test_extract_fields_from_job_link_with_groq(mock_groq_create):
     fake_json = (
         '{"description":"Build stuff.","responsibilities":["Code"],"requirements":["Python"],'
-        '"experience_level":"senior","work_model":"Remote","other":["Free breakfast"]}'
+        '"experience_level":"mid_or_senior","work_model":"Remote","other":["Free breakfast"]}'
     )
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content=fake_json))]
@@ -29,7 +29,7 @@ async def test_extract_fields_from_job_link_with_groq(mock_groq_create):
 ])
 @patch("scraper.groq_utils.client.chat.completions.create")
 async def test_model_selection_based_on_count(mock_groq_create, count, expected_model):
-    fake_json = '{"description":"","responsibilities":[],"requirements":[],"experience_level":"mid","work_model":"Remote","other":[]}'
+    fake_json = '{"description":"","responsibilities":[],"requirements":[],"experience_level":"mid_or_senior","work_model":"Remote","other":[]}'
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content=fake_json))]
     mock_groq_create.return_value = mock_response
@@ -55,14 +55,14 @@ async def test_extract_missing_work_model_with_groq(mock_groq_create):
 @patch("scraper.groq_utils.client.chat.completions.create")
 async def test_extract_missing_experience_level_with_groq(mock_groq_create):
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock(message=MagicMock(content="senior"))]
+    mock_response.choices = [MagicMock(message=MagicMock(content="mid_or_senior"))]
     mock_groq_create.return_value = mock_response
 
     result = await extract_missing_experience_level_with_groq(
         job_title="Senior Software Engineer",
         job_text="We're looking for someone with 5+ years of backend experience."
     )
-    assert result == "senior"
+    assert result == "mid_or_senior"
     mock_groq_create.assert_called_once()
 
 @pytest.mark.asyncio

@@ -71,7 +71,7 @@ async def test_validate_job_valid_no_inference(mock_infer_exp, mock_infer_work_m
         "location": "Sydney NSW",
         "work_type": "Full-time",
         "work_model": "Hybrid",
-        "experience_level": "mid",
+        "experience_level": "mid_or_senior",
         "job_url": "https://www.seek.com.au/job/12345678",
         "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
         "salary": "$100,000 - $120,000",
@@ -99,7 +99,7 @@ async def test_validate_job_infer_missing_work_model_success(mock_infer_exp, moc
         "location_search": "Sydney",
         "location": "Sydney NSW",
         "work_type": "Full-time",
-        "experience_level": "mid",
+        "experience_level": "mid_or_senior",
         "job_url": "https://www.seek.com.au/job/12345678",
         "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
         "salary": "$100,000 - $120,000",
@@ -158,7 +158,7 @@ async def test_validate_job_infer_invalid_experience_level_success(mock_infer_ex
         "posted_within": "7 days",
         "location_search": "Sydney",
         "location": "Sydney NSW",
-        "experience_level": "mid-senior",
+        "experience_level": "mid",
         "work_type": "Full-time",
         "work_model": "Hybrid",
         "job_url": "https://www.seek.com.au/job/12345678",
@@ -168,10 +168,10 @@ async def test_validate_job_infer_invalid_experience_level_success(mock_infer_ex
         "requirements": ["Requirement 1", "Requirement 2"],
         "other": ["Be cool"]
     }
-    mock_infer_exp.return_value = "senior"
+    mock_infer_exp.return_value = "mid_or_senior"
     result = await validate_job(job)
     assert result is True
-    assert job["experience_level"] == "senior"
+    assert job["experience_level"] == "mid_or_senior"
     mock_infer_work_model.assert_not_awaited()
     mock_infer_exp.assert_awaited_once()
 
@@ -190,7 +190,7 @@ async def test_validate_job_missing_required_field(mock_infer_work_model, mock_i
         "location": "Sydney NSW",
         "work_type": "Full-time",
         "work_model": "Hybrid",
-        "experience_level": "mid",
+        "experience_level": "mid_or_senior",
         "job_url": "https://www.seek.com.au/job/12345678",
         "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
         "salary": "$100,000 - $120,000",
@@ -219,7 +219,7 @@ async def test_validate_job_invalid_url(mock_infer_work_model, mock_infer_exp):
         "location": "Sydney NSW",
         "work_type": "Full-time",
         "work_model": "Hybrid",
-        "experience_level": "mid",
+        "experience_level": "mid_or_senior",
         "job_url": "wttps://www.seek.com.au/job/12345678",
         "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
         "salary": "$100,000 - $120,000",
@@ -249,7 +249,7 @@ async def test_validate_job_field_not_list(mock_infer_work_model, mock_infer_exp
         "location": "Sydney NSW",
         "work_type": "Full-time",
         "work_model": "Hybrid",
-        "experience_level": "mid",
+        "experience_level": "mid_or_senior",
         "job_url": "https://www.seek.com.au/job/12345678",
         "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
         "salary": "$100,000 - $120,000",
