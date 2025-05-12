@@ -1,5 +1,3 @@
-# scraper/node_client.py
-
 import logging
 import httpx
 

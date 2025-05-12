@@ -50,8 +50,8 @@ Job.init({
     allowNull: true,
     validate: {
       isIn: {
-        args: [['intern', 'junior', 'mid', 'senior', 'lead']],
-        msg: 'Experience level must be one of: intern, junior, mid, senior, lead'
+        args: [['intern', 'junior', 'mid_or_senior', 'lead']],
+        msg: 'Experience level must be one of: intern, junior, mid_or_senior, lead'
       }
     }
   },

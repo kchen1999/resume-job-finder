@@ -39,7 +39,7 @@ async def validate_job(job):
                 return False
 
     exp = job.get("experience_level")
-    if not exp or exp not in ["intern", "junior", "mid", "senior", "lead+"]:
+    if not exp or exp not in ["intern", "junior", "mid_or_senior", "lead+"]:
         print(f"[INFO] {job_url}: Invalid or missing experience_level '{exp}', inferring...")
         job_text = "\n".join([
             job.get("description", ""),

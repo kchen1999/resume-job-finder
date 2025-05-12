@@ -1,22 +1,22 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
-import ResumeDropzone from "./ResumeDropzone";
-import JobResults from "./JobResults";
-import JobFilters from "./JobFilters";
-import { Box } from '@mui/material';
+import { useState, useEffect } from "react"
+import axios from "axios"
+import ResumeDropzone from "./ResumeDropzone"
+import JobResults from "./JobResults"
+import JobFilters from "./JobFilters"
+import { Box } from '@mui/material'
 
 const ResumeAnalyzer = () => {
-  const [file, setFile] = useState(null);
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [userExperiences, setUserExperiences] = useState([]); // Store resume experiences
+  const [file, setFile] = useState(null)
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [userExperiences, setUserExperiences] = useState([]) // Store resume experiences
   const [filters, setFilters] = useState({
     experience: '',
     experienceIds: [],
     posted: '',
     domain: '',
     location: '',
-  });
+  })
 
    // Fetch the jobs when the component mounts
    useEffect(() => {
@@ -25,12 +25,12 @@ const ResumeAnalyzer = () => {
         const res = await axios.get("http://localhost:3000/api/jobs");
         setResults(res.data); // Set the initial results (jobs from DB)
       } catch (err) {
-        console.error("Failed to fetch jobs", err);
+        console.error("Failed to fetch jobs", err)
       }
     };
 
-    fetchJobs();
-  }, []); 
+    fetchJobs()
+  }, []) 
 
     // Re-match jobs whenever selected resume experienceIds change
   useEffect(() => {
@@ -40,14 +40,13 @@ const ResumeAnalyzer = () => {
         const res = await axios.post("http://localhost:3000/api/resume/rematch", {
           experienceIds: filters.experienceIds,
         });
-        setResults(res.data.matchedJobs);
+        setResults(res.data.matchedJobs)
       } catch (err) {
-        console.error("Failed to re-match jobs", err);
+        console.error("Failed to re-match jobs", err)
       }
-    };
-  
-      rematch();
-    }, [filters.experienceIds]);
+    }
+      rematch()
+    }, [filters.experienceIds])
 
   const handleSubmit = async (uploadedFile) => {
     const fileToUse = uploadedFile || file
@@ -94,16 +93,19 @@ const ResumeAnalyzer = () => {
   };
 
   const applyFilters = (jobs, filters) => {
-    console.log("jobs:")
-    console.log(jobs)
     return jobs.filter(job => {
       // Experience filter (if set and not empty)
       if (filters.experience && filters.experience.length > 0) {
         const normalizedExperience = filters.experience.map(level => level.toLowerCase().trim())
         const jobLevel = job.experience_level?.toLowerCase().trim()
 
-        if (!jobLevel || !normalizedExperience.includes(jobLevel)) {
-          return false;
+        if (!jobLevel) return false
+        // If user selected "Mid / Senior", treat it as matching "mid_or_senior"
+        if (normalizedExperience.includes("mid / senior") && jobLevel === "mid_or_senior"
+        ) {
+          // Match
+        } else if (!normalizedExperience.includes(jobLevel)) {
+          return false
         }
       }
   

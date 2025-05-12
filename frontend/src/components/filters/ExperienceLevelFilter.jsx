@@ -44,7 +44,7 @@ const ExperienceLevelFilter = ({ filters, handleChange }) => {
           }}
           sx={{ height: '40px' }}
         >
-          {['Intern', 'Junior', 'Mid', 'Senior', 'Lead+'].map((level) => (
+          {['Intern', 'Junior', 'Mid / Senior', 'Lead+'].map((level) => (
             <MenuItem key={level} value={level}>
               <Checkbox checked={filters.experience.includes(level)} />
               <ListItemText primary={level} />

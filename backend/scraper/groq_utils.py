@@ -18,17 +18,17 @@ async def extract_fields_from_job_link_with_groq(markdown, count):
             "You are a strict JSON data extraction tool. Extract job posting data into a valid JSON object, strictly following these rules.\n\n"
             "- 'description': Extract a short summary (1–3 sentences) of what the role is about (purpose, mission or scope). Prefer text under headers like 'About the Role', 'The Role', or similar. "
             "Return an empty string only for description if no such content exists.\n"
-            "- 'responsibilities': actual tasks/duties. Do not include headers or unrelated content.\n"
+            "- 'responsibilities': actual tasks/duties. Extract complete phrases or bullet points as written in the posting. Do not extract keywords. Do not include headers or unrelated content.\n"
             "- 'requirements': include all technical skills, technologies, years of experience, cloud platforms, front-end/back-end stacks,"
             " architecture knowledge, tools, frameworks, databases, testing tools/methodologies, and certifications" 
-            "— even if mentioned outside the 'requirements' section. Use original wording. Do not include section headers.\n"
-            "- 'experience_level': Infer from job title first, then responsibilities/years of experience if unclear. Use one of: 'intern', 'junior', 'mid', 'senior', 'lead+' "
+            "— even if mentioned outside the 'requirements' section. Extract full phrases or sentences as written in the job text, not just keywords. Preserve the original phrasing and context. Do not summarize or convert into tags.\n"
+            "- 'experience_level': Infer from job title first, then responsibilities/years of experience if unclear. Use one of: 'intern', 'junior', 'mid_or_senior', 'lead+' "
             "If the job title includes 'Lead', (e.g. 'Engineering Lead', 'Lead Developer') classify as 'lead+'. "
             "If the job title includes 'Manager', 'Principal', 'Head', or similar leadership terms classify as 'lead+'. "
-            "If the job title includes 'Senior' and is not part of a leadership title then classify as 'senior' (e.g. 'Senior Software Engineer' is 'senior', but 'Senior Manager' is 'lead+')."
+            "If the job title includes 'Senior' and is not part of a leadership title then classify as 'senior' (e.g. 'Senior Software Engineer' is 'mid_or_senior', but 'Senior Manager' is 'lead+')."
             "If the job title includes 'Intern', classify as 'intern' and if job title includes 'Junior', classify as 'junior'."
             "If none of the above, infer from responsibilities and years of experience.\n"
-            "- 'work_model': Identify the job model. Choose one of: 'Hybrid', 'On-site', or 'Remote' (exact formatting). Treat 'flexible' or 'WFH' as 'Hybrid'. If unclear, default to 'On-site'.\n"
+            "- 'work_model': Choose one of: 'Hybrid', 'On-site', or 'Remote'. Use 'Remote' only if clearly stated. Use 'Hybrid' if terms like 'WFH', 'flexible', or 'work from home' appear. If no clear mention of remote or hybrid, return 'On-site' as default (never return None)."
             "- 'other': list of extra job-relevant details not captured above. Must be bullet points. No tech/tools/experience level here. Each array element must be a simple double-quoted string.\n\n"
             "Return a single JSON object with the following fields:\n\n"
             "- description\n- responsibilities\n- requirements\n"
@@ -100,14 +100,14 @@ async def extract_missing_experience_level_with_groq(job_title, job_text):
         model = "llama-3.3-70b-versatile"
         prompt = (
             "Determine the 'experience_level' for a job posting based on the job title and content. "
-            "Allowed values: 'intern', 'junior', 'mid', 'senior', 'lead+'.\n\n"
+            "Allowed values: 'intern', 'junior', 'mid_or_senior', 'lead+'.\n\n"
             "**Rules:**\n"
             "- If the title includes 'Intern', classify as 'intern'.\n"
             "- If the title includes 'Junior', classify as 'junior'.\n"
             "- If the title includes 'Lead', 'Manager', 'Principal', or 'Head', classify as 'lead+'.\n"
-            "- If the title includes 'Senior' but not a leadership title (e.g. 'Senior Software Engineer'), classify as 'senior'.\n"
+            "- If the title includes 'Senior' but not a leadership title (e.g. 'Senior Software Engineer'), classify as 'mid_or_senior'.\n"
             "- If the title doesn't help, infer from responsibilities and required years of experience.\n"
-            "- Return only one of: 'intern', 'junior', 'mid', 'senior', 'lead+'.\n\n"
+            "- Return only one of: 'intern', 'junior', 'mid_or_senior', 'lead+' and nothing else — no explanation..\n\n"
             "Job Title: {job_title}\n\n"
             "Job Posting Text:\n{job_text}"
         )
@@ -125,7 +125,8 @@ async def extract_missing_experience_level_with_groq(job_title, job_text):
             model=model,
         )
         inferred_experience = chat_completion.choices[0].message.content.strip().lower()
-        allowed_levels = {"intern", "junior", "mid", "senior", "lead+"}
+        print(f"Raw model output: {repr(inferred_experience)}")
+        allowed_levels = {"intern", "junior", "mid_or_senior", "lead+"}
         return inferred_experience if inferred_experience in allowed_levels else None
 
     except Exception as e:

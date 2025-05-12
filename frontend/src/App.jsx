@@ -5,12 +5,12 @@ function App() {
   return (
     <Container maxWidth="lg" sx={{ mt: 6 }}>
       <Typography variant="h4" align="center" gutterBottom>
-        ResumeMatcher AI
+        Resume Matcher AI
       </Typography>
       <ResumeAnalyzer />
     </Container>
-  );
+  )
 }
 
-export default App;
+export default App
 
