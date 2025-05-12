@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import JSONResponse
-from scraper.crawl import scrape_job_listing
+from backend.scraper.job_scrape import scrape_job_listing
 
 app = FastAPI()
 

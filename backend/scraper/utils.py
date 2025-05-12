@@ -88,7 +88,7 @@ def extract_total_job_count(markdown: str) -> int:
     return 0
 
 
-def extract_json_from_response(response):
+def parse_json_block_from_text(response):
     try:
         start = response.find('{')
         end = response.rfind('}') + 1
@@ -129,21 +129,21 @@ def clean_string(raw_string):
     return cleaned
 
 async def parse_job_json_from_markdown(job_markdown, count):
-    response_text = await extract_fields_from_job_link_with_groq(job_markdown, count)
-    raw_result = extract_json_from_response(response_text)
-    print(f"Type of raw_result: {type(raw_result)}")
+    groq_response  = await extract_fields_from_job_link_with_groq(job_markdown, count)
+    json_candidate = parse_json_block_from_text(groq_response)
+    print(f"Type of raw_result: {type(json_candidate)}")
 
      # If it's already a dict (parsed JSON), no need to decode
-    if isinstance(raw_result, dict):
-        return raw_result
+    if isinstance(json_candidate, dict):
+        return json_candidate
     
     # Clean the extracted JSON using json_repair (if needed)
     try:
-        if isinstance(raw_result, str):
-            raw_result = clean_string(raw_result)
+        if isinstance(json_candidate, str):
+            json_candidate = clean_string(json_candidate)
             print("Cleaned json: ")
-            print(raw_result)
-        repaired_json_string = repair_json(raw_result)  # Raw string goes here
+            print(json_candidate)
+        repaired_json_string = repair_json(json_candidate)  # Raw string goes here
         print("repairing json...")
         job_json = json.loads(repaired_json_string)
         print("repaired json: ")

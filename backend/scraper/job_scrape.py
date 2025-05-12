@@ -9,7 +9,7 @@ from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
 from scraper.utils import process_markdown_to_job_links, parse_job_json_from_markdown, enrich_job_json, is_job_within_date_range, pause_briefly
 from scraper.utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields
-from scraper.validate_and_db_insert import validate_and_insert_jobs
+from scraper.validate_and_insert_db import validate_and_insert_jobs
 
 DAY_RANGE_LIMIT = 3
 TOTAL_JOBS_PER_PAGE = 22

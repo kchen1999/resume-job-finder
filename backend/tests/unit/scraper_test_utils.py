@@ -5,7 +5,7 @@ from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime, timedelta
 from freezegun import freeze_time
 from scraper.utils import extract_total_job_count, extract_job_urls, parse_job_json_from_markdown, is_job_within_date_range, get_relative_posted_time, flatten_field, extract_job_metadata_fields, pause_briefly
-from scraper.utils import extract_job_links, process_markdown_to_job_links, extract_json_from_response, clean_string, get_posted_date, enrich_job_json, extract_posted_date_by_class, extract_logo_src
+from scraper.utils import extract_job_links, process_markdown_to_job_links, parse_json_block_from_text, clean_string, get_posted_date, enrich_job_json, extract_posted_date_by_class, extract_logo_src
 from scraper.utils import LOGO_SELECTOR
 from tests.data.sample_job_json_strings import VALID_JSON_STRING, MALFORMED_JSON_STRING
 
@@ -185,9 +185,9 @@ def test_process_markdown_returns_none_on_empty_links(mock_extract):
     result = process_markdown_to_job_links(fake_markdown)
     assert result is None
 
-def test_extract_json_from_response_valid_json():
+def test_parse_json_block_from_text_valid_json():
     assert isinstance(VALID_JSON_STRING, str)
-    result = extract_json_from_response(VALID_JSON_STRING)
+    result = parse_json_block_from_text(VALID_JSON_STRING)
     assert result == {
         "description": "This is an amazing opportunity for someone looking to take the next step in their product development career within a well-loved retail brand.",
         "responsibilities": [
@@ -215,15 +215,15 @@ def test_extract_json_from_response_valid_json():
     }
     assert isinstance(result, dict)
 
-def test_extract_json_from_response_invalid_json():
+def test_parse_json_block_from_text_invalid_json():
     assert isinstance(MALFORMED_JSON_STRING, str)
-    result = extract_json_from_response(MALFORMED_JSON_STRING)
+    result = parse_json_block_from_text(MALFORMED_JSON_STRING)
     assert result == MALFORMED_JSON_STRING
     assert isinstance(result, str)
 
 @pytest.mark.asyncio
 @patch("scraper.utils.extract_fields_from_job_link_with_groq", new_callable=AsyncMock)
-@patch("scraper.utils.extract_json_from_response")
+@patch("scraper.utils.parse_json_block_from_text")
 async def test_parse_job_json_from_markdown(mock_extract_json, mock_extract_fields):
     job_md = "mock job markdown"
     count = 1    

@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import AsyncMock, Mock, patch, ANY
-from scraper.crawl import scrape_job_listing, scrape_job_listing_page, process_all_jobs_concurrently, process_job_with_backoff, scrape_individual_job_url, scrape_job_metadata
-from scraper.crawl import MAX_RETRIES, POSTED_TIME_SELECTOR, SUCCESS, SKIPPED, TERMINATE, ERROR
+from scraper.job_scrape import scrape_job_listing, scrape_job_listing_page, process_all_jobs_concurrently, process_job_with_backoff, scrape_individual_job_url, scrape_job_metadata
+from scraper.job_scrape import MAX_RETRIES, POSTED_TIME_SELECTOR, SUCCESS, SKIPPED, TERMINATE, ERROR
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_job_listing_page", new_callable=AsyncMock)
-@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.AsyncWebCrawler") 
+@patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.AsyncWebCrawler") 
 async def test_scrape_job_listing_happy_path(
     mock_crawler_class, mock_scrape_first_page, mock_scrape_page
 ):
@@ -29,9 +29,9 @@ async def test_scrape_job_listing_happy_path(
     mock_scrape_page.assert_awaited_once()
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_job_listing_page", new_callable=AsyncMock)
-@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.AsyncWebCrawler") 
+@patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.AsyncWebCrawler") 
 async def test_scrape_job_listing_empty_markdown(
     mock_crawler_class, mock_scrape_first_page, mock_scrape_page
 ):
@@ -45,9 +45,9 @@ async def test_scrape_job_listing_empty_markdown(
     mock_scrape_page.assert_not_awaited()
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_job_listing_page", new_callable=AsyncMock)
-@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.AsyncWebCrawler") 
+@patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.AsyncWebCrawler") 
 async def test_scrape_job_listing_zero_jobs(
     mock_crawler_class, mock_scrape_first_page, mock_scrape_page
 ):
@@ -65,9 +65,9 @@ async def test_scrape_job_listing_zero_jobs(
     mock_scrape_page.assert_not_awaited()
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_job_listing_page", new_callable=AsyncMock)
-@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.AsyncWebCrawler")
+@patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.AsyncWebCrawler")
 async def test_scrape_job_listing_with_invalid_jobs(
     mock_crawler_class, mock_scrape_first_page, mock_scrape_page
 ):
@@ -91,9 +91,9 @@ async def test_scrape_job_listing_with_invalid_jobs(
     assert mock_scrape_page.await_count == 2
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_job_listing_page", new_callable=AsyncMock)
-@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.AsyncWebCrawler") 
+@patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.AsyncWebCrawler") 
 async def test_scrape_job_listing_multiple_pages_no_early_exit(
     mock_crawler_class, mock_scrape_first_page, mock_scrape_page
 ):
@@ -114,7 +114,7 @@ async def test_scrape_job_listing_multiple_pages_no_early_exit(
     assert mock_scrape_page.await_count == 3
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
 async def test_scrape_job_listing_page_empty_markdown(mock_scrape_page_markdown):
     mock_scrape_page_markdown.return_value = []
     result = await scrape_job_listing_page(
@@ -128,7 +128,7 @@ async def test_scrape_job_listing_page_empty_markdown(mock_scrape_page_markdown)
     assert result == {"job_count": 0, "all_errors": [], "terminated_early": True, "invalid_jobs": []}
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
 async def test_scrape_job_listing_page_no_links_in_markdown(mock_scrape_page_markdown):
     mock_scrape_page_markdown.return_value = ["Some header\nMore content\nBut no job links"]
     result = await scrape_job_listing_page(
@@ -142,9 +142,9 @@ async def test_scrape_job_listing_page_no_links_in_markdown(mock_scrape_page_mar
     assert result == {"job_count": 0, "all_errors": [], "terminated_early": True, "invalid_jobs": []}
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_job_listing_page", new_callable=AsyncMock)
-@patch("scraper.crawl.scrape_page_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.AsyncWebCrawler")
+@patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.AsyncWebCrawler")
 async def test_scrape_job_listing_respects_max_pages(
     mock_crawler_class, mock_scrape_first_page, mock_scrape_page
 ):
@@ -168,7 +168,7 @@ async def test_scrape_job_listing_respects_max_pages(
 
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.bounded_process_job", new_callable=AsyncMock)
+@patch("scraper.job_scrape.bounded_process_job", new_callable=AsyncMock)
 async def test_process_all_jobs_concurrently(mock_bounded_process_job):
     job_urls = ["https://www.seek.com.au/job/123", "https://www.seek.com.au/job/456","https://www.seek.com.au/job/789"]
     crawler = AsyncMock()
@@ -184,11 +184,11 @@ async def test_process_all_jobs_concurrently(mock_bounded_process_job):
 
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_individual_job_url", new_callable=AsyncMock)
-@patch("scraper.crawl.parse_job_json_from_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_job_urls")
-@patch("scraper.crawl.enrich_job_json")
-@patch("scraper.crawl.is_job_within_date_range")
+@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
+@patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_job_urls")
+@patch("scraper.job_scrape.enrich_job_json")
+@patch("scraper.job_scrape.is_job_within_date_range")
 async def test_process_job_with_backoff_success(
     mock_is_recent,
     mock_enrich,
@@ -214,11 +214,11 @@ async def test_process_job_with_backoff_success(
     assert result["error"] is None
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_individual_job_url", new_callable=AsyncMock)
-@patch("scraper.crawl.parse_job_json_from_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_job_urls")
-@patch("scraper.crawl.enrich_job_json")
-@patch("scraper.crawl.is_job_within_date_range")
+@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
+@patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_job_urls")
+@patch("scraper.job_scrape.enrich_job_json")
+@patch("scraper.job_scrape.is_job_within_date_range")
 async def test_process_job_with_backoff_missing_title(
     mock_is_recent,
     mock_enrich,
@@ -237,11 +237,11 @@ async def test_process_job_with_backoff_missing_title(
     assert result == {"status": SKIPPED, "job": None, "error": "Missing title"}
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_individual_job_url", new_callable=AsyncMock)
-@patch("scraper.crawl.parse_job_json_from_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_job_urls")
-@patch("scraper.crawl.enrich_job_json")
-@patch("scraper.crawl.is_job_within_date_range")
+@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
+@patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_job_urls")
+@patch("scraper.job_scrape.enrich_job_json")
+@patch("scraper.job_scrape.is_job_within_date_range")
 async def test_process_job_with_backoff_missing_json(
     mock_is_recent,
     mock_enrich,
@@ -265,11 +265,11 @@ async def test_process_job_with_backoff_missing_json(
 
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_individual_job_url", new_callable=AsyncMock)
-@patch("scraper.crawl.parse_job_json_from_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_job_urls")
-@patch("scraper.crawl.enrich_job_json")
-@patch("scraper.crawl.is_job_within_date_range")
+@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
+@patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_job_urls")
+@patch("scraper.job_scrape.enrich_job_json")
+@patch("scraper.job_scrape.is_job_within_date_range")
 async def test_process_job_with_backoff_too_old(
     mock_is_recent,
     mock_enrich,
@@ -294,11 +294,11 @@ async def test_process_job_with_backoff_too_old(
     terminate_event.set.assert_called_once()
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_individual_job_url", new_callable=AsyncMock)
-@patch("scraper.crawl.parse_job_json_from_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_job_urls")
-@patch("scraper.crawl.enrich_job_json")
-@patch("scraper.crawl.is_job_within_date_range")
+@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
+@patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_job_urls")
+@patch("scraper.job_scrape.enrich_job_json")
+@patch("scraper.job_scrape.is_job_within_date_range")
 async def test_process_job_with_backoff_retry_logic(
     mock_is_recent,
     mock_enrich,
@@ -326,11 +326,11 @@ async def test_process_job_with_backoff_retry_logic(
 
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_individual_job_url", new_callable=AsyncMock)
-@patch("scraper.crawl.parse_job_json_from_markdown", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_job_urls")
-@patch("scraper.crawl.enrich_job_json")
-@patch("scraper.crawl.is_job_within_date_range")
+@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
+@patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_job_urls")
+@patch("scraper.job_scrape.enrich_job_json")
+@patch("scraper.job_scrape.is_job_within_date_range")
 async def test_process_job_with_backoff_max_retries_exhausted(
     mock_is_recent,
     mock_enrich,
@@ -352,7 +352,7 @@ async def test_process_job_with_backoff_max_retries_exhausted(
     assert mock_scrape.call_count == MAX_RETRIES
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_job_metadata", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_job_metadata", new_callable=AsyncMock)
 async def test_scrape_individual_job_url_success(mock_scrape_metadata):
     job_url = "https://www.seek.com.au/job/123"
     crawler = AsyncMock()  
@@ -367,7 +367,7 @@ async def test_scrape_individual_job_url_success(mock_scrape_metadata):
     mock_scrape_metadata.assert_called_once_with(job_url, ANY)
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.scrape_job_metadata", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_job_metadata", new_callable=AsyncMock)
 async def test_scrape_individual_job_url_no_markdown(mock_scrape_metadata):
     job_url = "https://www.seek.com.au/job/123"
     crawler = AsyncMock()
@@ -380,10 +380,10 @@ async def test_scrape_individual_job_url_no_markdown(mock_scrape_metadata):
     mock_scrape_metadata.assert_called_once_with(job_url, ANY)
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.create_browser_context", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_logo_src", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_job_metadata_fields", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_posted_date_by_class", new_callable=AsyncMock)
+@patch("scraper.job_scrape.create_browser_context", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_logo_src", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_job_metadata_fields", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_posted_date_by_class", new_callable=AsyncMock)
 async def test_scrape_job_metadata_success(mock_extract_posted_time, mock_extract_metadata, mock_extract_logo, mock_create_browser_context):
     mock_browser = AsyncMock()
     mock_page = AsyncMock()
@@ -420,7 +420,7 @@ async def test_scrape_job_metadata_success(mock_extract_posted_time, mock_extrac
     mock_extract_posted_time.assert_called_once_with(mock_page, POSTED_TIME_SELECTOR)
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.create_browser_context", new_callable=AsyncMock)
+@patch("scraper.job_scrape.create_browser_context", new_callable=AsyncMock)
 async def test_scrape_job_metadata_error_handling(mock_create_browser_context):
     mock_browser = AsyncMock()
     mock_page = AsyncMock()
@@ -435,10 +435,10 @@ async def test_scrape_job_metadata_error_handling(mock_create_browser_context):
     mock_page.goto.assert_called_once_with("https://www.seek.com.au/job/123")
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.create_browser_context", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_logo_src", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_job_metadata_fields", new_callable=AsyncMock)
-@patch("scraper.crawl.extract_posted_date_by_class", new_callable=AsyncMock)
+@patch("scraper.job_scrape.create_browser_context", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_logo_src", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_job_metadata_fields", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_posted_date_by_class", new_callable=AsyncMock)
 async def test_scrape_job_metadata_missing_elements(mock_extract_posted_time, mock_extract_metadata, mock_extract_logo, mock_create_browser_context):
     mock_browser = AsyncMock()
     mock_page = AsyncMock()
@@ -464,7 +464,7 @@ async def test_scrape_job_metadata_missing_elements(mock_extract_posted_time, mo
     mock_extract_posted_time.assert_called_once_with(mock_page, POSTED_TIME_SELECTOR)
 
 @pytest.mark.asyncio
-@patch("scraper.crawl.create_browser_context", new_callable=AsyncMock)
+@patch("scraper.job_scrape.create_browser_context", new_callable=AsyncMock)
 async def test_scrape_job_metadata_cleanup_on_exception(mock_create_browser_context):
     mock_browser = AsyncMock()
     mock_context = AsyncMock()
