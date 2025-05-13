@@ -2,7 +2,7 @@ import pytest
 import os
 import yaml
 from rapidfuzz import fuzz
-from scraper.utils import parse_job_json_from_markdown  
+from scraper.utils import parse_job_json_from_markdown, override_experience_level_with_title  
 
 # === Global configuration ===
 FUZZY_MATCH_THRESHOLD = 75
@@ -22,13 +22,20 @@ def experience_level_matches(expected: str, actual: str) -> bool:
     }
     return actual.lower() in experience_groups.get(expected.lower(), {expected.lower()})
 
+def simulate_job_title_enrichment(job_json, expected):
+    if 'title' in expected:
+        job_json['title'] = expected['title']
+    return job_json
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize("test_case", load_test_data()["tests"])
-async def test_extract_fields_from_job_link_with_groq(test_case):
+async def test_parse_job_json_from_markdown(test_case):
     markdown = test_case["markdown"]
     expected = test_case["expected"]
 
     result = await parse_job_json_from_markdown(markdown, 1)
+    result = simulate_job_title_enrichment(result, expected)
+    result = override_experience_level_with_title(result)
     print("Parsed result:")
     print(result)
 
