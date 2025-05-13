@@ -7,11 +7,11 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
-from scraper.utils import process_markdown_to_job_links, parse_job_json_from_markdown, enrich_job_json, is_job_within_date_range, pause_briefly
+from scraper.utils import process_markdown_to_job_links, parse_job_json_from_markdown, enrich_job_json, is_job_within_date_range, pause_briefly, override_experience_level_with_title
 from scraper.utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields
 from scraper.validate_and_insert_db import validate_and_insert_jobs
 
-DAY_RANGE_LIMIT = 3
+DAY_RANGE_LIMIT = 7
 TOTAL_JOBS_PER_PAGE = 22
 MAX_RETRIES = 3
 TERMINATE_EARLY = "TERMINATE EARLY"
@@ -132,6 +132,8 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
             print("Scraping job:", count + 1)
             print("Scraping:", job_link)
             job_markdown, job_metadata = await scrape_individual_job_url(job_link, crawler)
+            print("-----Job markdown-----")
+            print(job_markdown)
             if not isinstance(job_metadata, dict) or not job_metadata.get("title"):
                 print(f"Skipping job {job_link}, title missing.")
                 return {"status": SKIPPED, "job": None, "error": "Missing title"}
@@ -150,6 +152,7 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
                 terminate_event.set()
                 return {"status": TERMINATE, "job": None, "error": None}
 
+            job_json = override_experience_level_with_title(job_json)
             return {"status": SUCCESS, "job": job_json, "error": None}
 
         except Exception as e:
@@ -217,7 +220,6 @@ async def scrape_job_listing_page(base_url, location_search, crawler, page_num, 
         'terminated_early': terminated_early,
         'invalid_jobs': invalid_jobs  
     }
-
 
 async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_PAGE, max_pages=None):
     async with AsyncWebCrawler() as crawler:

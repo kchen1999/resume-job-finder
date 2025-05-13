@@ -128,6 +128,24 @@ def clean_string(raw_string):
     cleaned = raw_string.replace('\\', '').replace('\n', '')
     return cleaned
 
+def infer_experience_level_from_title(title: str) -> str:
+    title = title.lower()
+    if "intern" in title:
+        return "intern"
+    if "junior" in title:
+        return "junior"
+    if any(term in title for term in ["lead", "manager", "principal", "head", "director", "vp", "chief"]):
+        return "lead+"
+    return ""
+
+def override_experience_level_with_title(job_json: dict):
+    title = job_json.get("title", "")
+    if isinstance(title, str) and title.strip():
+        inferred = infer_experience_level_from_title(title)
+        if inferred:
+            job_json["experience_level"] = inferred
+    return job_json
+
 async def parse_job_json_from_markdown(job_markdown, count):
     groq_response  = await extract_fields_from_job_link_with_groq(job_markdown, count)
     json_candidate = parse_json_block_from_text(groq_response)
@@ -150,7 +168,6 @@ async def parse_job_json_from_markdown(job_markdown, count):
         print(job_json)
     except Exception as e:
         return {'error': f'JSON repair failed: {str(e)}'}
-
     return job_json
 
 def is_job_within_date_range(job_json, within_days=7):

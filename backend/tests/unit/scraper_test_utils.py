@@ -4,8 +4,8 @@ import json
 from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime, timedelta
 from freezegun import freeze_time
-from scraper.utils import extract_total_job_count, extract_job_urls, parse_job_json_from_markdown, is_job_within_date_range, get_relative_posted_time, flatten_field, extract_job_metadata_fields, pause_briefly
-from scraper.utils import extract_job_links, process_markdown_to_job_links, parse_json_block_from_text, clean_string, get_posted_date, enrich_job_json, extract_posted_date_by_class, extract_logo_src
+from scraper.utils import extract_total_job_count, extract_job_urls, parse_job_json_from_markdown, is_job_within_date_range, get_relative_posted_time, flatten_field, extract_job_metadata_fields, pause_briefly, infer_experience_level_from_title
+from scraper.utils import extract_job_links, process_markdown_to_job_links, parse_json_block_from_text, clean_string, get_posted_date, enrich_job_json, extract_posted_date_by_class, extract_logo_src, override_experience_level_with_title
 from scraper.utils import LOGO_SELECTOR
 from tests.data.sample_job_json_strings import VALID_JSON_STRING, MALFORMED_JSON_STRING
 
@@ -220,6 +220,41 @@ def test_parse_json_block_from_text_invalid_json():
     result = parse_json_block_from_text(MALFORMED_JSON_STRING)
     assert result == MALFORMED_JSON_STRING
     assert isinstance(result, str)
+
+@pytest.mark.parametrize("title, expected", [
+    ("Software Engineering Intern", "intern"),
+    ("Junior Data Analyst", "junior"),
+    ("Lead Engineer", "lead+"),
+    ("VP of Engineering", "lead+"),
+    ("Chief Technical Officer", "lead+"),
+    ("Principal ML Engineer", "lead+"),
+    ("Regular Software Developer", ""),
+])
+def test_infer_experience_level_from_title(title, expected):
+    assert infer_experience_level_from_title(title) == expected
+
+@pytest.mark.parametrize("input_job, expected_level, should_override", [
+    ({"title": "Software Engineering Intern"}, "intern", True),
+    ({"title": "Junior Backend Developer"}, "junior", True),
+    ({"title": "Senior Frontend Engineer"}, "", False),
+    ({"title": "Lead Data Scientist"}, "lead+", True),
+    ({"title": ""}, "", False),
+    ({}, "", False),
+    ({"title": "Senior Engineering Manager", "experience_level": "mid_or_senior"}, "lead+", True),
+    ({"title": "Lead Backend Developer", "experience_level": "mid_or_senior"}, "lead+", True),
+    ({"title": "Senior Software Engineer", "experience_level": "mid_or_senior"}, "mid_or_senior", False),
+])
+def test_override_experience_level_with_title(input_job, expected_level, should_override):
+    original = input_job.get("experience_level")
+    result = override_experience_level_with_title(input_job)
+    if should_override:
+        assert result["experience_level"] == expected_level
+    else:
+        if original is not None:
+            assert result["experience_level"] == original
+        else:
+            assert "experience_level" not in result
+
 
 @pytest.mark.asyncio
 @patch("scraper.utils.extract_fields_from_job_link_with_groq", new_callable=AsyncMock)
