@@ -94,8 +94,8 @@ def parse_json_block_from_text(response):
         end = response.rfind('}') + 1
         return json.loads(response[start:end])
     except Exception as e:
-        print(f"Raw response: {repr(response)}")
         print("Error parsing JSON:", e)
+        print(f"Raw response: {repr(response)}")
         return response
 
 def extract_job_links(markdown):
@@ -127,6 +127,11 @@ def process_markdown_to_job_links(markdown):
 def clean_string(raw_string):
     cleaned = raw_string.replace('\\', '').replace('\n', '')
     return cleaned
+
+def set_default_work_model(job_json):
+    if job_json.get("work_model") is None:
+        job_json["work_model"] = "On-site"
+    return job_json
 
 def infer_experience_level_from_title(title: str) -> str:
     title = title.lower()

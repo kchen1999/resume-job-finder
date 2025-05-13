@@ -5,13 +5,17 @@ from scraper.utils import flatten_field
 from scraper.node_client import send_page_jobs_to_node
 
 REQUIRED_FIELDS = ["title", "company", "classification", "posted_date", "posted_within", "work_type", "work_model"]
+ALLOWED_WORK_MODEL_VALUES = {"Remote", "Hybrid", "On-site"}
+ALLOWED_EXPERIENCE_LEVEL_VALUES = ["intern", "junior", "mid_or_senior", "lead+"]
+URL_FIELDS = ["quick_apply_url", "job_url"]
+LIST_FIELDS = ["responsibilities", "requirements", "other"]
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 async def validate_job(job):
     job_url = job.get("job_url", "Unknown URL")
 
-    if not job.get("work_model"):
-        logging.info(f"{job_url}: 'work_model' missing, inferring...")
+    if job.get("work_model") not in ALLOWED_WORK_MODEL_VALUES:
+        logging.info(f"{job_url}: 'work_model' invalid, inferring...")
         job_text = "\n".join([
             job.get("description", ""), 
             flatten_field(job.get("responsibilities", "")), 
@@ -30,7 +34,7 @@ async def validate_job(job):
             logging.error(f"{job_url}: Missing required field '{field}'")
             return False
         
-    for url_field in ["quick_apply_url", "job_url"]:
+    for url_field in URL_FIELDS:
         url = job.get(url_field)
         if url:
             parsed = urlparse(url)
@@ -39,7 +43,7 @@ async def validate_job(job):
                 return False
 
     exp = job.get("experience_level")
-    if not exp or exp not in ["intern", "junior", "mid_or_senior", "lead+"]:
+    if not exp or exp not in ALLOWED_EXPERIENCE_LEVEL_VALUES:
         print(f"[INFO] {job_url}: Invalid or missing experience_level '{exp}', inferring...")
         job_text = "\n".join([
             job.get("description", ""),
@@ -54,7 +58,7 @@ async def validate_job(job):
             logging.error(f"{job_url}: Unable to infer valid experience_level.")
             return False
 
-    for list_field in ["responsibilities", "requirements", "other"]:
+    for list_field in LIST_FIELDS:
         val = job.get(list_field)
         if val is not None and not isinstance(val, list):
             logging.error(f"{job_url}: '{list_field}' should be a list, got {type(val).__name__}")

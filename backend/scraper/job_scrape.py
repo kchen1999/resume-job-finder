@@ -8,7 +8,7 @@ from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
 from scraper.utils import process_markdown_to_job_links, parse_job_json_from_markdown, enrich_job_json, is_job_within_date_range, pause_briefly, override_experience_level_with_title
-from scraper.utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields
+from scraper.utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields, set_default_work_model
 from scraper.validate_and_insert_db import validate_and_insert_jobs
 
 DAY_RANGE_LIMIT = 7
@@ -142,7 +142,8 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
             if not job_json:
                 print(f"Skipping job {job_link}, no JSON extracted.")
                 return {"status": SKIPPED, "job": None, "error": "No JSON extracted"}
-
+            
+            job_json = set_default_work_model(job_json)
             job_url, quick_apply_url = extract_job_urls(job_link)
             enrich_job_json(job_json, location_search, job_url, quick_apply_url, job_metadata)
             print("Enriched Job JSON: ", job_json)
