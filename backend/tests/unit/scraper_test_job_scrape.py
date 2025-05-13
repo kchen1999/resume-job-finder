@@ -186,6 +186,7 @@ async def test_process_all_jobs_concurrently(mock_bounded_process_job):
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
 @patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.set_default_work_model")
 @patch("scraper.job_scrape.extract_job_urls")
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
@@ -195,11 +196,13 @@ async def test_process_job_with_backoff_success(
     mock_is_recent,
     mock_enrich,
     mock_extract_urls,
+    mock_set_work_model,
     mock_parse_json,
     mock_scrape
 ):
     mock_scrape.return_value = ("<html>", {"title": "Software Engineer"})
     mock_parse_json.return_value = {"title": "Software Engineer"}
+    mock_set_work_model.return_value = {"title": "Software Engineer"}
     mock_extract_urls.return_value = ("https://www.seek.com.au/job/123", "https://www.seek.com.au/job/123/apply")
     mock_enrich.return_value = None
     mock_is_recent.return_value = True
@@ -219,6 +222,7 @@ async def test_process_job_with_backoff_success(
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
 @patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.set_default_work_model")
 @patch("scraper.job_scrape.extract_job_urls")
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
@@ -228,6 +232,7 @@ async def test_process_job_with_backoff_missing_title(
     mock_is_recent,
     mock_enrich,
     mock_extract_urls,
+    mock_set_work_model,
     mock_parse_json,
     mock_scrape
 ):
@@ -244,6 +249,7 @@ async def test_process_job_with_backoff_missing_title(
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
 @patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.set_default_work_model")
 @patch("scraper.job_scrape.extract_job_urls")
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
@@ -253,6 +259,7 @@ async def test_process_job_with_backoff_missing_json(
     mock_is_recent,
     mock_enrich,
     mock_extract_urls,
+    mock_set_work_model,
     mock_parse_json,
     mock_scrape
 ):
@@ -274,6 +281,7 @@ async def test_process_job_with_backoff_missing_json(
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
 @patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.set_default_work_model")
 @patch("scraper.job_scrape.extract_job_urls")
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
@@ -283,11 +291,13 @@ async def test_process_job_with_backoff_too_old(
     mock_is_recent,
     mock_enrich,
     mock_extract_urls,
+    mock_set_work_model,
     mock_parse_json,
     mock_scrape
 ):
     mock_scrape.return_value = ("<html>", {"title": "Software Engineer"})
     mock_parse_json.return_value = {"title": "Software Engineer"}
+    mock_set_work_model.return_value = {"title": "Software Engineer"}
     mock_extract_urls.return_value = ("https://www.seek.com.au/job/123", "https://www.seek.com.au/job/123/apply")
     mock_enrich.return_value = None
     mock_is_recent.return_value = False  
@@ -306,6 +316,7 @@ async def test_process_job_with_backoff_too_old(
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
 @patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.set_default_work_model")
 @patch("scraper.job_scrape.extract_job_urls")
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
@@ -315,11 +326,13 @@ async def test_process_job_with_backoff_retry_logic(
     mock_is_recent,
     mock_enrich,
     mock_extract_urls,
+    mock_set_work_model,
     mock_parse_json,
     mock_scrape
 ):
     mock_scrape.side_effect = [Exception("Scraping failed"), ("<html>", {"title": "Software Engineer"})]
     mock_parse_json.return_value = {"title": "Software Engineer"}
+    mock_set_work_model.return_value = {"title": "Software Engineer"}
     mock_extract_urls.return_value = ("https://www.seek.com.au/job/123", "https://www.seek.com.au/job/123/apply")
     mock_enrich.return_value = None
     mock_is_recent.return_value = True
@@ -341,6 +354,7 @@ async def test_process_job_with_backoff_retry_logic(
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
 @patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.set_default_work_model")
 @patch("scraper.job_scrape.extract_job_urls")
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
@@ -350,6 +364,7 @@ async def test_process_job_with_backoff_max_retries_exhausted(
     mock_is_recent,
     mock_enrich,
     mock_extract_urls,
+    mock_set_work_model,
     mock_parse_json,
     mock_scrape
 ):

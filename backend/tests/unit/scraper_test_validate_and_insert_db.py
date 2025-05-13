@@ -87,7 +87,7 @@ async def test_validate_job_valid_no_inference(mock_infer_exp, mock_infer_work_m
 @pytest.mark.asyncio
 @patch("scraper.validate_and_insert_db.extract_missing_work_model_with_groq", new_callable=AsyncMock)
 @patch("scraper.validate_and_insert_db.extract_missing_experience_level_with_groq", new_callable=AsyncMock)
-async def test_validate_job_infer_missing_work_model_success(mock_infer_exp, mock_infer_work_model):
+async def test_validate_job_infer_invalid_work_model_success(mock_infer_exp, mock_infer_work_model):
     job = {
         "title": "Software Engineer",
         "company": "Example Corp",
@@ -98,6 +98,7 @@ async def test_validate_job_infer_missing_work_model_success(mock_infer_exp, moc
         "posted_within": "7 days",
         "location_search": "Sydney",
         "location": "Sydney NSW",
+        "work_model": "Flexible",
         "work_type": "Full-time",
         "experience_level": "mid_or_senior",
         "job_url": "https://www.seek.com.au/job/12345678",

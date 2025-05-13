@@ -5,7 +5,7 @@ from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime, timedelta
 from freezegun import freeze_time
 from scraper.utils import extract_total_job_count, extract_job_urls, parse_job_json_from_markdown, is_job_within_date_range, get_relative_posted_time, flatten_field, extract_job_metadata_fields, pause_briefly, infer_experience_level_from_title
-from scraper.utils import extract_job_links, process_markdown_to_job_links, parse_json_block_from_text, clean_string, get_posted_date, enrich_job_json, extract_posted_date_by_class, extract_logo_src, override_experience_level_with_title
+from scraper.utils import extract_job_links, process_markdown_to_job_links, parse_json_block_from_text, clean_string, get_posted_date, enrich_job_json, extract_posted_date_by_class, extract_logo_src, override_experience_level_with_title, set_default_work_model
 from scraper.utils import LOGO_SELECTOR
 from tests.data.sample_job_json_strings import VALID_JSON_STRING, MALFORMED_JSON_STRING
 
@@ -220,6 +220,16 @@ def test_parse_json_block_from_text_invalid_json():
     result = parse_json_block_from_text(MALFORMED_JSON_STRING)
     assert result == MALFORMED_JSON_STRING
     assert isinstance(result, str)
+
+def test_sets_work_model_to_onsite_if_none():
+    job = {"title": "Software Engineer", "work_model": None}
+    job = set_default_work_model(job)
+    assert job["work_model"] == "On-site"
+
+def test_does_not_override_existing_work_model():
+    job = {"title": "Software Engineer", "work_model": "Remote"}
+    job = set_default_work_model(job)
+    assert job["work_model"] == "Remote"
 
 @pytest.mark.parametrize("title, expected", [
     ("Software Engineering Intern", "intern"),
