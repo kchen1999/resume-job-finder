@@ -234,6 +234,9 @@ async def test_run_multiple_times_and_aggregate():
         summary["averages"][metric] = float(np.mean(values))
         summary["stddevs"][metric] = float(np.std(values, ddof=1))
 
+    #Add total number of tests run to summary
+    summary["total_tests_run"] = summary["num_runs"] * all_run_results[0]["total_tests"]
+
     # Save summary to JSON
     output_path = os.path.join(os.path.dirname(__file__), "results_summary.json")
     with open(output_path, "w") as f:
@@ -241,6 +244,7 @@ async def test_run_multiple_times_and_aggregate():
 
     # Print summary stats
     print("\n========== Aggregated Extraction Summary ==========")
+    print(f"Total tests run: {summary['total_tests_run']}")
     for metric in metrics:
         avg = summary["averages"][metric]
         std = summary["stddevs"][metric]

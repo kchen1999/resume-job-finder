@@ -1,53 +1,50 @@
 {
-  "timestamp": "2025-05-17T16:43:01.095718",
+  "timestamp": "2025-05-17T18:42:33.487965",
   "num_runs": 3,
   "per_run_results": [
     {
-      "avg_desc_score": 99.35584632718027,
-      "avg_resp_score": 97.14285714285714,
-      "avg_req_score": 99.0,
-      "exp_match_rate": 90.0,
-      "work_model_match_rate": 100.0,
-      "total_tests": 10,
-      "errors": [
-        "[Test Case 9] [EXPERIENCE MISMATCH] Expected: 'mid_or_senior', Got: 'lead+'"
-      ]
-    },
-    {
-      "avg_desc_score": 86.07252653042583,
-      "avg_resp_score": 100.0,
+      "avg_desc_score": 99.53058738517261,
+      "avg_resp_score": 96.90476190476191,
       "avg_req_score": 99.41176470588235,
-      "exp_match_rate": 90.0,
-      "work_model_match_rate": 100.0,
-      "total_tests": 10,
-      "errors": [
-        "[Test Case 1] [EXPERIENCE MISMATCH] Expected: 'mid_or_senior', Got: 'lead+'",
-        "[Test Case 5] [DESCRIPTION MISMATCH] Score: 62.61\nExpected: Google is invested in increasing the number of future computer scientists and software developers, particularly those who are historically underrepresented in the field. The Associate Software Developer Intern aims to bridge the gap between academic studies and a professional internship. The 12-week program offers students the opportunity to work on a software project alongside other Associate Software Developer interns, with the support of full-time Googlers and a mentor.\nGot: At Google, engineers not only revolutionize search, they routinely work on massive scalability and storage solutions, large-scale applications and entirely new platforms for developers around the world. From Google Ads to Chrome, Android to YouTube, Social to Local, Google engineers are changing the world one technological achievement after another. Google is invested in increasing the number of future computer scientists and software developers, particularly those who are historically underrepresented in the field.",
-        "[Test Case 7] [DESCRIPTION MISMATCH] Score: 0.00\nExpected: We are looking for a talented **Full Stack Developer** to join our growing team at our Sydney Town Hall office.\nGot: "
-      ]
-    },
-    {
-      "avg_desc_score": 99.76174924887205,
-      "avg_resp_score": 98.33333333333334,
-      "avg_req_score": 95.0,
       "exp_match_rate": 100.0,
       "work_model_match_rate": 100.0,
       "total_tests": 10,
       "errors": []
+    },
+    {
+      "avg_desc_score": 98.23644485464071,
+      "avg_resp_score": 100.0,
+      "avg_req_score": 96.91176470588235,
+      "exp_match_rate": 100.0,
+      "work_model_match_rate": 100.0,
+      "total_tests": 10,
+      "errors": []
+    },
+    {
+      "avg_desc_score": 98.59939040983915,
+      "avg_resp_score": 98.57142857142858,
+      "avg_req_score": 95.55555555555556,
+      "exp_match_rate": 100.0,
+      "work_model_match_rate": 100.0,
+      "total_tests": 10,
+      "errors": [
+        "[Test Case 9] [REQUIREMENTS MISMATCH] Match Ratio: 66.67%\nExpected: ['Bachelor\u2019s or Master\u2019s degree in Computer Science, AI, or related field', '3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications (prefer in autonomous agents)', 'Strong programming skills, particularly in Python, Java', 'Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.', 'Understanding of reinforcement learning, planning algorithms, and decision-making systems', 'Familiarity with tools, APIs, and infrastructure needed for agent deployment', 'Experience with workflow orchestration and system design', 'Excellent problem-solving and analytical thinking skills', 'Strong communication and collaboration abilities', 'Conduct at least one AI chatbot/agent application using Dify / LangChain or similar framework', 'Experience in CS chatbot development, like user intend recognition, conversation, and knowledge base enhancement', 'Familiar with data analysis, model tuning through data cleaning and feature engineering']\nActual: ['Bachelor\u2019s or Master\u2019s degree in Computer Science, AI, or related field', '3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications (prefer in autonomous agents)', 'Strong programming skills, particularly in Python, Java', 'Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.', 'Understanding of reinforcement learning, planning algorithms, and decision-making systems', 'Familiarity with tools, APIs, and infrastructure needed for agent deployment', 'Experience with workflow orchestration and system design', 'Data analysis, model tuning through data cleaning and feature engineering']\nScores: [100, 100, 100, 100, 100, 100, 100, 0, 0, 0, 0, 100]"
+      ]
     }
   ],
   "averages": {
-    "avg_desc_score": 95.06337403549271,
+    "avg_desc_score": 98.78880754988415,
     "avg_resp_score": 98.4920634920635,
-    "avg_req_score": 97.80392156862744,
-    "exp_match_rate": 93.33333333333333,
+    "avg_req_score": 97.29302832244008,
+    "exp_match_rate": 100.0,
     "work_model_match_rate": 100.0
   },
   "stddevs": {
-    "avg_desc_score": 7.788946876181982,
-    "avg_resp_score": 1.4351699460337415,
-    "avg_req_score": 2.4369796194291933,
-    "exp_match_rate": 5.773502691896257,
+    "avg_desc_score": 0.6675405321326942,
+    "avg_resp_score": 1.5491445472970706,
+    "avg_req_score": 1.9561719535227549,
+    "exp_match_rate": 0.0,
     "work_model_match_rate": 0.0
-  }
+  },
+  "total_tests_run": 30
 }
