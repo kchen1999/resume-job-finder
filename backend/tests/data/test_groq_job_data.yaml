@@ -1,0 +1,755 @@
+tests:
+  - markdown: |
+      Skip to content
+      # Senior Software Engineer
+      Commonwealth Bank – Technology 
+      ·
+      Engineering - Software (Information & Communication Technology)
+      Base + Super + Bonus
+      Posted 3h ago
+      Apply⁠
+      **Senior Software Engineer**
+      **Do work that matters:**
+
+      We're building tomorrow's bank today, which means we need creative and diverse engineers to help us redefine what customers expect from a bank. Envisioning new technologies that are still waiting to be invented and reimagining products that support our customers and help build Australia's future economy. 
+      **See yourself in our team:** You'll be part of a wider BB Tech team integrated into the Digital & Automated Lending Crew in Business Lending Domain. The crew is reimagining the way we offer credit to our business customers by focusing on certainty and speed. We do this through building next gen digital and automated credit solutions using BIAN and BaaS microservices architecture. 
+      As the Senior Software Engineer, you be reporting directly to the Chapter Lead Business Banking, the team provides expert and strategic technology support to the Digital & Automated Lending Crew in the Business Lending domain. Our Senior Software Engineer are hands-on technical subject-matter experts, who are accountable for a significant portion of technical leadership and design solutions that have a shift left focus. 
+      **We're interested in hearing from people who** **can**
+        * Design and develop Microservices using C#, .Net and JavaScript
+        * Collaborate within the team to apply the principles of design, development, testing, deployment, support, and evaluation.
+        * Contribute to the technical design for system enhancements.
+        * Develop high quality software solutions with comprehensive test coverage.
+        * Provide technical support and assistance to other non-technical members of the team. 
+        * Actively participate in code reviews and provide qualitative feedback with a continuous improvement mindset.
+        * Contribute in support and technical troubleshooting activity. At all times act in a courteous and professional manner and use best judgement to advance the interests of the company, its customers and staff.
+        * Write and enhance automation test framework as an important component of team development assets.
+        * Ability to participate, and often lead, full cycle regression testing. 
+
+      **Tech Skills** We use a broad range of tools, languages, and frameworks. We don't expect you to know them all but experience or exposure with some of these (or equivalents) will set you up for success in this team: 
+        * **Node.js:** Familiarity with Node.js for server-side logic and integration with front-end elements. 
+        * **TypeScript:** Exposure to TypeScript is highly valued, as we look to leverage strong typing towards enhancing code quality and maintainability. 
+        * **Next.js:** Experience with Next.js for server-side rendering, static site generation desirable. 
+        * **DOT NET:** Experience with .NET core and C# strongly preferred but not necessary 
+        * **AWS:** Knowledge on Step Functions, Lambda and DynamoDB 
+        * **Git:** Knowledge of version control using Git, including branching, merging, and pull requests. 
+        * **React:** Strong understanding of React principles, component lifecycle, hooks, and state management. 
+        * **HTML5:** Skilled in using HTML5 to create structured web page layouts. 
+        * **CSS3:** Ability to style web pages effectively using CSS3, including knowledge of responsive design. 
+        * **UI Frameworks:** Experience with Tailwind and MUI (or equivalent) UI frameworks desirable. 
+        * **Debugging Skills:** Proficiency in debugging and troubleshooting web applications, using tools like Chrome DevTools. 
+        * **Cross-Browser Development:** Experience in ensuring compatibility across different web browsers and resolving compatibility issues. 
+        * **RESTful APIs:** Experience in consuming RESTful services and APIs within the front-end framework. 
+        * **State Management Techniques:** Familiarity with state management libraries and techniques, such as Redux and Context Hooks, to manage application state. 
+        * **Familiarity with Modern Build Tools:** Experience with build and bundling tools like Webpack, Babel, and NPM scripts. 
+        * **Accessibility and Web Standards:** Knowledge of web accessibility standards and practices to create inclusive and accessible web applications. 
+        * Good communication, teamwork, problem-solving skills, and adaptability in a fast-paced development environment. 
+      We support our people with the flexibility to balance where work is done with at least half their time each month connecting in office. **If this sounds like the role for you, then we would love to hear from you. Apply today!**
+      _Whether you're passionate about customer service, driven by data, or called by creativity, a career here is for you._
+      _Our people bring their diverse backgrounds and unique perspectives to build a respectful, inclusive and flexible workplace.__We are working hard to build a team of people who represent the rich diversity of our customers and communities. If you're excited about this opportunity but you don't meet every single requirement, or your experience doesn't align perfectly, we still want to encourage you to apply. You may just be the perfect candidate for this opportunity or another within CommBank._
+      _At CommBank we will inspire you with work that makes a difference, surround you with talented people that respect and value each other, and empower you to grow professionally and personally. Most of all, making_ _a positive impact for customers, communities and each other is part of our every day._
+      _We're determined to make a real difference for Australia's first peoples. We encourage all interested applicants to apply._ _If you're already part of the Commonwealth Bank Group (including Bankwest), you'll need to apply through Sidekick to submit a valid application. We're keen to support you with the next step in your career._
+      ## How do your skills match this job?
+      Sign in and update your profile to get insights.
+      ### Company profile
+      #### CommBank 
+      ·
+      Banking & Financial ServicesMore than 10,000 employees
+      CommBank is Australia’s leading provider of financial services. With customers at the heart of everything we do, we’re focused on helping people and businesses move forward financially. We are driven to deliver seamless experiences, in smart, innovative ways.
+      Our 50,000+ people bring their different backgrounds and unique perspectives to our collaborative environment. It’s what makes CommBank a place of opportunity, where your skills can take you in unexpected directions and you can achieve great things.
+      Ever wondered what it’s like to work at one of Australia’s Most Innovative companies? Hear what our people have to say about #CommBankLife on Instagram, LinkedIn and Twitter.
+      CommBank is Australia’s leading provider of financial services. With customers at the heart of everything we do, we’re focused on helping people and businesses move forward financially. We are driven to deliver seamless experiences, in smart, innovative ways.
+      Our 50,000+ people bring their different backgrounds and unique perspectives to our collaborative environment. It’s what makes CommBank a place of opportunity, where your skills can take you in unexpected directions and you can achieve great things.
+      Ever wondered what it’s like to work at one of Australia’s Most Innovative companies? Hear what our people have to say about #CommBankLife on Instagram, LinkedIn and Twitter.
+      Perks and benefits
+      Flexible working
+      Financial wellbeing
+      Health & lifestyle
+      Community
+      More about this company⁠
+      ## Report this job advert
+      Be carefulDon’t provide your bank or credit card details when applying for jobs.Learn how to protect yourself
+      Report this job ad⁠
+      What can I earn as a Software Engineer
+      See more detailed salary information
+    expected:
+      description: "We're building tomorrow's bank today, which means we need creative and diverse engineers to help us redefine what customers expect from a bank."
+      responsibilities:
+        - "Design and develop Microservices using C#, .Net and JavaScript"
+        - "Collaborate within the team to apply the principles of design, development, testing, deployment, support, and evaluation."
+        - "Contribute to the technical design for system enhancements."
+        - "Develop high quality software solutions with comprehensive test coverage."
+        - "Provide technical support and assistance to other non-technical members of the team."
+        - "Actively participate in code reviews and provide qualitative feedback with a continuous improvement mindset."
+        - "Contribute in support and technical troubleshooting activity. At all times act in a courteous and professional manner and use best judgement to advance the interests of the company, its customers and staff."
+        - "Write and enhance automation test framework as an important component of team development assets."
+        - "Ability to participate, and often lead, full cycle regression testing."
+      requirements:
+        - "Node.js: Familiarity with Node.js for server-side logic and integration with front-end elements."
+        - "TypeScript: Exposure to TypeScript is highly valued, as we look to leverage strong typing towards enhancing code quality and maintainability."
+        - "Next.js: Experience with Next.js for server-side rendering, static site generation desirable."
+        - "DOT NET: Experience with .NET core and C# strongly preferred but not necessary"
+        - "AWS: Knowledge on Step Functions, Lambda and DynamoDB"
+        - "Git: Knowledge of version control using Git, including branching, merging, and pull requests."
+        - "React: Strong understanding of React principles, component lifecycle, hooks, and state management."
+        - "HTML5: Skilled in using HTML5 to create structured web page layouts."
+        - "CSS3: Ability to style web pages effectively using CSS3, including knowledge of responsive design."
+        - "UI Frameworks: Experience with Tailwind and MUI (or equivalent) UI frameworks desirable."
+        - "Debugging Skills: Proficiency in debugging and troubleshooting web applications, using tools like Chrome DevTools."
+        - "Cross-Browser Development: Experience in ensuring compatibility across different web browsers and resolving compatibility issues."
+        - "RESTful APIs: Experience in consuming RESTful services and APIs within the front-end framework."
+        - "State Management Techniques: Familiarity with state management libraries and techniques, such as Redux and Context Hooks, to manage application state."
+        - "Familiarity with Modern Build Tools: Experience with build and bundling tools like Webpack, Babel, and NPM scripts."
+        - "Accessibility and Web Standards: Knowledge of web accessibility standards and practices to create inclusive and accessible web applications."
+        - "Good communication, teamwork, problem-solving skills, and adaptability in a fast-paced development environment."
+      experience_level: "mid_or_senior"
+      work_model: "hybrid"
+      title: "Senior Software Engineer"
+
+  - markdown: |
+      Skip to content
+      # Technical Lead, Mobile Development (Frontend)
+      ETO Group 
+      Developers/Programmers (Information & Communication Technology)
+      Add expected salary to your profile for insights
+      Posted 3h ago
+      **ETO Group**
+      We are an awarded Australian online FX & CFD trading platform. Since 2013, ETO Group has been fully regulated by ASIC. We are currently looking for a Technical Lead, Mobile Development (Frontend) to join our IT team as our business expands in the Asia-Pacific region rapidly. 
+      **Role Overview:** We are seeking a highly skilled and experienced Technical Lead to guide the design, development, and maintenance of sophisticated cross-platform mobile applications using React Native and Next.js frameworks. In this leadership role, you will architect solutions and steer a talented frontend development team to build innovative mobile solutions in the financial services sector.
+      **Responsibilities:**
+        * Lead architectural decisions and oversee the design, implementation, and maintenance of mobile applications using React Native and Next.js.
+        * Deep expertise in TypeScript, including state management (e.g., Redux), routing (e.g., React Navigation), and data handling (axios, RTK).
+        * Integrate advanced native device functionalities and third-party SDKs into React Native apps, including camera operations, geolocation services, third-party authentication, and push notifications.
+        * Possess solid native development skills for iOS (Swift/Objective-C) and Android (Java/Kotlin).
+        * Deploy and manage applications using cloud infrastructure such as Vercel and AWS (EC2, S3, Lambda, ECS, Fargate, Aurora, CloudWatch).
+        * Implement CI/CD pipelines for React Native projects utilizing tools like Git, Docker, Jenkins, Travis CI, or GitHub Actions for automated build, testing, and deployment.
+        * Apply deep understanding of Flexbox layout and maintain strong aesthetic standards aligned with UI design principles (Material Design guidelines).
+
+      **Technical Requirements:**
+        * Proficient in TypeScript.
+        * Extensive experience with React Native and Flutter.
+        * Familiarity with REST API clients such as APIFox or Postman.
+        * Docker Desktop experience for building and running containers.
+        * Advanced understanding of AWS cloud services (ECS, Fargate, Aurora, CloudWatch).
+        * Experience in data engineering environments; familiarity with Python and behavior-driven development methodologies is a plus.
+        * Strong grasp of API lifecycle management and integration platform as a service (iPaaS).
+        * Skilled in setting up and managing continuous integration and deployment (CI/CD) systems, package management, and orchestration.
+        * Collaborate effectively with UI/UX designers to deliver accessible, high-quality user experiences.
+
+      **Preferred Qualifications:**
+        * Previous technical leadership experience within large-scale enterprises or fast-paced startups.
+        * Additional proficiency in full-stack languages (Node.js, Python, Java, C#).
+        * Expertise in AWS architecture and deploying scalable, high-performance applications.
+        * Demonstrable leadership skills, capable of guiding a team through complex technical challenges.
+        * Prior experience and domain knowledge in financial technology and CRM systems.
+        * Contributions to open-source projects and experience developing independent projects highly valued.
+        * Proficient in both English and Mandarin
+
+      If you're passionate about building cutting-edge mobile technology in the fintech space and leading a dedicated team to achieve exceptional outcomes, we look forward to hearing from you!
+      ## How do your skills match this job?
+      Sign in and update your profile to get insights.
+      ## Employer questions
+      Your application will include the following questions:
+        * How many years' experience do you have as a technical lead?
+        * How many years of Android development experience do you have?
+        * How many years' experience do you have as a full stack developer?
+        * Which of the following statements best describes your right to work in Australia?
+        * Do you have an Amazon Web Services Solutions Architect certification?
+        * Do you have experience leading agile teams?
+        * Which of the following programming languages are you experienced in?
+        * How many years' experience do you have in a software development role?
+
+      ## Report this job advert
+      Be carefulDon’t provide your bank or credit card details when applying for jobs.Learn how to protect yourself
+      Report this job ad⁠
+      What can I earn as a Technical Lead
+      See more detailed salary information
+
+    expected:
+      description: "We are seeking a highly skilled and experienced Technical Lead to guide the design, development, and maintenance of sophisticated cross-platform mobile applications using React Native and Next.js frameworks."
+      responsibilities:
+        - Lead architectural decisions and oversee the design, implementation, and maintenance of mobile applications using React Native and Next.js.
+        - Deep expertise in TypeScript, including state management (e.g., Redux), routing (e.g., React Navigation), and data handling (axios, RTK).
+        - Integrate advanced native device functionalities and third-party SDKs into React Native apps, including camera operations, geolocation services, third-party authentication, and push notifications.
+        - Possess solid native development skills for iOS (Swift/Objective-C) and Android (Java/Kotlin).
+        - Deploy and manage applications using cloud infrastructure such as Vercel and AWS (EC2, S3, Lambda, ECS, Fargate, Aurora, CloudWatch).
+        - Implement CI/CD pipelines for React Native projects utilizing tools like Git, Docker, Jenkins, Travis CI, or GitHub Actions for automated build, testing, and deployment.
+        - Apply deep understanding of Flexbox layout and maintain strong aesthetic standards aligned with UI design principles (Material Design guidelines).
+      requirements:
+        - Proficient in TypeScript.
+        - Extensive experience with React Native and Flutter.
+        - Familiarity with REST API clients such as APIFox or Postman.
+        - Docker Desktop experience for building and running containers.
+        - Advanced understanding of AWS cloud services (ECS, Fargate, Aurora, CloudWatch).
+        - Experience in data engineering environments; familiarity with Python and behavior-driven development methodologies is a plus.
+        - Strong grasp of API lifecycle management and integration platform as a service (iPaaS).
+        - Skilled in setting up and managing continuous integration and deployment (CI/CD) systems, package management, and orchestration.
+        - Collaborate effectively with UI/UX designers to deliver accessible, high-quality user experiences.
+      experience_level: "lead+"
+      work_model: "On-site"
+      title: "Technical Lead"
+      
+  - markdown: |
+      Skip to content
+      # Quality Engineer - Backend API Test Automation (Java/Kotlin)
+      Attribute Group 
+      Testing & Quality Assurance (Information & Communication Technology)
+      $$ Competitive Daly Rates Offered $$
+      Posted 1h ago
+      **The Company:** Attribute Group are proud to be working with some of the biggest brands in Australia to source talented Quality Engineers to drive the build and delivery of automated quality solutions across several innovative software projects which are scheduled to run for at least two years.
+      **Your responsibilities would include:**
+        * Developing and executing comprehensive automated test strategies for API-driven various projects
+        * Identifying and implementing the best tools and technologies, developing and maintaining test automation frameworks
+        * Defining and implementing both testing and automation principles
+        * Working closely with developers, platform and product managers to understand the requirements and develop test plans to cover all aspects of the system under test 
+
+      **Required Skills/Experience** : 
+        * Strong experience within automated testing solutions
+        * Strong understanding of testing principles and practices.
+        * Proficiency in Java and/or Kotlin 
+        * Experience with a variety of test automation tools, frameworks and technologies
+        * Experience with continuous integration and continuous delivery (CI/CD) pipelines
+        * Experience with performance testing and security testing
+        * Experience with cloud-based testing platforms
+
+      We have multiple roles available and are able to support immediate starts and/or people needing to serve notice periods.
+      ## How do your skills match this job?
+      Sign in and update your profile to get insights.
+      ## Employer questions
+      Your application will include the following questions:
+        * Which of the following statements best describes your right to work in Australia?
+        * Which of the following programming languages are you experienced in?
+
+
+      ## Report this job advert
+      Be carefulDon’t provide your bank or credit card details when applying for jobs.Learn how to protect yourself
+      Report this job ad⁠
+      #### Featured jobs
+      Banking Test Analyst - Melbourne
+      DXC Technology Australia & New Zealand
+      Melbourne VIC
+      2d ago
+      Senior Test Analyst Automation
+      Ocean Software Pty Ltd
+      Melbourne VIC
+      2d ago
+      What can I earn as a Quality Engineer
+      See more detailed salary information
+      Share or report ad
+      Sign in to save this job
+      Sign in to save this job
+
+    expected:
+      description: "Attribute Group are proud to be working with some of the biggest brands in Australia to source talented Quality Engineers to drive the build and delivery of automated quality solutions across several innovative software projects which are scheduled to run for at least two years."
+      responsibilities:
+        - Developing and executing comprehensive automated test strategies for API-driven various projects
+        - Identifying and implementing the best tools and technologies, developing and maintaining test automation frameworks
+        - Defining and implementing both testing and automation principles
+        - Working closely with developers, platform and product managers to understand the requirements and develop test plans to cover all aspects of the system under test 
+      requirements:
+        - Strong experience within automated testing solutions
+        - Strong understanding of testing principles and practices.
+        - Proficiency in Java and/or Kotlin 
+        - Experience with a variety of test automation tools, frameworks and technologies
+        - Experience with continuous integration and continuous delivery (CI/CD) pipelines
+        - Experience with performance testing and security testing
+        - Experience with cloud-based testing platforms
+      experience_level: "mid_or_senior"
+      work_model: "On-site"
+      title: "Quality Engineer"
+
+  - markdown: | 
+      Skip to content
+      # Go Engineer
+      SustainRecruit 
+      Engineering - Software (Information & Communication Technology)
+      650/700 per day
+      Posted 5d ago
+      Title: Senior Go Engineer 3 month Contract opportunity for a seasoned Go Engineer to help build out the start of a new project for a SaaS business. This is a remote role based anywhere in Australia with an immediate start. 
+      **Experience :** 
+      - 4 + years experience programming with Golang 
+      - Full Stack experience with TypeScript JavaScript React and Node would help. 
+      - 7+ years in software engineering Interesting project that is already mid flight. Apply via the link to learn more. 
+      ## How do your skills match this job?
+      Sign in and update your profile to get insights.
+      ## Report this job advert
+      Be carefulDon’t provide your bank or credit card details when applying for jobs.Learn how to protect yourself
+      Report this job ad⁠
+      Career Advice
+      Researching careers? Find all the information and tips you need on career advice.
+        * Role descriptions
+        * Salary insights
+        * Tools to help you prepare for jobs
+
+      Explore Career Advice
+      
+    expected:
+      description: "Senior Go Engineer 3 month Contract opportunity for a seasoned Go Engineer to help build out the start of a new project for a SaaS business."
+      responsibilities: []
+      requirements:
+        - 4 + years experience programming with Golang
+        - Full Stack experience with TypeScript JavaScript React and Node would help. 
+        - 7+ years in software engineering
+      experience_level: "mid_or_senior"
+      work_model: "Remote"
+      title: "Senior Go Engineer"
+
+  - markdown: | 
+      Skip to content
+      # Associate Software Developer Intern, 2025
+      Google 
+      ·
+      Engineering - Software (Information & Communication Technology)
+      World Class Benefits
+      Posted 13d ago
+      Apply⁠
+      Applications will open **April 28th, 2025.**
+      Please complete your application by **May 23rd, 2025.** Note this role is not eligible for immigration sponsorship.
+      This internship is intended for students in their second year of an accredited degree program in Computer Science or a related technical field.
+      We encourage applications from students in historically underrepresented groups in the engineering and tech industry.
+      At Google, we have a vision of empowerment and equitable opportunity for all Aboriginal and Torres Strait Islander peoples and commit to building reconciliation through Google’s technology, platforms and people and we welcome Indigenous applicants. Please see our Reconciliation Action Plan for more information.
+      ## **Minimum qualifications:**
+        * Currently pursuing a Bachelor’s degree in Computer Science or related technical field of study.
+        * Experience programming in either Java, C++, or Python.
+
+      ## **Preferred qualifications:**
+        * Completed or currently taking two or more Computer Science-related courses or modules.
+        * Interest in, and ability to, learn coding languages as needed.
+
+      ## **About the job**
+      Google is invested in increasing the number of future computer scientists and software developers, particularly those who are historically underrepresented in the field. The Associate Software Developer Intern aims to bridge the gap between academic studies and a professional internship. The 12-week program offers students the opportunity to work on a software project alongside other Associate Software Developer interns, with the support of full-time Googlers and a mentor. You will also attend weekly trainings to enhance your technical and professional skills.
+      Google is and always will be an engineering company. We hire people with a broad set of technical skills who are ready to address some of technology's greatest challenges and make an impact on millions, if not billions, of users. At Google, engineers not only revolutionize search, they routinely work on massive scalability and storage solutions, large-scale applications and entirely new platforms for developers around the world. From Google Ads to Chrome, Android to YouTube, Social to Local, Google engineers are changing the world one technological achievement after another.
+      ## **Responsibilities**
+        * Apply knowledge gained in computer science courses to complex challenges.
+        * Complete a technical project with a team of Googlers and other Associate Software Developer interns.
+        * Enhance coding skills by using tools and programming languages.
+        * Attend training sessions to build your professional skills.
+
+      ## How do your skills match this job?
+      Sign in and update your profile to get insights.
+      ### Company profile
+      #### Google 
+      ·
+      Information & Communication Technology1,001-5,000 employees
+      Google Australia started with just one person in 2002, and has grown to over 2000 people across Australia today. With more than 700 Software Engineers in our Sydney office, our local team works on products like Google Maps, Chrome, Photos and more. Google is committed to helping Aussies find new ways to collaborate, reach audiences and get things done.
+      Google Australia started with just one person in 2002, and has grown to over 2000 people across Australia today. With more than 700 Software Engineers in our Sydney office, our local team works on products like Google Maps, Chrome, Photos and more. Google is committed to helping Aussies find new ways to collaborate, reach audiences and get things done.
+      Perks and benefits
+      Health & Wellness
+      Financial Wellbeing
+      Flexibility & Time Off
+      Family Support & Care
+      Community & Personal Development
+      Googley Extras
+      More about this company⁠
+      ## Report this job advert
+      Be carefulDon’t provide your bank or credit card details when applying for jobs.Learn how to protect yourself
+      Report this job ad⁠
+      Career Advice
+      Researching careers? Find all the information and tips you need on career advice.
+        * Role descriptions
+        * Salary insights
+        * Tools to help you prepare for jobs
+ 
+    expected:
+      description: "Google is invested in increasing the number of future computer scientists and software developers, particularly those who are historically underrepresented in the field. The Associate Software Developer Intern aims to bridge the gap between academic studies and a professional internship. The 12-week program offers students the opportunity to work on a software project alongside other Associate Software Developer interns, with the support of full-time Googlers and a mentor."
+      responsibilities: 
+        - Apply knowledge gained in computer science courses to complex challenges.
+        - Complete a technical project with a team of Googlers and other Associate Software Developer interns.
+        - Enhance coding skills by using tools and programming languages.
+        - Attend training sessions to build your professional skills.
+      requirements:
+        - Currently pursuing a Bachelor’s degree in Computer Science or related technical field of study.
+        - Experience programming in either Java, C++, or Python.
+        - Completed or currently taking two or more Computer Science-related courses or modules.
+        - Interest in, and ability to, learn coding languages as needed.
+      experience_level: "intern"
+      work_model: "On-site"
+      title: "Associate Software Developer Intern"
+
+  - markdown: | 
+      Skip to content
+      # Junior Software Developer
+      Mortgage House 
+      ·
+      Developers/Programmers (Information & Communication Technology)
+      Add expected salary to your profile for insights
+      Posted 3d ago
+      About Us:
+      Mortgage House is an award-winning finance company with over 30 years of experience delivering outstanding service to our valued customers. As we continue to modernize our lending platform, we’re growing our technology team to help shape the future of digital lending.
+      If you’re passionate about software development, eager to learn, and ready to work in a collaborative environment, we’d love to hear from you.
+      The Opportunity:
+      We’re seeking a Junior Software Developer to join our talented in-house development team. In this role, you’ll help maintain and improve our core software applications, assist with new feature development, and work closely with senior developers and business stakeholders to deliver practical, high-quality solutions.
+      This is a fantastic opportunity to kick-start your development career, gain exposure to real-world software projects, and grow your technical skills in a supportive, fast-paced environment.
+      Key Responsibilities:
+      • Assist in developing, testing, and maintaining software applications using .NET technologies.
+      • Support the development team by troubleshooting, debugging, and resolving software issues.
+      • Collaborate with technical and non-technical stakeholders to gather requirements and clarify objectives.
+      • Write clean, efficient, and well-documented code under the guidance of senior developers.
+      • Participate in code reviews and team discussions to improve code quality and share knowledge.
+      • Test and maintain existing software products to ensure strong functionality and performance.
+      • Contribute to technical documentation for new and existing software implementations.
+      • Monitor and report on the technical performance of internal systems.
+      • Engage with our fintech partners to assist with the integration and ongoing use of Mortgage House APIs.
+      • Take part in continuous improvement initiatives, including enhancements to our CI/CD processes and tools.
+      Skills & Experience:
+      • Bachelor’s degree in Computer Science, Software Engineering, or a related field, or equivalent practical experience.
+      • Experience (professional, personal, or academic) with .NET Framework or .NET Core.
+      • Basic proficiency in C#.NET, VB.NET, and ASP.NET.
+      • Understanding of RESTful services and Web APIs.
+      • Familiarity with front-end web technologies such as HTML, TypeScript, and Angular (desirable).
+      • Basic knowledge of relational databases such as Microsoft SQL Server or PostgreSQL.
+      • Experience with version control systems like Git (GitLab, GitHub) is advantageous.
+      • Understanding of the Software Development Life Cycle (SDLC) and coding best practices.
+      • Exposure to CI/CD tools like Azure DevOps or GitHub Actions is a bonus.
+      • Willingness to learn containerization tools such as Docker and Kubernetes.
+      Personal Attributes:
+      • Passionate about developing great software and continuously improving technical skills.
+      • Strong attention to detail and commitment to producing quality work.
+      • A collaborative team player with good communication and interpersonal skills.
+      • Self-motivated with a positive, can-do attitude.
+      • Willingness to ask questions, take initiative, and learn from constructive feedback.
+      • Able to work independently when needed while also contributing to a supportive team culture.
+      • Thrives in a fast-paced, evolving environment.
+      Why Join Us?
+      • Be part of a growing, forward-thinking technology team.
+      • Work on meaningful projects with real business impact.
+      • Gain exposure to modern tools, frameworks, and cloud-based environments.
+      • Access to experienced mentors and opportunities for professional growth.
+      • Friendly, supportive company culture with a focus on collaboration and innovation.
+      ## How do your skills match this job?
+      Sign in and update your profile to get insights.
+      ### Company profile
+      #### Mortgage House 
+      ·
+      We are Australia’s largest independently owned non-bank retail lender. We offer loan and mortgage finance options, rates and customer service that are the envy of our competitors.
+      We are proudly different. From our humble beginnings back in 1986, we recognised the limitations of the loan and mortgage finance market.
+      With this knowledge we chose a path that ensured a continued focus on being competitive with our rates, offering diversity with our products and providing a level of customer service simply unheard of in the industry.
+      Source: This is an extract from the company's own website.
+      We are Australia’s largest independently owned non-bank retail lender. We offer loan and mortgage finance options, rates and customer service that are the envy of our competitors.
+      We are proudly different. From our humble beginnings back in 1986, we recognised the limitations of the loan and mortgage finance market.
+      With this knowledge we chose a path that ensured a continued focus on being competitive with our rates, offering diversity with our products and providing a level of customer service simply unheard of in the industry.
+      Source: This is an extract from the company's own website.
+      Show more⁠
+      More about this company⁠
+      ## Report this job advert
+      Be carefulDon’t provide your bank or credit card details when applying for jobs.Learn how to protect yourself
+      Report this job ad⁠
+      #### Featured jobs
+      Front End Developer
+      Woolworths Group
+      Sydney NSW
+      5d ago
+      Graduate / Junior Front-End Software Engineer
+      Element Engineering Australia
+      Malaga, Perth WA
+      5d ago
+      Software Developer
+      QBT Consulting
+      Frenchs Forest, Sydney NSW
+      14d ago
+      What can I earn as a Software Developer
+      See more detailed salary information
+      Share or report ad
+      Sign in to save this job
+      Sign in to save this job
+      Sign in to save this job
+ 
+    expected:
+      description: "We’re seeking a Junior Software Developer to join our talented in-house development team. In this role, you’ll help maintain and improve our core software applications, assist with new feature development, and work closely with senior developers and business stakeholders to deliver practical, high-quality solutions."
+      responsibilities: 
+        - Assist in developing, testing, and maintaining software applications using .NET technologies.
+        - Support the development team by troubleshooting, debugging, and resolving software issues.
+        - Collaborate with technical and non-technical stakeholders to gather requirements and clarify objectives.
+        - Write clean, efficient, and well-documented code under the guidance of senior developers.
+        - Participate in code reviews and team discussions to improve code quality and share knowledge.
+        - Test and maintain existing software products to ensure strong functionality and performance.
+        - Contribute to technical documentation for new and existing software implementations.
+        - Monitor and report on the technical performance of internal systems.
+        - Engage with our fintech partners to assist with the integration and ongoing use of Mortgage House APIs.
+        - Take part in continuous improvement initiatives, including enhancements to our CI/CD processes and tools.
+      requirements:
+        - Bachelor’s degree in Computer Science, Software Engineering, or a related field, or equivalent practical experience.
+        - Experience (professional, personal, or academic) with .NET Framework or .NET Core.
+        - Basic proficiency in C#.NET, VB.NET, and ASP.NET.
+        - Understanding of RESTful services and Web APIs.
+        - Familiarity with front-end web technologies such as HTML, TypeScript, and Angular (desirable).
+        - Basic knowledge of relational databases such as Microsoft SQL Server or PostgreSQL.
+        - Experience with version control systems like Git (GitLab, GitHub) is advantageous.
+        - Understanding of the Software Development Life Cycle (SDLC) and coding best practices.
+        - Exposure to CI/CD tools like Azure DevOps or GitHub Actions is a bonus.
+        - Willingness to learn containerization tools such as Docker and Kubernetes.
+      experience_level: "junior"
+      work_model: "On-site"
+      title: "Junior Software Developer"
+
+  - markdown: | 
+      Skip to content
+      # Junior Full Stack Developer
+      EDGE ARK PTY LTD 
+      Developers/Programmers (Information & Communication Technology)
+      Add expected salary to your profile for insights
+      Posted 13d ago
+      We are looking for a talented **Full Stack Developer** to join our growing team at our Sydney Town Hall office. This is a full-time, on-site role. 
+      **Key Responsibilities:**
+        * Develop, maintain, and enhance web applications across both front-end and back-end.
+        * Work closely with designers and project managers to deliver high-quality digital solutions.
+        * Build scalable APIs and backend services (e.g., .NET, Node.js).
+        * Create responsive and user-friendly web interfaces using modern frameworks (e.g., React, Angular, or Vue.js).
+        * Manage database systems (e.g., MySQL, MongoDB) and ensure efficient data handling.
+        * Optimize applications for maximum speed, scalability, and security.
+        * Participate in team meetings, code reviews, and development processes.
+
+      **Required Skills and Qualifications:**
+
+      **What We Offer:**
+        * Full-time role based in a convenient Sydney CBD location (Town Hall area).
+        * A multicultural, collaborative, and dynamic working environment.
+        * Opportunities for career advancement and skill development.
+        * Friendly team and supportive leadership.
+
+
+      ## How do your skills match this job?
+      Sign in and update your profile to get insights.
+      ## Employer questions
+      Your application will include the following questions:
+        * Which of the following statements best describes your right to work in Australia?
+        * How many years' experience do you have as a full stack developer?
+
+
+      ## Report this job advert
+      Be carefulDon’t provide your bank or credit card details when applying for jobs.Learn how to protect yourself
+      Report this job ad⁠
+      What can I earn as a Full Stack Developer
+      See more detailed salary information
+ 
+    expected:
+      description: "We are looking for a talented **Full Stack Developer** to join our growing team at our Sydney Town Hall office."
+      responsibilities: 
+        - Develop, maintain, and enhance web applications across both front-end and back-end.
+        - Work closely with designers and project managers to deliver high-quality digital solutions.
+        - Build scalable APIs and backend services (e.g., .NET, Node.js).
+        - Create responsive and user-friendly web interfaces using modern frameworks (e.g., React, Angular, or Vue.js).
+        - Manage database systems (e.g., MySQL, MongoDB) and ensure efficient data handling.
+        - Optimize applications for maximum speed, scalability, and security.
+        - Participate in team meetings, code reviews, and development processes.
+      requirements: []
+      experience_level: "junior"
+      work_model: "On-site"
+      title: "Junior Full Stack Developer"
+
+  - markdown: |
+      Skip to content
+      # Software Engineer
+      Audience Republic  
+      Developers/Programmers (Information & Communication Technology)  
+      Add expected salary to your profile for insights  
+      Posted 12d ago  
+      Apply⁠  
+
+      **Principal Engineer (2 Positions)**
+
+      **About the Role**  
+      Are you a senior engineer ready to step into a Principal-level role at a fast-growing startup? At Audience Republic, you'll shape not just our codebase but also our engineering culture and technical vision. You’ll lead by example, influence architectural direction across squads, and drive forward major initiatives.  
+
+      **About Audience Republic**  
+      Audience Republic is a CRM and marketing platform built for the events industry. We power campaigns for global acts like Taylor Swift and Post Malone by connecting deeply with ticketing platforms such as Ticketmaster and Eventbrite. As a Principal Engineer, your work will scale to support some of the most high-impact marketing teams in the entertainment world.
+
+      **Key Responsibilities**  
+        * Define and uphold architectural patterns and scalable system design across multiple teams.  
+        * Partner with engineering managers and the CTO to align technical initiatives with business outcomes.  
+        * Lead critical projects end-to-end, from discovery to delivery, often across squads.  
+        * Mentor engineers through design reviews, pair programming, and tech strategy sessions.  
+        * Shape our dev culture—emphasizing quality, speed, and pragmatic decision-making.  
+        * Evaluate and introduce relevant AI tooling and event-driven design patterns into the stack.  
+        * Stay close to the codebase—especially during greenfield or high-risk development phases.
+
+      **What You Bring**  
+        * 6+ years of experience in backend or full-stack development.  
+        * Strong systems thinking and knowledge of software design principles.  
+        * Deep proficiency in at least one modern language (e.g., Kotlin, C#, Elixir, Scala, Java).  
+        * Experience with event streaming (Kafka/RabbitMQ), infrastructure-as-code (CloudFormation/CDK), and cloud-first systems (AWS).  
+        * A track record of technical leadership, including mentoring or influencing teams.  
+        * Familiarity with distributed systems and microservice orchestration.  
+        * Comfort interfacing with senior stakeholders and explaining trade-offs clearly.
+
+      **Bonus**  
+        * Experience in high-scale marketing, CRM, or ticketing domains.  
+        * Contributions to open-source or involvement in tech communities.  
+        * We collaborate remotely most days, but catch up in person midweek for team syncs and espresso
+        * Prior work in early-stage startups or environments with rapid iteration cycles.
+
+      If you're a builder, a systems thinker, and a leader who thrives in ambiguity, we'd love to talk.
+
+      ## How do your skills match this job?  
+      Sign in and update your profile to get insights.  
+
+      ## Report this job advert  
+      Be careful—don’t provide your bank or credit card details when applying for jobs. Learn how to protect yourself.  
+      Report this job ad⁠  
+      What can I earn as a Principal Engineer  
+      See more detailed salary information  
+
+    expected:
+      description: "Are you a senior engineer ready to step into a Principal-level role at a fast-growing startup? At Audience Republic, you'll shape not just our codebase but also our engineering culture and technical vision. You’ll lead by example, influence architectural direction across squads, and drive forward major initiatives."
+      responsibilities: 
+        - Define and uphold architectural patterns and scalable system design across multiple teams.  
+        - Partner with engineering managers and the CTO to align technical initiatives with business outcomes.  
+        - Lead critical projects end-to-end, from discovery to delivery, often across squads.  
+        - Mentor engineers through design reviews, pair programming, and tech strategy sessions.  
+        - Shape our dev culture—emphasizing quality, speed, and pragmatic decision-making.  
+        - Evaluate and introduce relevant AI tooling and event-driven design patterns into the stack.  
+        - Stay close to the codebase—especially during greenfield or high-risk development phases.
+      requirements: 
+        - 6+ years of experience in backend or full-stack development.  
+        - Strong systems thinking and knowledge of software design principles.  
+        - Deep proficiency in at least one modern language (e.g., Kotlin, C#, Elixir, Scala, Java).  
+        - Experience with event streaming (Kafka/RabbitMQ), infrastructure-as-code (CloudFormation/CDK), and cloud-first systems (AWS).  
+        - A track record of technical leadership, including mentoring or influencing teams.  
+        - Familiarity with distributed systems and microservice orchestration.  
+        - Comfort interfacing with senior stakeholders and explaining trade-offs clearly.
+      experience_level: "lead+"
+      work_model: "Hybrid"
+      title: "Principal Engineer"
+    
+  - markdown: | 
+      Skip to content
+      # AI Application Software Engineer
+      Binance
+      Developers/Programmers (Information & Communication Technology)
+      Add expected salary to your profile for insights
+      Posted 12d ago
+      Apply⁠
+      Asia / Taiwan, Taipei / UAE, Dubai / Australia, Brisbane / Australia, Melbourne / Australia, Sydney / New Zealand, Auckland / New Zealand, Wellington 
+      Engineering – Data Science/AI /
+      Full-time: Remote /
+      Remote
+      Apply for this job
+      Binance is a leading global blockchain ecosystem behind the world’s largest cryptocurrency exchange by trading volume and registered users. We are trusted by over 250 million people in 100+ countries for our industry-leading security, user fund transparency, trading engine speed, deep liquidity, and an unmatched portfolio of digital-asset products. Binance offerings range from trading and finance to education, research, payments, institutional services, Web3 features, and more. We leverage the power of digital assets and blockchain to build an inclusive financial ecosystem to advance the freedom of money and improve financial access for people around the world.
+      Join us to build AI agents the directly serve millions of users! 
+      The role is critical for delivering production-grade AI applications that enhance user experience, automate workflows, and power intelligent user interactions.
+          * Oversee the entire AI bot project from planning, implementation, maintenance and tuning.
+          * Design and implement AI agent architectures that can understand user requests, reason through complex problems, and execute multi-step plans
+          * Build frameworks for AI agents to interact with various tools, APIs, and services
+          * Create mechanisms for effective human-AI collaboration, including clarification, feedback, guidance and follow-up questions
+          * Optimize agent performance for reliability, accuracy, and efficiency
+          * Build monitoring and evaluation systems to assess agent performance and identify areas for improvement
+          * Collaborate with cross-functional teams to integrate agents into products and workflows
+          * Stay updated with the latest research and developments in AI agent technology
+          * Bachelor’s or Master’s degree in Computer Science, AI, or related field
+          * 3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications (prefer in autonomous agents)
+          * Strong programming skills, particularly in Python, Java
+          * Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.
+          * Understanding of reinforcement learning, planning algorithms, and decision-making systems
+          * Familiarity with tools, APIs, and infrastructure needed for agent deployment
+          * Experience with workflow orchestration and system design
+          * Excellent problem-solving and analytical thinking skills
+          * Strong communication and collaboration abilities
+          * Conduct at least one AI chatbot/agent application using Dify / LangChain or similar framework
+          * Experience in CS chatbot development, like user intend recognition, conversation, and knowledge base enhancement
+          * Familiar with data analysis, model tuning through data cleaning and feature engineering
+
+      **Why Binance**
+      • Shape the future with the world’s leading blockchain ecosystem
+      • Collaborate with world-class talent in a user-centric global organization with a flat structure
+      • Tackle unique, fast-paced projects with autonomy in an innovative environment
+      • Thrive in a results-driven workplace with opportunities for career growth and continuous learning
+      • Competitive salary and company benefits
+      • Work-from-home arrangement (the arrangement may vary depending on the work nature of the business team)
+      Binance is committed to being an equal opportunity employer. We believe that having a diverse workforce is fundamental to our success.
+      By submitting a job application, you confirm that you have read and agree to our **Candidate Privacy Notice**.
+      Apply for this job
+      ## How do your skills match this job?
+      Sign in and update your profile to get insights.
+      ## Report this job advert
+      Be carefulDon’t provide your bank or credit card details when applying for jobs.Learn how to protect yourself
+      Report this job ad⁠
+      What can I earn as a Software Engineer
+      See more detailed salary information
+ 
+    expected:
+      description: "The role is critical for delivering production-grade AI applications that enhance user experience, automate workflows, and power intelligent user interactions."
+      responsibilities: 
+        - Oversee the entire AI bot project from planning, implementation, maintenance and tuning.
+        - Design and implement AI agent architectures that can understand user requests, reason through complex problems, and execute multi-step plans
+        - Build frameworks for AI agents to interact with various tools, APIs, and services
+        - Create mechanisms for effective human-AI collaboration, including clarification, feedback, guidance and follow-up questions
+        - Optimize agent performance for reliability, accuracy, and efficiency
+        - Build monitoring and evaluation systems to assess agent performance and identify areas for improvement
+        - Collaborate with cross-functional teams to integrate agents into products and workflows
+        - Stay updated with the latest research and developments in AI agent technology
+      requirements: 
+        - Bachelor’s or Master’s degree in Computer Science, AI, or related field
+        - 3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications (prefer in autonomous agents)
+        - Strong programming skills, particularly in Python, Java
+        - Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.
+        - Understanding of reinforcement learning, planning algorithms, and decision-making systems
+        - Familiarity with tools, APIs, and infrastructure needed for agent deployment
+        - Experience with workflow orchestration and system design
+        - Excellent problem-solving and analytical thinking skills
+        - Strong communication and collaboration abilities
+        - Conduct at least one AI chatbot/agent application using Dify / LangChain or similar framework
+        - Experience in CS chatbot development, like user intend recognition, conversation, and knowledge base enhancement
+        - Familiar with data analysis, model tuning through data cleaning and feature engineering
+      experience_level: "mid_or_senior"
+      work_model: "Remote"
+      title: "AI Application Software Engineer"
+
+  - markdown: | 
+      Skip to content
+      # Embedded / Algorithmic Software Engineer
+      Preacta Recruitment 
+      Engineering - Software (Information & Communication Technology)
+      Add expected salary to your profile for insights
+      Posted 12d ago
+      **Engineering Autonomy at the Edge****Deep Tech | $220k+ TCP | 
+      Sydney & Newcastle** Join one of Australia’s most exciting deep tech teams, building the software and algorithms that power next-gen autonomous systems — from aerial platforms to precision robotics and navigation hardware. 
+      This is not your average engineering role. We’re hiring **Engineers** who thrive at the intersection of embedded systems and advanced algorithms. If you're excited about writing software that actually interacts with the physical world, this is your calling
+
+      **What You’ll Do and Need:**  
+      - Develop and optimise real-time embedded software in **C/C++** running on custom navigation and sensor platforms.  
+      - Have hands-on experience with **embedded systems**, **signal processing**, or **sensor fusion**.  
+      - Design and implement advanced state estimation algorithms in **MATLAB** (e.g., EKF, UKF, Bayesian inference, **SLAM**, **GNC**).  
+      - Hold a degree in **Mechatronics**, Robotics, Electrical Engineering, or a related field.  
+      - Integrate software with hardware stacks including IMUs, GPS chips, and inertial sensors.  
+      - Be fluent in **MATLAB** and able to write robust C/C++ for algorithm development.  
+      - Build efficient, high-performance code for **Embedded Linux** systems.  
+      - Be familiar with **Kalman filters**, **object tracking**, or **SLAM** systems.  
+      - Contribute to testing infrastructure with **Python** (minimal use).  
+      - Collaborate with a team of hardware and software experts solving complex autonomy challenges.
+
+      **Why Join:**  
+      - Build real-world autonomy — not just simulations or slides.  
+      - Work on a highly technical team with a mission to solve cutting-edge robotics problems.  
+      - Company has **$1B+ in commercial pipeline**.  
+      - Take ownership: from algorithm to embedded implementation, all the way to physical deployment.  
+      - Enjoy a collaborative team culture with **equity**, **bonus**, and clear technical impact.  
+      - **Clientele**: Trusted by industry leaders such as **Google, Apple, and General Motors**, showcasing the company's credibility and the real-world application of its technologies.
+
+      ## How do your skills match this job?  
+      Sign in and update your profile to get insights.  
+      ## Report this job advert  
+      Be careful Don’t provide your bank or credit card details when applying for jobs. Learn how to protect yourself  
+      Report this job ad⁠  
+
+    expected:
+      description: "Join one of Australia’s most exciting deep tech teams, building the software and algorithms that power next-gen autonomous systems — from aerial platforms to precision robotics and navigation hardware. This is not your average engineering role. We’re hiring **Engineers** who thrive at the intersection of embedded systems and advanced algorithms. If you're excited about writing software that actually interacts with the physical world, this is your calling."
+      responsibilities:
+        - Develop and optimise real-time embedded software in C/C++ running on custom navigation and sensor platforms.
+        - Design and implement advanced state estimation algorithms in MATLAB (e.g., EKF, UKF, Bayesian inference, SLAM, GNC).
+        - Integrate software with hardware stacks including IMUs, GPS chips, and inertial sensors.
+        - Build efficient, high-performance code for Embedded Linux systems.
+        - Contribute to testing infrastructure with Python (minimal use).
+        - Collaborate with a team of hardware and software experts solving complex autonomy challenges.
+      requirements: 
+        - Have hands-on experience with **embedded systems**, **signal processing**, or **sensor fusion**.  
+        - Be fluent in **MATLAB** and able to write robust C/C++ for algorithm development.
+        - Be familiar with **Kalman filters**, **object tracking**, or **SLAM** systems. 
+        - Hold a degree in **Mechatronics**, Robotics, Electrical Engineering, or a related field. 
+      experience_level: "mid_or_senior"
+      work_model: "On-site"
+      title: "Embedded / Algorithmic Software Engineer"
+
+
+  
+
+
+

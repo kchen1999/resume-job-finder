@@ -154,7 +154,7 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
                 return {"status": TERMINATE, "job": None, "error": None}
 
             job_json = override_experience_level_with_title(job_json)
-            job_jsont = normalize_experience_level(job_json)
+            job_json = normalize_experience_level(job_json)
             return {"status": SUCCESS, "job": job_json, "error": None}
 
         except Exception as e:
@@ -209,7 +209,7 @@ async def scrape_job_listing_page(base_url, location_search, crawler, page_num, 
 
     job_urls = process_markdown_to_job_links(markdown)
     if not job_urls:
-        print(f"No job links found on page {page_num}")
+        print(f"No job liscraper/job_scrape.pynks found on page {page_num}")
         return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True, 'invalid_jobs': []}
 
     page_job_data, terminated_early = await process_all_jobs_concurrently(job_urls, crawler, location_search)
