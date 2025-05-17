@@ -192,6 +192,8 @@ async def scrape_job_listing_page(base_url, location_search, crawler, page_num, 
         return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True, 'invalid_jobs': []}
 
     page_job_data, terminated_early = await process_all_jobs_concurrently(job_urls, crawler, location_search)
+
+    invalid_jobs = []
     if page_job_data:
         job_count, invalid_jobs = await validate_and_insert_jobs(page_job_data, page_num, job_count, all_errors)
 
