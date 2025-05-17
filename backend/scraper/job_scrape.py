@@ -8,7 +8,7 @@ from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
 from scraper.utils import process_markdown_to_job_links, parse_job_json_from_markdown, enrich_job_json, is_job_within_date_range, pause_briefly, override_experience_level_with_title
-from scraper.utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields, set_default_work_model
+from scraper.utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields, set_default_work_model, normalize_experience_level
 from scraper.validate_and_insert_db import validate_and_insert_jobs
 
 DAY_RANGE_LIMIT = 7
@@ -154,6 +154,7 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
                 return {"status": TERMINATE, "job": None, "error": None}
 
             job_json = override_experience_level_with_title(job_json)
+            job_jsont = normalize_experience_level(job_json)
             return {"status": SUCCESS, "job": job_json, "error": None}
 
         except Exception as e:

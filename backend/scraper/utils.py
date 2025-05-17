@@ -133,11 +133,17 @@ def set_default_work_model(job_json):
         job_json["work_model"] = "On-site"
     return job_json
 
+def normalize_experience_level(job_json: dict) -> dict:
+    level = job_json.get("experience_level", "").lower()
+    if level in {"mid", "senior"}:
+        job_json["experience_level"] = "mid_or_senior"
+    return job_json
+
 def infer_experience_level_from_title(title: str) -> str:
     title = title.lower()
-    if "intern" in title:
+    if any(term in title for term in ["intern", "internship"]):
         return "intern"
-    if "junior" in title:
+    if any(term in title for term in ["junior", "graduate", "entry"]):
         return "junior"
     if any(term in title for term in ["lead", "manager", "principal", "head", "director", "vp", "chief"]):
         return "lead+"

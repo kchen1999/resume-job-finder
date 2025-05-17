@@ -191,7 +191,9 @@ async def test_process_all_jobs_concurrently(mock_bounded_process_job):
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
 @patch("scraper.job_scrape.override_experience_level_with_title")
+@patch("scraper.job_scrape.normalize_experience_level")
 async def test_process_job_with_backoff_success(
+    mock_normalize_experience,
     mock_override_experience,
     mock_is_recent,
     mock_enrich,
@@ -207,6 +209,7 @@ async def test_process_job_with_backoff_success(
     mock_enrich.return_value = None
     mock_is_recent.return_value = True
     mock_override_experience.return_value = {"title": "Software Engineer"}
+    mock_normalize_experience.return_value = {"title": "Software Engineer"}
 
     job_link = "https://www.seek.com.au/job/123"
     count = 1
@@ -227,7 +230,9 @@ async def test_process_job_with_backoff_success(
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
 @patch("scraper.job_scrape.override_experience_level_with_title")
+@patch("scraper.job_scrape.normalize_experience_level")
 async def test_process_job_with_backoff_missing_title(
+    mock_normalize_experience,
     mock_override_experience,
     mock_is_recent,
     mock_enrich,
@@ -254,7 +259,9 @@ async def test_process_job_with_backoff_missing_title(
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
 @patch("scraper.job_scrape.override_experience_level_with_title")
+@patch("scraper.job_scrape.normalize_experience_level")
 async def test_process_job_with_backoff_missing_json(
+    mock_normalize_experience,
     mock_override_experience,
     mock_is_recent,
     mock_enrich,
@@ -286,7 +293,9 @@ async def test_process_job_with_backoff_missing_json(
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
 @patch("scraper.job_scrape.override_experience_level_with_title")
+@patch("scraper.job_scrape.normalize_experience_level")
 async def test_process_job_with_backoff_too_old(
+    mock_normalize_experience,
     mock_override_experience,
     mock_is_recent,
     mock_enrich,
@@ -302,6 +311,7 @@ async def test_process_job_with_backoff_too_old(
     mock_enrich.return_value = None
     mock_is_recent.return_value = False  
     mock_override_experience.return_value = {"title": "Software Engineer"}
+    mock_normalize_experience.return_value = {"title": "Software Engineer"}
 
     job_link = "https://www.seek.com.au/job/123"
     count = 1
@@ -321,7 +331,9 @@ async def test_process_job_with_backoff_too_old(
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
 @patch("scraper.job_scrape.override_experience_level_with_title")
+@patch("scraper.job_scrape.normalize_experience_level")
 async def test_process_job_with_backoff_retry_logic(
+    mock_normalize_experience,
     mock_override_experience,
     mock_is_recent,
     mock_enrich,
@@ -337,6 +349,7 @@ async def test_process_job_with_backoff_retry_logic(
     mock_enrich.return_value = None
     mock_is_recent.return_value = True
     mock_override_experience.return_value = {"title": "Software Engineer"}
+    mock_normalize_experience.return_value = {"title": "Software Engineer"}
 
     job_link = "https://www.seek.com.au/job/123"
     count = 1
@@ -359,7 +372,9 @@ async def test_process_job_with_backoff_retry_logic(
 @patch("scraper.job_scrape.enrich_job_json")
 @patch("scraper.job_scrape.is_job_within_date_range")
 @patch("scraper.job_scrape.override_experience_level_with_title")
+@patch("scraper.job_scrape.normalize_experience_level")
 async def test_process_job_with_backoff_max_retries_exhausted(
+    mock_normalize_experience,
     mock_override_experience,
     mock_is_recent,
     mock_enrich,
