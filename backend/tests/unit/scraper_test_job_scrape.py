@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, Mock, patch, ANY
 from scraper.job_scrape import scrape_job_listing, scrape_job_listing_page, process_all_jobs_concurrently, process_job_with_backoff, scrape_individual_job_url, scrape_job_metadata
-from scraper.job_scrape import MAX_RETRIES, POSTED_TIME_SELECTOR, SUCCESS, SKIPPED, TERMINATE, ERROR
+from scraper.constants import MAX_RETRIES, POSTED_TIME_SELECTOR, SUCCESS, SKIPPED, TERMINATE, ERROR
 
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)

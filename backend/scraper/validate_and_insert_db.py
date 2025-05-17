@@ -5,12 +5,8 @@ from datetime import datetime
 from scraper.groq_utils import extract_missing_work_model_with_groq, extract_missing_experience_level_with_groq
 from scraper.utils import flatten_field
 from scraper.node_client import send_page_jobs_to_node
+from scraper.constants import ALLOWED_EXPERIENCE_LEVEL_VALUES, ALLOWED_WORK_MODEL_VALUES, REQUIRED_FIELDS, URL_FIELDS, LIST_FIELDS
 
-REQUIRED_FIELDS = ["title", "company", "classification", "posted_date", "posted_within", "work_type", "work_model"]
-ALLOWED_WORK_MODEL_VALUES = {"Remote", "Hybrid", "On-site"}
-ALLOWED_EXPERIENCE_LEVEL_VALUES = ["intern", "junior", "mid_or_senior", "lead+"]
-URL_FIELDS = ["quick_apply_url", "job_url"]
-LIST_FIELDS = ["responsibilities", "requirements", "other"]
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 async def validate_job(job):

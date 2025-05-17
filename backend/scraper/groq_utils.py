@@ -1,6 +1,7 @@
 import os
 from groq import Groq
 from dotenv import load_dotenv
+from scraper.constants import ALLOWED_WORK_MODEL_VALUES, ALLOWED_EXPERIENCE_LEVEL_VALUES
 
 load_dotenv()
 client = Groq(
@@ -107,25 +108,33 @@ async def extract_missing_work_model_with_groq(job_text):
             model=model,
         )
         inferred_work_model = chat_completion.choices[0].message.content.strip()
-        return inferred_work_model
+        return inferred_work_model if inferred_work_model in ALLOWED_WORK_MODEL_VALUES else None
         
     except Exception as e:
-        print("Error calling Groq API:", e)
-        return None  # In case of error, return None so the fallback logic can apply
+        print("Error calling Groq API: (work_model)", e)
+        return None  
     
 async def extract_missing_experience_level_with_groq(job_title, job_text):
     try:
         model = "llama-3.3-70b-versatile"
         prompt = (
-            "Determine the 'experience_level' for a job posting based on the job title and content. "
-            "Allowed values: 'intern', 'junior', 'mid_or_senior', 'lead+'.\n\n"
-            "**Rules:**\n"
-            "- If the title includes 'Intern', classify as 'intern'.\n"
-            "- If the title includes 'Junior', classify as 'junior'.\n"
-            "- If the title includes 'Lead', 'Manager', 'Principal', or 'Head', classify as 'lead+'.\n"
-            "- If the title includes 'Senior' but not a leadership title (e.g. 'Senior Software Engineer'), classify as 'mid_or_senior'.\n"
-            "- If the title doesn't help, infer from responsibilities and required years of experience.\n"
-            "- Return only one of: 'intern', 'junior', 'mid_or_senior', 'lead+' and nothing else — no explanation..\n\n"
+            "You are a strict classification model. Your task is to determine the 'experience_level' for a job posting.\n\n"
+            "Allowed values:\n"
+            "- 'intern'\n"
+            "- 'junior'\n"
+            "- 'mid_or_senior'\n"
+            "- 'lead+'\n\n"
+
+            "Rules:\n"
+            "- Do not rely on the job title alone. Instead, infer experience level from the full job description, responsibilities, and years of experience required.\n"
+            "- Return:\n"
+            "  - 'intern' if the role is clearly an internship or student placement.\n"
+            "  - 'junior' if the job is entry-level or requires less than 2 years of experience.\n"
+            "  - 'mid_or_senior' if the job is technical and expects substantial experience (but not leadership).\n"
+            "  - 'lead+' only if the job clearly involves managing others, leading teams, or setting strategy.\n"
+            "- Only return **one** of the four allowed strings.\n"
+            "- Do not explain your answer. Do not return anything else.\n\n"
+
             "Job Title: {job_title}\n\n"
             "Job Posting Text:\n{job_text}"
         )
@@ -143,9 +152,7 @@ async def extract_missing_experience_level_with_groq(job_title, job_text):
             model=model,
         )
         inferred_experience = chat_completion.choices[0].message.content.strip().lower()
-        print(f"Raw model output: {repr(inferred_experience)}")
-        allowed_levels = {"intern", "junior", "mid_or_senior", "lead+"}
-        return inferred_experience if inferred_experience in allowed_levels else None
+        return inferred_experience if inferred_experience in ALLOWED_EXPERIENCE_LEVEL_VALUES else None
 
     except Exception as e:
         print("Error calling Groq API (experience_level):", e)

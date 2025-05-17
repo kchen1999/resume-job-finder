@@ -10,28 +10,7 @@ from playwright.async_api import async_playwright
 from scraper.utils import process_markdown_to_job_links, parse_job_json_from_markdown, enrich_job_json, is_job_within_date_range, pause_briefly, override_experience_level_with_title
 from scraper.utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields, set_default_work_model, normalize_experience_level
 from scraper.validate_and_insert_db import validate_and_insert_jobs
-
-DAY_RANGE_LIMIT = 7
-TOTAL_JOBS_PER_PAGE = 22
-MAX_RETRIES = 3
-TERMINATE_EARLY = "TERMINATE EARLY"
-SUCCESS = "success"
-TERMINATE = "terminate" 
-SKIPPED = "skipped"
-ERROR = "error"
-CONCURRENT_JOBS_NUM = 4
-POSTED_TIME_SELECTOR = "gg45di0 _1ubeeig4z _1oxsqkd0 _1oxsqkd1 _1oxsqkd22 _18ybopc4 _1oxsqkd7"
-JOB_METADATA_FIELDS = {
-    "location": "job-detail-location",
-    "classification": "job-detail-classifications",
-    "work_type": "job-detail-work-type",
-    "salary": "job-detail-salary",
-    "title": "job-detail-title",
-    "company": "advertiser-name"
-}
-BROWSER_USER_AGENT = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36" 
-}
+from scraper.constants import DAY_RANGE_LIMIT, TOTAL_JOBS_PER_PAGE, MAX_RETRIES, SUCCESS, TERMINATE, SKIPPED, ERROR, CONCURRENT_JOBS_NUM, POSTED_TIME_SELECTOR, JOB_METADATA_FIELDS, BROWSER_USER_AGENT
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 semaphore = asyncio.Semaphore(CONCURRENT_JOBS_NUM)

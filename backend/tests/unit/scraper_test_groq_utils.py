@@ -5,18 +5,18 @@ from scraper.groq_utils import extract_fields_from_job_link_with_groq, extract_m
 @pytest.mark.asyncio
 @patch("scraper.groq_utils.client.chat.completions.create")
 async def test_extract_fields_from_job_link_with_groq(mock_groq_create):
-    fake_json = (
+    mock_json = (
         '{"description":"Build stuff.","responsibilities":["Code"],"requirements":["Python"],'
         '"experience_level":"mid_or_senior","work_model":"Remote","other":["Free breakfast"]}'
     )
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock(message=MagicMock(content=fake_json))]
+    mock_response.choices = [MagicMock(message=MagicMock(content=mock_json))]
     mock_groq_create.return_value = mock_response
 
     markdown = "## About the Role\nYou're going to build amazing products.\n\n### Requirements\n- Python\n"
     result = await extract_fields_from_job_link_with_groq(markdown, count=1)
 
-    assert result == fake_json
+    assert result == mock_json
     mock_groq_create.assert_called_once()
 
 @pytest.mark.asyncio
@@ -29,9 +29,9 @@ async def test_extract_fields_from_job_link_with_groq(mock_groq_create):
 ])
 @patch("scraper.groq_utils.client.chat.completions.create")
 async def test_model_selection_based_on_count(mock_groq_create, count, expected_model):
-    fake_json = '{"description":"","responsibilities":[],"requirements":[],"experience_level":"mid_or_senior","work_model":"Remote","other":[]}'
+    mock_json = '{"description":"","responsibilities":[],"requirements":[],"experience_level":"mid_or_senior","work_model":"Remote","other":[]}'
     mock_response = MagicMock()
-    mock_response.choices = [MagicMock(message=MagicMock(content=fake_json))]
+    mock_response.choices = [MagicMock(message=MagicMock(content=mock_json))]
     mock_groq_create.return_value = mock_response
 
     await extract_fields_from_job_link_with_groq("dummy markdown", count)

@@ -8,8 +8,7 @@ import logging
 from json_repair import repair_json
 from datetime import datetime, timedelta
 from scraper.groq_utils import extract_fields_from_job_link_with_groq
-
-LOGO_SELECTOR = 'div[data-testid="bx-logo-image"] img'
+from scraper.constants import LOGO_SELECTOR
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 

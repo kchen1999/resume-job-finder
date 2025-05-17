@@ -18,4 +18,10 @@ async def test_parse_job_json_from_markdown_real():
     assert "experience_level" in result
     assert "work_model" in result
     assert "other" in result
+    assert isinstance(result["description"], str)
+    assert isinstance(result["experience_level"], str)
+    assert isinstance(result["work_model"], str)
+    assert isinstance(result["responsibilities"], list)
+    assert isinstance(result["requirements"], list)
+    assert isinstance(result["other"], list)
    
