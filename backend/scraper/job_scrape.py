@@ -40,11 +40,13 @@ async def scrape_job_metadata(url, job_metadata_fields):
         job_metadata = await extract_job_metadata_fields(page, job_metadata_fields)
         logging.debug(f"Extracted metadata fields: {job_metadata}")  
 
-        posted_time = await extract_posted_date_by_class(page, POSTED_TIME_SELECTOR)
+        posted_result = await extract_posted_date_by_class(page, POSTED_TIME_SELECTOR)
+        posted_time = posted_result.get("posted_time")
+        posted_time_error = posted_result.get("error")
         
     except Exception as e:
         logging.error(f"Error during scraping job metadata: {e}")
-        return {"error": f"Failed to scrape job metadata: {e}"}
+        raise
 
     finally:
         try:
@@ -54,11 +56,13 @@ async def scrape_job_metadata(url, job_metadata_fields):
                 await playwright.stop()
         except Exception as close_error:
             logging.error(f"Error during browser close: {close_error}")
+            raise
     
-    logging.debug("Finished scraping job metadat.")
+    logging.debug("Finished scraping job metadata.")
     return {
         "logo_src": logo_src,
         "posted_time": posted_time,
+        "posted_time_error": posted_time_error,
         **job_metadata
     }
 
@@ -91,18 +95,27 @@ async def scrape_individual_job_url(job_url, crawler):
         )  
         page_url = f"{job_url}"
         await pause_briefly(1, 3)
-        result = await crawler.arun(page_url, config=config)
-        if result is None: 
-            logging.warning(f"Skipping job URL {job_url}, no markdown extracted.")
-            return []
-        job_metadata = await scrape_job_metadata(page_url, JOB_METADATA_FIELDS)
 
-        if result.markdown:
-            logging.debug("Successfully scraped job markdown.")
-            return [result.markdown.fit_markdown, job_metadata]
-        else:
+        try:
+            result = await crawler.arun(page_url, config=config)
+        except Exception as e:
+            logging.error(f"Error extracting markdown: {e}")
+            return None, {"error": f"Markdown extraction error: {str(e)}"}
+
+        if result is None or not result.markdown:
             logging.warning(f"Skipping job URL {job_url}, no markdown extracted.")
-            return []
+            return None, {"error": "No markdown extracted"}
+
+        try:
+            job_metadata = await scrape_job_metadata(page_url, JOB_METADATA_FIELDS)
+            if job_metadata is None:
+                return result.markdown.fit_markdown, {"error": "Metadata scraping returned None"}
+        except Exception as e:
+            logging.error(f"Error scraping metadata: {e}")
+            return result.markdown.fit_markdown, {"error": str(e)}
+
+        logging.debug("Successfully scraped job markdown and metadata.")
+        return result.markdown.fit_markdown, job_metadata
         
 async def process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, max_retries=MAX_RETRIES):
     delay = 1
@@ -113,9 +126,23 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
             job_markdown, job_metadata = await scrape_individual_job_url(job_link, crawler)
             print("-----Job markdown-----")
             print(job_markdown)
-            if not isinstance(job_metadata, dict) or not job_metadata.get("title"):
-                print(f"Skipping job {job_link}, title missing.")
-                return {"status": SKIPPED, "job": None, "error": "Missing title"}
+
+            if job_metadata.get("error"):
+                print(f"Skipping job {job_link}, error scraping metadata: {job_metadata['error']}")
+                return {"status": SKIPPED, "job": None, "error": job_metadata["error"]}
+           
+            if job_metadata.get("posted_time_error") in {"__NO_ELEMENTS__", "__NO_MATCHING_TEXT__"}:
+                if job_metadata["posted_time_error"] == "__NO_ELEMENTS__":
+                    error_message = "'posted_date' selector broke (most likely)"
+                else: 
+                    error_message = "no matching 'Posted X ago' text found"
+
+                print(f"Skipping job {job_link}, posted date issue: {error_message}")
+                return {
+                    "status": SKIPPED,
+                    "job": None,
+                    "error": f"Posted date selector issue: {error_message}"
+                }
 
             job_json = await parse_job_json_from_markdown(job_markdown, count)
             if not job_json:
@@ -164,7 +191,9 @@ async def process_all_jobs_concurrently(job_urls, crawler, location_search):
         for idx, job_link in enumerate(job_urls)
     ]
     job_results = await asyncio.gather(*tasks)
+    
     final_jobs = []
+    all_errors = []
     early_termination = False
 
     for job_result in job_results:
@@ -175,10 +204,12 @@ async def process_all_jobs_concurrently(job_urls, crawler, location_search):
             final_jobs.append(job_result["job"])
         elif job_result["status"] == SKIPPED:
             print("Skipped:", job_result["error"])
+            all_errors.append(job_result["error"])
         elif job_result["status"] == ERROR:
             print("Error:", job_result["error"])
+            all_errors.append(job_result["error"])
 
-    return final_jobs, early_termination
+    return final_jobs, early_termination, all_errors
 
 async def scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors):
     markdown = await scrape_page_markdown(base_url, crawler, page_num)
@@ -188,14 +219,16 @@ async def scrape_job_listing_page(base_url, location_search, crawler, page_num, 
 
     job_urls = process_markdown_to_job_links(markdown)
     if not job_urls:
-        print(f"No job liscraper/job_scrape.pynks found on page {page_num}")
+        print(f"No job links found on page {page_num}")
         return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True, 'invalid_jobs': []}
 
-    page_job_data, terminated_early = await process_all_jobs_concurrently(job_urls, crawler, location_search)
+    page_job_data, terminated_early, job_errors = await process_all_jobs_concurrently(job_urls, crawler, location_search)
+    all_errors.extend(job_errors)
 
     invalid_jobs = []
     if page_job_data:
-        job_count, invalid_jobs = await validate_and_insert_jobs(page_job_data, page_num, job_count, all_errors)
+        job_count, invalid_jobs, validation_errors = await validate_and_insert_jobs(page_job_data, page_num, job_count)
+        all_errors.extend(validation_errors)
 
     return {
         'job_count': job_count, 

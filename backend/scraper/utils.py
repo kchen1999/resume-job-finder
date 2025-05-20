@@ -56,27 +56,33 @@ async def extract_job_metadata_fields(page, job_metadata_fields):
 
 async def extract_posted_date_by_class(page, class_name: str) -> str:
     if random.random() < 0.8:  
-            await pause_briefly()
+        await pause_briefly()
     try:
         selector = f'span.{class_name.replace(" ", ".")}'
         elements = await page.query_selector_all(selector)
+
+        if not elements:
+            logging.warning("No elements found for posted date selector.")
+            return {"posted_time": None, "error": "__NO_ELEMENTS__"}
+
         for elem in elements:
             text = (await elem.inner_text()).strip()
             logging.debug(f"Found element text: {text}")
-            # Extract the number and unit (e.g., 2d, 13h, 45m)
+
             match = re.search(r'Posted (\d+)([dhm]) ago', text)
             if match:
                 value, unit = int(match.group(1)), match.group(2)
                 days_ago = value if unit == 'd' else 0
                 posted_date = get_posted_date(days_ago)
                 logging.debug(f"Extracted posted date: {posted_date}")
-                return posted_date
-    
+                return {"posted_time": posted_date, "error": None}
+        
         logging.warning("No matching 'Posted X ago' text found.")
-        return ""
+        return {"posted_time": None, "error": "__NO_MATCHING_TEXT__"}
+    
     except Exception as e:
-        logging.error(f"Error extracting posted date: {e}")
-        return ""
+        logging.error(f"Unexpected error while extracting posted date: {e}")
+        raise 
 
 # Extract total job count from markdown using regex
 def extract_total_job_count(markdown: str) -> int:

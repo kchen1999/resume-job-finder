@@ -142,6 +142,30 @@ async def test_scrape_job_listing_page_no_links_in_markdown(mock_scrape_page_mar
     assert result == {"job_count": 0, "all_errors": [], "terminated_early": True, "invalid_jobs": []}
 
 @pytest.mark.asyncio
+@patch("scraper.job_scrape.validate_and_insert_jobs", new_callable=AsyncMock)
+@patch("scraper.job_scrape.process_all_jobs_concurrently", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.process_markdown_to_job_links", return_value=["https://seek.com/job1"])
+async def test_scrape_job_listing_page_with_job_errors(
+    mock_process_links, mock_scrape_page_markdown, mock_process_all_jobs, mock_validate_and_insert_jobs
+):
+    mock_scrape_page_markdown.return_value = ["# Link to job1"]
+    mock_process_all_jobs.return_value = ([{"title": "Job 1"}], False, ["Error parsing job1"])
+    mock_validate_and_insert_jobs.return_value = (1,[],[])
+
+    result = await scrape_job_listing_page(
+        base_url="https://seek.com",
+        location_search="sydney",
+        crawler=AsyncMock(),
+        page_num=1,
+        job_count=0,
+        all_errors=[]
+    )
+
+    assert result["job_count"] == 1
+    assert result["all_errors"] == ["Error parsing job1"]
+
+@pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
 @patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
 @patch("scraper.job_scrape.AsyncWebCrawler")
@@ -170,17 +194,19 @@ async def test_scrape_job_listing_respects_max_pages(
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.bounded_process_job", new_callable=AsyncMock)
 async def test_process_all_jobs_concurrently(mock_bounded_process_job):
-    job_urls = ["https://www.seek.com.au/job/123", "https://www.seek.com.au/job/456","https://www.seek.com.au/job/789"]
+    job_urls = ["https://www.seek.com.au/job/123", "https://www.seek.com.au/job/456","https://www.seek.com.au/job/789", "https://www.seek.com.au/job/999"]
     crawler = AsyncMock()
     location_search = "Sydney"
     mock_bounded_process_job.side_effect = [
         {"status": SUCCESS, "job": {"title": "Software Engineer"}},
-        {"status": TERMINATE},  
+        {"status": TERMINATE}, 
+        {"status": SKIPPED, "job": None, "error": "No JSON extracted"},
         {"status": SUCCESS, "job": {"title": "Senior Software Engineer"}},  
     ]
-    final_jobs, early_termination = await process_all_jobs_concurrently(job_urls, crawler, location_search)
+    final_jobs, early_termination, job_errors = await process_all_jobs_concurrently(job_urls, crawler, location_search)
     assert final_jobs == [{"title": "Software Engineer"}, {"title": "Senior Software Engineer"}]
     assert early_termination is True
+    assert job_errors == ["No JSON extracted"]
 
 
 @pytest.mark.asyncio
@@ -225,51 +251,7 @@ async def test_process_job_with_backoff_success(
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
 @patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
-@patch("scraper.job_scrape.set_default_work_model")
-@patch("scraper.job_scrape.extract_job_urls")
-@patch("scraper.job_scrape.enrich_job_json")
-@patch("scraper.job_scrape.is_job_within_date_range")
-@patch("scraper.job_scrape.override_experience_level_with_title")
-@patch("scraper.job_scrape.normalize_experience_level")
-async def test_process_job_with_backoff_missing_title(
-    mock_normalize_experience,
-    mock_override_experience,
-    mock_is_recent,
-    mock_enrich,
-    mock_extract_urls,
-    mock_set_work_model,
-    mock_parse_json,
-    mock_scrape
-):
-    mock_scrape.return_value = ("<html>", {"work_type": "Full time"})
-    job_link = "https://www.seek.com.au/job/123"
-    count = 1
-    crawler = AsyncMock()
-    location_search = "Sydney"
-    terminate_event = Mock()
-
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
-    assert result == {"status": SKIPPED, "job": None, "error": "Missing title"}
-
-@pytest.mark.asyncio
-@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
-@patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
-@patch("scraper.job_scrape.set_default_work_model")
-@patch("scraper.job_scrape.extract_job_urls")
-@patch("scraper.job_scrape.enrich_job_json")
-@patch("scraper.job_scrape.is_job_within_date_range")
-@patch("scraper.job_scrape.override_experience_level_with_title")
-@patch("scraper.job_scrape.normalize_experience_level")
-async def test_process_job_with_backoff_missing_json(
-    mock_normalize_experience,
-    mock_override_experience,
-    mock_is_recent,
-    mock_enrich,
-    mock_extract_urls,
-    mock_set_work_model,
-    mock_parse_json,
-    mock_scrape
-):
+async def test_process_job_with_backoff_missing_json(mock_parse_json, mock_scrape):
     mock_scrape.return_value = ("<html>", {"title": "Software Engineer"})
     mock_parse_json.return_value = None  
     job_link = "https://www.seek.com.au/job/456"
@@ -332,7 +314,7 @@ async def test_process_job_with_backoff_too_old(
 @patch("scraper.job_scrape.is_job_within_date_range")
 @patch("scraper.job_scrape.override_experience_level_with_title")
 @patch("scraper.job_scrape.normalize_experience_level")
-async def test_process_job_with_backoff_retry_logic(
+async def test_process_job_with_backoff_retry_once_logic(
     mock_normalize_experience,
     mock_override_experience,
     mock_is_recent,
@@ -366,23 +348,7 @@ async def test_process_job_with_backoff_retry_logic(
 
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
-@patch("scraper.job_scrape.parse_job_json_from_markdown", new_callable=AsyncMock)
-@patch("scraper.job_scrape.set_default_work_model")
-@patch("scraper.job_scrape.extract_job_urls")
-@patch("scraper.job_scrape.enrich_job_json")
-@patch("scraper.job_scrape.is_job_within_date_range")
-@patch("scraper.job_scrape.override_experience_level_with_title")
-@patch("scraper.job_scrape.normalize_experience_level")
-async def test_process_job_with_backoff_max_retries_exhausted(
-    mock_normalize_experience,
-    mock_override_experience,
-    mock_is_recent,
-    mock_enrich,
-    mock_extract_urls,
-    mock_set_work_model,
-    mock_parse_json,
-    mock_scrape
-):
+async def test_process_job_with_backoff_max_retries_exhausted(mock_scrape):
     mock_scrape.side_effect = Exception("Simulated failure")
     job_link = "https://www.seek.com.au/job/123"
     count = 1
@@ -390,11 +356,59 @@ async def test_process_job_with_backoff_max_retries_exhausted(
     location_search = "Sydney"
     terminate_event = Mock()
 
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, max_retries=3)
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, max_retries=MAX_RETRIES)
     assert result["status"] == ERROR
     assert result["job"] is None
     assert f"{job_link} failed after {MAX_RETRIES} retries" in result["error"]
     assert mock_scrape.call_count == MAX_RETRIES
+
+@pytest.mark.asyncio
+@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
+async def test_process_job_with_backoff_markdown_error(mock_scrape):
+    mock_scrape.return_value = (None, {"error": "No markdown extracted"})
+    
+    job_link = "https://www.seek.com.au/job/123"
+    count = 3
+    crawler = AsyncMock()
+    location_search = "Sydney"
+    terminate_event = Mock()
+
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    assert result["status"] == SKIPPED
+    assert result["job"] is None
+    assert result["error"] == "No markdown extracted"
+
+@pytest.mark.asyncio
+@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
+async def test_process_job_with_backoff_posted_time_no_elements_error(mock_scrape):
+    mock_scrape.return_value = (None, {"posted_time_error": "__NO_ELEMENTS__"})
+    
+    job_link = "https://www.seek.com.au/job/123"
+    count = 4
+    crawler = AsyncMock()
+    location_search = "Sydney"
+    terminate_event = Mock()
+
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    assert result["status"] == SKIPPED
+    assert result["job"] is None
+    assert result["error"] == "Posted date selector issue: 'posted_date' selector broke (most likely)"
+
+@pytest.mark.asyncio
+@patch("scraper.job_scrape.scrape_individual_job_url", new_callable=AsyncMock)
+async def test_process_job_with_backoff_posted_time_no_matching_text_error(mock_scrape):
+    mock_scrape.return_value = (None, {"posted_time_error": "__NO_MATCHING_TEXT__"})
+    
+    job_link = "https://www.seek.com.au/job/123"
+    count = 4
+    crawler = AsyncMock()
+    location_search = "Sydney"
+    terminate_event = Mock()
+
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    assert result["status"] == SKIPPED
+    assert result["job"] is None
+    assert result["error"] == "Posted date selector issue: no matching 'Posted X ago' text found"
 
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_job_metadata", new_callable=AsyncMock)
@@ -420,9 +434,8 @@ async def test_scrape_individual_job_url_no_markdown(mock_scrape_metadata):
     mock_scrape_metadata.return_value = {"location": "Sydney", "title": "Data Analyst", "company": "Company X"}
     
     result = await scrape_individual_job_url(job_url, crawler)
-    assert result == [] 
+    assert result == (None, {"error": "No markdown extracted"}) 
     crawler.arun.assert_called_once_with(job_url, config=ANY)
-    mock_scrape_metadata.assert_called_once_with(job_url, ANY)
 
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.create_browser_context", new_callable=AsyncMock)
@@ -445,18 +458,18 @@ async def test_scrape_job_metadata_success(mock_extract_posted_time, mock_extrac
         "title": "Software Engineer",
         "company": "Company X"
     }
-    mock_extract_posted_time.return_value = "09/05/2025"
+    mock_extract_posted_time.return_value = {"posted_time": "09/05/2025", "error": None}
 
     result = await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1", "metadata_id_2"])
     assert result == {
         "logo_src": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
         "posted_time": "09/05/2025",
+        "posted_time_error": None,
         "title": "Software Engineer",
         "location": "Sydney NSW",
         "classification": "Testing & Quality Assurance (Information & Communication Technology)",
         "work_type": "Remote",
         "salary": "$100,000 - $120,000",
-        "title": "Software Engineer",
         "company": "Company X"
     }
     mock_page.goto.assert_called_once_with("https://www.seek.com.au/job/123")
@@ -475,8 +488,9 @@ async def test_scrape_job_metadata_error_handling(mock_create_browser_context):
     mock_context.new_page.return_value = mock_page
     mock_page.goto.side_effect = Exception("Page load failed")
 
-    result = await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
-    assert result == {"error": "Failed to scrape job metadata: Page load failed"}
+    with pytest.raises(Exception, match="Page load failed"):
+        await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
+
     mock_page.goto.assert_called_once_with("https://www.seek.com.au/job/123")
 
 @pytest.mark.asyncio
@@ -494,12 +508,13 @@ async def test_scrape_job_metadata_missing_elements(mock_extract_posted_time, mo
     
     mock_extract_logo.return_value = ""  
     mock_extract_metadata.return_value = {"title": "Software Engineer", "company": ""}  
-    mock_extract_posted_time.return_value = "" 
+    mock_extract_posted_time.return_value = {"posted_time": "", "error": None} 
 
     result = await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
     assert result == {
         "logo_src": "",
         "posted_time": "",
+        "posted_time_error": None,
         "title": "Software Engineer",
         "company": ""
     }
@@ -520,10 +535,34 @@ async def test_scrape_job_metadata_cleanup_on_exception(mock_create_browser_cont
     mock_context.new_page.return_value = mock_page
     mock_page.goto.side_effect = Exception("Navigation error")
 
-    result = await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
+    with pytest.raises(Exception, match="Navigation error"):
+        await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
     mock_browser.close.assert_awaited_once()
     mock_playwright.stop.assert_awaited_once()
-    assert "error" in result
+
+@pytest.mark.asyncio
+@patch("scraper.job_scrape.create_browser_context", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_logo_src", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_job_metadata_fields", new_callable=AsyncMock)
+@patch("scraper.job_scrape.extract_posted_date_by_class", new_callable=AsyncMock)
+async def test_scrape_job_metadata_posted_time_error(mock_extract_posted_time, mock_extract_metadata, mock_extract_logo, mock_create_browser_context):
+    mock_browser = AsyncMock()
+    mock_page = AsyncMock()
+    mock_context = AsyncMock()
+
+    mock_create_browser_context.return_value = (None, mock_browser, mock_context)
+    mock_context.new_page.return_value = mock_page
+    mock_extract_logo.return_value = "logo.png"
+    mock_extract_metadata.return_value = {"title": "Software Engineer"}
+    mock_extract_posted_time.return_value = {"posted_time": "", "error": "__NO_ELEMENTS__"}
+
+    result = await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
+    assert result == {
+        "logo_src": "logo.png",
+        "posted_time": "",
+        "posted_time_error": "__NO_ELEMENTS__",
+        "title": "Software Engineer"
+    }
 
 
 

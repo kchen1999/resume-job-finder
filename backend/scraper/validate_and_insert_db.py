@@ -71,9 +71,10 @@ async def validate_job(job):
 
     return job, was_invalid
 
-async def validate_and_insert_jobs(page_job_data, page_num, job_count, all_errors):
+async def validate_and_insert_jobs(page_job_data, page_num, job_count):
     cleaned_jobs = []
     invalid_jobs = []
+    all_errors = []
 
     for job in page_job_data:
         original_job = copy.deepcopy(job)
@@ -93,7 +94,7 @@ async def validate_and_insert_jobs(page_job_data, page_num, job_count, all_error
             logging.error(f"DB insert error on page {page_num}:", exc_info=True)
             all_errors.append(f"DB insert error on page {page_num}: {str(db_error)}")
 
-    return job_count, invalid_jobs
+    return job_count, invalid_jobs, all_errors
 
 
 

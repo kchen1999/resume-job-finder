@@ -18,9 +18,10 @@ async def test_validate_and_insert_jobs_happy_path(mock_send_to_node, mock_valid
     ]
     page_job_data = [job1, job2, job3]
 
-    job_count, invalid_jobs = await validate_and_insert_jobs(page_job_data, page_num=1, job_count=0, all_errors=[])
+    job_count, invalid_jobs, all_errors = await validate_and_insert_jobs(page_job_data, page_num=1, job_count=0)
     assert job_count == 3
     assert invalid_jobs == [job3]
+    assert all_errors == []
     mock_send_to_node.assert_awaited_once_with([job1, job2, job3])
     assert mock_validate_job.await_count == 3
 
@@ -37,13 +38,12 @@ async def test_validate_and_insert_jobs_all_invalid(mock_send_to_node, mock_vali
         (job3, True)
     ]
     page_job_data = [job1, job2, job3]
-    all_errors = []
-    job_count, invalid_jobs = await validate_and_insert_jobs(page_job_data, page_num=2, job_count=0, all_errors=all_errors)
+    job_count, invalid_jobs, all_errors = await validate_and_insert_jobs(page_job_data, page_num=2, job_count=0)
     assert job_count == 3
     assert invalid_jobs == page_job_data
+    assert all_errors == []
     assert mock_validate_job.await_count == 3
     mock_send_to_node.assert_awaited_once_with([job1, job2, job3])
-    assert all_errors == []
 
 @pytest.mark.asyncio
 @patch("scraper.validate_and_insert_db.validate_job", new_callable=AsyncMock)
@@ -55,12 +55,28 @@ async def test_validate_and_insert_jobs_db_insert_exception(mock_send_to_node, m
     mock_send_to_node.side_effect = Exception("DB connection failed")
     all_errors = []
 
-    job_count, invalid_jobs = await validate_and_insert_jobs([job1, job2], page_num=3, job_count=5, all_errors=all_errors)
+    job_count, invalid_jobs, all_errors = await validate_and_insert_jobs([job1, job2], page_num=3, job_count=5)
     assert job_count == 5  
     assert invalid_jobs == []
     assert mock_send_to_node.await_count == 1
     assert len(all_errors) == 1
     assert "DB insert error on page 3: DB connection failed" in all_errors[0]
+
+@pytest.mark.asyncio
+@patch("scraper.validate_and_insert_db.send_page_jobs_to_node", new_callable=AsyncMock)
+@patch("scraper.validate_and_insert_db.validate_job", new_callable=AsyncMock)
+async def test_invalid_jobs_are_original_versions(mock_validate_job, mock_send_jobs):
+    original_job = {"title": "Original Title", "job_url": "http://example.com"}
+    job_to_return = copy.deepcopy(original_job)
+    job_to_return["title"] = "Modified Title"
+    mock_validate_job.return_value = (job_to_return, True)
+    job_count, invalid_jobs, all_errors = await validate_and_insert_jobs(
+        [original_job], page_num=1, job_count=0
+    )
+    mock_send_jobs.assert_awaited_once()
+    # Assert that the invalid job is not the mutated version
+    assert invalid_jobs == [original_job]
+    assert all_errors == []
 
 @pytest.mark.asyncio
 @patch("scraper.validate_and_insert_db.extract_missing_work_model_with_groq", new_callable=AsyncMock)
@@ -304,20 +320,6 @@ async def test_validate_job_field_not_list(mock_infer_work_model, mock_infer_exp
     mock_infer_work_model.assert_not_awaited()
     mock_infer_exp.assert_not_awaited()
 
-@pytest.mark.asyncio
-@patch("scraper.validate_and_insert_db.send_page_jobs_to_node", new_callable=AsyncMock)
-@patch("scraper.validate_and_insert_db.validate_job", new_callable=AsyncMock)
-async def test_invalid_jobs_are_original_versions(mock_validate_job, mock_send_jobs):
-    original_job = {"title": "Original Title", "job_url": "http://example.com"}
-    job_to_return = copy.deepcopy(original_job)
-    job_to_return["title"] = "Modified Title"
-    mock_validate_job.return_value = (job_to_return, True)
-    job_count, invalid_jobs = await validate_and_insert_jobs(
-        [original_job], page_num=1, job_count=0, all_errors=[]
-    )
-    mock_send_jobs.assert_awaited_once()
-    # Assert that the invalid job is not the mutated version
-    assert invalid_jobs[0] == {"title": "Original Title", "job_url": "http://example.com"}
 
 
     

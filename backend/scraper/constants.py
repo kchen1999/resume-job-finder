@@ -20,7 +20,10 @@ BROWSER_USER_AGENT = {
 }
 LOGO_SELECTOR = 'div[data-testid="bx-logo-image"] img'
 REQUIRED_FIELDS = ["title", "company", "classification", "posted_date", "posted_within", "work_type", "work_model"]
+NON_REQUIRED_FIELDS = ["description", "logo_link", "location", "location_search", "experience_level", "salary", "quick_apply_url", "job_url"]
 ALLOWED_WORK_MODEL_VALUES = {"Remote", "Hybrid", "On-site"}
 ALLOWED_EXPERIENCE_LEVEL_VALUES = ["intern", "junior", "mid_or_senior", "lead+"]
 URL_FIELDS = ["quick_apply_url", "job_url"]
 LIST_FIELDS = ["responsibilities", "requirements", "other"]
+OPTIONAL_FIELDS = ["logo_link", "salary"]
+REQUIRED_JOB_METADATA_FIELDS = ["location", "classification", "work_type", "title", "company", "posted_date"]
