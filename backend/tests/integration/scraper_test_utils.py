@@ -10,14 +10,15 @@ async def test_parse_job_json_from_markdown_real():
         markdown = f.read()
 
     result = await parse_job_json_from_markdown(markdown, count=1)
-    
-    assert isinstance(result, dict)
+
     assert "description" in result
     assert "responsibilities" in result
     assert "requirements" in result
     assert "experience_level" in result
     assert "work_model" in result
     assert "other" in result
+    
+    assert isinstance(result, dict)
     assert isinstance(result["description"], str)
     assert isinstance(result["experience_level"], str)
     assert isinstance(result["work_model"], str)

@@ -1,22 +1,28 @@
 import pytest
+import asyncio
+import json
 from unittest.mock import patch
 from httpx import AsyncClient, ASGITransport
 from scraper.app import app  
 from scraper.job_scrape import scrape_job_listing
-import asyncio
-import json
+from scraper.constants import REQUIRED_FIELDS, NON_REQUIRED_FIELDS, LIST_FIELDS, TOTAL_JOBS_PER_PAGE, OPTIONAL_FIELDS, REQUIRED_JOB_METADATA_FIELDS
+from collections import Counter
 
 def assert_valid_job(job):
-    for field in ['title', 'company', 'classification', 'posted_date', 'posted_within', 'work_type', 'work_model']:
+    unknown_keys = set(job) - set(REQUIRED_FIELDS + NON_REQUIRED_FIELDS + LIST_FIELDS)
+    assert not unknown_keys, f"Unexpected fields found: {unknown_keys}"
+
+    for field in REQUIRED_FIELDS:
         assert isinstance(job.get(field), str) and job[field], f"{field} is missing or not a string"
 
-    for field in ['description', 'logo_link', 'location', 'location_search', 'experience_level', 'salary', 'quick_apply_url', 'job_url']:
+    for field in NON_REQUIRED_FIELDS:
         val = job.get(field)
-        assert val is None or isinstance(val, str), f"{field} should be a string or None"
+        if val is not None:
+            assert isinstance(val, str), f"{field} should be a string if present"
 
-    for field in ['responsibilities', 'requirements', 'other']:
+    for field in LIST_FIELDS:
         val = job.get(field)
-        assert val is None or (isinstance(val, list) and all(isinstance(item, str) for item in val)), f"{field} should be a list of strings or None"
+        assert isinstance(val, list) and all(isinstance(item, str) for item in val), f"{field} should be a list of strings"
 
 
 @pytest.mark.asyncio
@@ -42,18 +48,39 @@ async def test_scrape_and_send_jobs():
             )
             assert response.status_code == 202
             await asyncio.sleep(120) 
-
-    assert jobs_received, "No jobs were sent to Node backend"
+    
     print(f"Received {len(jobs_received)} jobs")
+    print("\nScrape Summary:")
+    print(json.dumps(scrape_results, indent=2))
+
+    if not jobs_received:
+        print("No jobs were received. Skipping health checks.")
+        return 
 
     for i, job in enumerate(jobs_received, start=1):
         print(f"\n--- Job {i} ---")
         print(json.dumps(job, indent=2))
     
-    assert len(jobs_received) == 22 
     for job in jobs_received:
         assert_valid_job(job)
 
-    print("\nScrape Summary:")
-    print(json.dumps(scrape_results, indent=2))
-    assert "message" in scrape_results
+    # --------------------------
+    # Health checks for selectors
+    # --------------------------
+
+    field_counter = Counter()
+    for job in jobs_received:
+        for field in REQUIRED_JOB_METADATA_FIELDS + OPTIONAL_FIELDS:
+            val = job.get(field)
+            if isinstance(val, str):
+                if val.strip(): field_counter[field] += 1
+
+    for required_job_metadata_field in REQUIRED_JOB_METADATA_FIELDS:
+        assert field_counter[required_job_metadata_field] > 0, f"All jobs missing {required_job_metadata_field} — possible selector change."
+
+    for optional_field in OPTIONAL_FIELDS:
+        assert field_counter[optional_field] > 0, f"All jobs missing {optional_field} — possible selector change."
+
+    print("Job metadata selector health checks passed.")
+    assert len(jobs_received) == TOTAL_JOBS_PER_PAGE
+

@@ -33,7 +33,7 @@ async def extract_fields_from_job_link_with_groq(markdown, count):
         
             "- 'responsibilities': Extract all content that describes what the candidate will do in the role. Include every task-related bullet point or action-oriented sentence that outlines responsibilities, duties, or deliverables. Only include actions, not skills, qualifications, experience levels, or technologies unless they are part of an action. Return full sentences exactly as written in the original text. Do not include section headings, requirement-related content, or summaries\n"
 
-            "- 'requirements': Include all technical skills, technologies, years of experience, cloud platforms, frontend/backend stacks, architecture knowledge, tools, frameworks, databases, testing tools/methodologies, and certifications — even if mentioned outside the 'Requirements' section. Return exact phrasing as in the text, not keywords or tags.\n"
+            "- 'requirements': Extract all technical skills, technologies, years of experience, cloud platforms, frontend/backend stacks, architecture knowledge, tools, frameworks, databases, testing tools/methodologies, and certifications — even if mentioned outside the 'Requirements' section. Return exact phrasing as in the text, not keywords or tags. Return these an array of strings (one per distinct requirement) and **no extra quotation marks** inside the strings.\n"
 
             "- 'experience_level': Choose one of: 'intern', 'junior', 'mid_or_senior', or 'lead+'. Infer from the job title first; if unclear, infer from level of responsibility and the depth/breadth of required experience."
             "Return 'junior' if the role requires less than 2 years of experience and appears entry-level. Return 'mid_or_senior' if the role is technical and requires significant experience but no clear indication of leadership. Return 'lead+' only if the role clearly involves leadership, strategic ownership, or team management. Always return one of the four exact strings. Never return None.\n"
@@ -46,18 +46,18 @@ async def extract_fields_from_job_link_with_groq(markdown, count):
             "- Be strict. If the post is ambiguous or does not directly mention remote/hybrid, choose 'On-site'."
             "- Never return None.\n"  
 
-            "- 'other': Include a list of additional job-relevant details not already captured above. This must be a **list of bullet points**, each as a **double-quoted string**. Do not include technologies, tools, or experience level here.\n\n"
+            "- 'other': Include a list of additional job-relevant details not already captured above. This must be a **list of bullet points**, each as a **string** and **no extra quotation marks** inside the strings. Do not include technologies, tools, or experience level here.\n\n"
 
-            "Return a single JSON object with the following keys in this exact order:\n"
+            "Return a single JSON object with exactly the following six keys and no others in this exact order:\n"
             "- description\n- responsibilities\n- requirements\n- experience_level\n- work_model\n- other\n\n"
 
             "**Rules:**\n"
             "- Always return a single valid **JSON object** — not a string.\n"
             "- 'responsibilities', 'requirements', and 'other' must be arrays of strings. (Remove bullet point formatting)\n"
-            "- All keys MUST be in lower case and double-quoted, as per strict JSON format.\n"
+            "- All keys MUST be in lower case and double-quoted (strictly one set of double quotes), as per strict JSON format.\n"
             "- Do NOT wrap the entire output in quotes. Do NOT stringify the JSON.\n"
-            "- All string values (including those inside lists) MUST be properly closed with quotes.\n"
-            "- The first key must be \"description\".\n"
+            "- All string values (including those inside lists) MUST be properly closed with quotes and strictly one set of quotes (not two sets of quotes).\n"
+            "- The first key must be 'description'.\n"
             "- Arrays must use square brackets [] with double-quoted string values.\n"
             "- Do not include markdown, backticks, or code blocks.\n"
             "- No newline (`\\n`) or backslash (`\\`) characters in keys or values.\n"

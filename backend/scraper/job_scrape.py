@@ -124,8 +124,6 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
             print("Scraping job:", count + 1)
             print("Scraping:", job_link)
             job_markdown, job_metadata = await scrape_individual_job_url(job_link, crawler)
-            print("-----Job markdown-----")
-            print(job_markdown)
 
             if job_metadata.get("error"):
                 print(f"Skipping job {job_link}, error scraping metadata: {job_metadata['error']}")
