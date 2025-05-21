@@ -26,6 +26,20 @@ async def create_browser_context():
     await context.set_extra_http_headers(BROWSER_USER_AGENT)
     return playwright, browser, context
 
+async def scrape_page_markdown(base_url, crawler, page_num):
+    page_url = f"{base_url}&page={page_num}"
+    await pause_briefly(1, 3)
+    result = await crawler.arun(page_url)
+    if result is None: 
+        print(f"No markdown found on page {page_num}")
+        return []
+    if result.markdown:
+        print(f"Successfully scraped page {page_num}")
+        return [result.markdown]
+    else:
+        print(f"No markdown found on page {page_num}")
+        return []
+
 async def scrape_job_metadata(url, job_metadata_fields):
     logging.debug(f"Scraping job metadata for URL: {url}")
     playwright, browser, context = await create_browser_context()
@@ -65,21 +79,7 @@ async def scrape_job_metadata(url, job_metadata_fields):
         "posted_time_error": posted_time_error,
         **job_metadata
     }
-
-async def scrape_page_markdown(base_url, crawler, page_num):
-    page_url = f"{base_url}&page={page_num}"
-    await pause_briefly(1, 3)
-    result = await crawler.arun(page_url)
-    if result is None: 
-        print(f"No markdown found on page {page_num}")
-        return []
-    if result.markdown:
-        print(f"Successfully scraped page {page_num}")
-        return [result.markdown]
-    else:
-        print(f"No markdown found on page {page_num}")
-        return []
-        
+     
 async def scrape_individual_job_url(job_url, crawler): 
         logging.debug(f"Starting to scrape job URL: {job_url}")
         prune_filter = PruningContentFilter(

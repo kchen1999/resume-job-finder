@@ -6,7 +6,7 @@ TERMINATE = "terminate"
 SKIPPED = "skipped"
 ERROR = "error"
 CONCURRENT_JOBS_NUM = 4
-POSTED_TIME_SELECTOR = "gg45di0 _1ubeeig4z _1oxsqkd0 _1oxsqkd1 _1oxsqkd22 _18ybopc4 _1oxsqkd7"
+POSTED_TIME_SELECTOR = "x3iy8f0 o3fpgs4z _1i66rlw0 _1i66rlw1 _1i66rlw22 _1g0tbpc4 _1i66rlw7"
 JOB_METADATA_FIELDS = {
     "location": "job-detail-location",
     "classification": "job-detail-classifications",
@@ -27,3 +27,7 @@ URL_FIELDS = ["quick_apply_url", "job_url"]
 LIST_FIELDS = ["responsibilities", "requirements", "other"]
 OPTIONAL_FIELDS = ["logo_link", "salary"]
 REQUIRED_JOB_METADATA_FIELDS = ["location", "classification", "work_type", "title", "company", "posted_date"]
+FALLBACK_WORK_MODEL = "On-site"
+FALLBACK_EXPERIENCE_LEVEL = "mid_or_senior"
+FALLBACK_POSTED_WITHIN = "Today"
+

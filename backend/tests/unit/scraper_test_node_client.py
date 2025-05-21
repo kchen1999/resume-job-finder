@@ -18,8 +18,13 @@ async def test_send_page_jobs_to_node_success(mock_post):
 async def test_send_page_jobs_to_node_http_error(mock_post, caplog):
     request = Request("POST", "http://localhost:3000/api/jobs/page-batch")
     response = Response(400, request=request, content=b"Bad job data")
-
+    response.raise_for_status = lambda: (_ for _ in ()).throw(
+        HTTPStatusError("Bad Request", request=request, response=response)
+    )
     mock_post.return_value = response
-    with pytest.raises(HTTPStatusError):
+
+    with pytest.raises(RuntimeError) as exc_info:
         await send_page_jobs_to_node([{"title": "bad job"}])
+
+    assert "Failed to insert jobs: 400 - Bad job data" in str(exc_info.value)
     assert "Failed to insert jobs: 400 - Bad job data" in caplog.text

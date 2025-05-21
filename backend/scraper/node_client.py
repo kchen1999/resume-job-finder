@@ -13,5 +13,6 @@ async def send_page_jobs_to_node(jobs):
             response.raise_for_status()
             logging.info("Successfully sent jobs to Node backend")
     except httpx.HTTPStatusError as exc:
-        logging.error(f"Failed to insert jobs: {exc.response.status_code} - {exc.response.text}")
-        raise
+        error_msg = f"Failed to insert jobs: {exc.response.status_code} - {exc.response.text}"
+        logging.error(error_msg)
+        raise RuntimeError(error_msg) from exc

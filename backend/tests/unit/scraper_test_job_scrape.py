@@ -93,6 +93,31 @@ async def test_scrape_job_listing_with_invalid_jobs(
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
 @patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.AsyncWebCrawler")
+async def test_scrape_job_listing_with_errors(
+    mock_crawler_class, mock_scrape_first_page, mock_scrape_page
+):
+    mock_crawler_instance = AsyncMock()
+    mock_crawler_class.return_value.__aenter__.return_value = mock_crawler_instance
+    mock_scrape_first_page.return_value = ["# 44 jobs listed"]
+
+    mock_scrape_page.side_effect = [
+        {"job_count": 22, "all_errors": ["no matching 'Posted X ago' text found"], "terminated_early": False, "invalid_jobs": []},
+        {"job_count": 44, "all_errors": ["no matching 'Posted X ago' text found", "'posted_date' selector broke (most likely)"], "terminated_early": True, "invalid_jobs": []},
+    ]
+
+    result = await scrape_job_listing("https://seek.com", location_search="sydney")
+    
+    assert result == {
+        "message": "Scraped and inserted 44 jobs.",
+        "errors": ["no matching 'Posted X ago' text found", "'posted_date' selector broke (most likely)"],
+        "invalid_jobs": []
+    }
+    assert mock_scrape_page.await_count == 2
+
+@pytest.mark.asyncio
+@patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
 @patch("scraper.job_scrape.AsyncWebCrawler") 
 async def test_scrape_job_listing_multiple_pages_no_early_exit(
     mock_crawler_class, mock_scrape_first_page, mock_scrape_page
@@ -563,12 +588,3 @@ async def test_scrape_job_metadata_posted_time_error(mock_extract_posted_time, m
         "posted_time_error": "__NO_ELEMENTS__",
         "title": "Software Engineer"
     }
-
-
-
-
-
-
-
-
-

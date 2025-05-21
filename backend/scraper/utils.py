@@ -78,7 +78,7 @@ async def extract_posted_date_by_class(page, class_name: str) -> str:
                 return {"posted_time": posted_date, "error": None}
         
         logging.warning("No matching 'Posted X ago' text found.")
-        return {"posted_time": None, "error": "__NO_MATCHING_TEXT__"}
+        return  
     
     except Exception as e:
         logging.error(f"Unexpected error while extracting posted date: {e}")
@@ -177,7 +177,7 @@ async def parse_job_json_from_markdown(job_markdown, count):
             json_candidate = clean_string(json_candidate)
             print("Cleaned json: ")
             print(json_candidate)
-        repaired_json_string = repair_json(json_candidate)  # Raw string goes here
+        repaired_json_string = repair_json(json_candidate)  
         print("repairing json...")
         job_json = json.loads(repaired_json_string)
         print("repaired json: ")
