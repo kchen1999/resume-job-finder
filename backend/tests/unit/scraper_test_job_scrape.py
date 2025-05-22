@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, Mock, patch, ANY
 from scraper.job_scrape import scrape_job_listing, scrape_job_listing_page, process_all_jobs_concurrently, process_job_with_backoff, scrape_individual_job_url, scrape_job_metadata
-from scraper.constants import MAX_RETRIES, POSTED_TIME_SELECTOR, SUCCESS, SKIPPED, TERMINATE, ERROR
+from scraper.constants import MAX_RETRIES, POSTED_TIME_SELECTOR, SUCCESS, SKIPPED, TERMINATE, ERROR, DAY_RANGE_LIMIT
 
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
@@ -16,14 +16,15 @@ async def test_scrape_job_listing_happy_path(
     mock_scrape_page.return_value = {
         "job_count": 22,
         "all_errors": [],
-        "terminated_early": True,
+        "terminated_early": False,
         "invalid_jobs": []
     }
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
     assert result == {
         "message": "Scraped and inserted 22 jobs.",
         "errors": None,
-        "invalid_jobs": []
+        "invalid_jobs": [],
+        "terminated_early": False
     }
     mock_scrape_first_page.assert_awaited_once()
     mock_scrape_page.assert_awaited_once()
@@ -59,7 +60,8 @@ async def test_scrape_job_listing_zero_jobs(
     assert result == {
         "message": "Scraped and inserted 0 jobs.",
         "errors": None,
-        "invalid_jobs": []
+        "invalid_jobs": [],
+        "terminated_early": False
     }
     mock_scrape_first_page.assert_awaited_once()
     mock_scrape_page.assert_not_awaited()
@@ -77,7 +79,7 @@ async def test_scrape_job_listing_with_invalid_jobs(
 
     mock_scrape_page.side_effect = [
         {"job_count": 22, "all_errors": [], "terminated_early": False, "invalid_jobs": ["job123", "job124"]},
-        {"job_count": 44, "all_errors": [], "terminated_early": True, "invalid_jobs": ["job125"]},
+        {"job_count": 44, "all_errors": [], "terminated_early": False, "invalid_jobs": ["job125"]},
     ]
 
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
@@ -85,7 +87,8 @@ async def test_scrape_job_listing_with_invalid_jobs(
     assert result == {
         "message": "Scraped and inserted 44 jobs.",
         "errors": None,
-        "invalid_jobs": ["job123", "job124", "job125"]
+        "invalid_jobs": ["job123", "job124", "job125"],
+        "terminated_early": False
     }
 
     assert mock_scrape_page.await_count == 2
@@ -103,7 +106,7 @@ async def test_scrape_job_listing_with_errors(
 
     mock_scrape_page.side_effect = [
         {"job_count": 22, "all_errors": ["no matching 'Posted X ago' text found"], "terminated_early": False, "invalid_jobs": []},
-        {"job_count": 44, "all_errors": ["no matching 'Posted X ago' text found", "'posted_date' selector broke (most likely)"], "terminated_early": True, "invalid_jobs": []},
+        {"job_count": 44, "all_errors": ["no matching 'Posted X ago' text found", "'posted_date' selector broke (most likely)"], "terminated_early": False, "invalid_jobs": []},
     ]
 
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
@@ -111,7 +114,8 @@ async def test_scrape_job_listing_with_errors(
     assert result == {
         "message": "Scraped and inserted 44 jobs.",
         "errors": ["no matching 'Posted X ago' text found", "'posted_date' selector broke (most likely)"],
-        "invalid_jobs": []
+        "invalid_jobs": [],
+        "terminated_early": False,
     }
     assert mock_scrape_page.await_count == 2
 
@@ -128,13 +132,38 @@ async def test_scrape_job_listing_multiple_pages_no_early_exit(
     mock_scrape_page.side_effect = [
         {"job_count": 22, "all_errors": [], "terminated_early": False, "invalid_jobs": []},
         {"job_count": 44, "all_errors": [], "terminated_early": False, "invalid_jobs": []},
-        {"job_count": 66, "all_errors": [], "terminated_early": True, "invalid_jobs": []},
+        {"job_count": 66, "all_errors": [], "terminated_early": False, "invalid_jobs": []},
     ]
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
     assert result == {
         "message": "Scraped and inserted 66 jobs.",
         "errors": None,
-        "invalid_jobs": []
+        "invalid_jobs": [],
+        "terminated_early": False
+    }
+    assert mock_scrape_page.await_count == 3
+
+@pytest.mark.asyncio
+@patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+@patch("scraper.job_scrape.AsyncWebCrawler") 
+async def test_scrape_job_listing_multiple_pages_with_early_exit(
+    mock_crawler_class, mock_scrape_first_page, mock_scrape_page
+):
+    mock_crawler_instance = AsyncMock()
+    mock_crawler_class.return_value.__aenter__.return_value = mock_crawler_instance
+    mock_scrape_first_page.return_value = ["## 66 jobs listed"] 
+    mock_scrape_page.side_effect = [
+        {"job_count": 22, "all_errors": [], "terminated_early": False, "invalid_jobs": []},
+        {"job_count": 44, "all_errors": [], "terminated_early": False, "invalid_jobs": []},
+        {"job_count": 57, "all_errors": [], "terminated_early": True, "invalid_jobs": []},
+    ]
+    result = await scrape_job_listing("https://seek.com", location_search="sydney")
+    assert result == {
+        "message": "Scraped and inserted 57 jobs.",
+        "errors": None,
+        "invalid_jobs": [],
+        "terminated_early": True
     }
     assert mock_scrape_page.await_count == 3
 
@@ -148,9 +177,10 @@ async def test_scrape_job_listing_page_empty_markdown(mock_scrape_page_markdown)
         crawler=AsyncMock(),
         page_num=1,
         job_count=0,
-        all_errors=[]
+        all_errors=[],
+        day_range_limit=DAY_RANGE_LIMIT
     )
-    assert result == {"job_count": 0, "all_errors": [], "terminated_early": True, "invalid_jobs": []}
+    assert result == {"job_count": 0, "all_errors": ["No markdown scraped on page 1"], "terminated_early": False, "invalid_jobs": []}
 
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
@@ -162,9 +192,10 @@ async def test_scrape_job_listing_page_no_links_in_markdown(mock_scrape_page_mar
         crawler=AsyncMock(),
         page_num=1,
         job_count=0,
-        all_errors=[]
+        all_errors=[],
+        day_range_limit=DAY_RANGE_LIMIT
     )
-    assert result == {"job_count": 0, "all_errors": [], "terminated_early": True, "invalid_jobs": []}
+    assert result == {"job_count": 0, "all_errors": ["No job links found on page 1"], "terminated_early": False, "invalid_jobs": []}
 
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.validate_and_insert_jobs", new_callable=AsyncMock)
@@ -184,7 +215,8 @@ async def test_scrape_job_listing_page_with_job_errors(
         crawler=AsyncMock(),
         page_num=1,
         job_count=0,
-        all_errors=[]
+        all_errors=[],
+        day_range_limit=DAY_RANGE_LIMIT
     )
 
     assert result["job_count"] == 1
@@ -210,7 +242,8 @@ async def test_scrape_job_listing_respects_max_pages(
     assert result == {
         "message": "Scraped and inserted 22 jobs.",
         "errors": None,
-        "invalid_jobs": []
+        "invalid_jobs": [],
+        "terminated_early": False
     }
     mock_scrape_first_page.assert_awaited_once()
     mock_scrape_page.assert_awaited_once() 
@@ -222,13 +255,14 @@ async def test_process_all_jobs_concurrently(mock_bounded_process_job):
     job_urls = ["https://www.seek.com.au/job/123", "https://www.seek.com.au/job/456","https://www.seek.com.au/job/789", "https://www.seek.com.au/job/999"]
     crawler = AsyncMock()
     location_search = "Sydney"
+    day_range_limit = DAY_RANGE_LIMIT
     mock_bounded_process_job.side_effect = [
         {"status": SUCCESS, "job": {"title": "Software Engineer"}},
         {"status": TERMINATE}, 
         {"status": SKIPPED, "job": None, "error": "No JSON extracted"},
         {"status": SUCCESS, "job": {"title": "Senior Software Engineer"}},  
     ]
-    final_jobs, early_termination, job_errors = await process_all_jobs_concurrently(job_urls, crawler, location_search)
+    final_jobs, early_termination, job_errors = await process_all_jobs_concurrently(job_urls, crawler, location_search, day_range_limit)
     assert final_jobs == [{"title": "Software Engineer"}, {"title": "Senior Software Engineer"}]
     assert early_termination is True
     assert job_errors == ["No JSON extracted"]
@@ -267,8 +301,9 @@ async def test_process_job_with_backoff_success(
     crawler = AsyncMock()
     location_search = "Sydney"
     terminate_event = Mock()
+    day_range_limit = DAY_RANGE_LIMIT
 
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit)
     assert result["status"] == SUCCESS
     assert result["job"]["title"] == "Software Engineer"
     assert result["error"] is None
@@ -284,8 +319,9 @@ async def test_process_job_with_backoff_missing_json(mock_parse_json, mock_scrap
     crawler = AsyncMock()
     location_search = "Sydney"
     terminate_event = Mock()
+    day_range_limit = DAY_RANGE_LIMIT
 
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit)
     assert result["status"] == SKIPPED
     assert result["job"] is None
     assert result["error"] == "No JSON extracted"
@@ -325,8 +361,9 @@ async def test_process_job_with_backoff_too_old(
     crawler = AsyncMock()
     location_search = "Sydney"
     terminate_event = Mock()
+    day_range_limit = DAY_RANGE_LIMIT
 
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit)
     assert result == {"status": TERMINATE, "job": None, "error": None}
     terminate_event.set.assert_called_once()
 
@@ -363,8 +400,9 @@ async def test_process_job_with_backoff_retry_once_logic(
     crawler = AsyncMock()
     location_search = "Sydney"
     terminate_event = Mock()
+    day_range_limit = DAY_RANGE_LIMIT
 
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit)
     assert result["status"] == SUCCESS
     assert result["job"]["title"] == "Software Engineer"
     assert result["error"] is None
@@ -380,8 +418,9 @@ async def test_process_job_with_backoff_max_retries_exhausted(mock_scrape):
     crawler = AsyncMock()
     location_search = "Sydney"
     terminate_event = Mock()
+    day_range_limit = DAY_RANGE_LIMIT
 
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, max_retries=MAX_RETRIES)
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit, max_retries=MAX_RETRIES)
     assert result["status"] == ERROR
     assert result["job"] is None
     assert f"{job_link} failed after {MAX_RETRIES} retries" in result["error"]
@@ -397,8 +436,9 @@ async def test_process_job_with_backoff_markdown_error(mock_scrape):
     crawler = AsyncMock()
     location_search = "Sydney"
     terminate_event = Mock()
+    day_range_limit = DAY_RANGE_LIMIT
 
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit)
     assert result["status"] == SKIPPED
     assert result["job"] is None
     assert result["error"] == "No markdown extracted"
@@ -413,8 +453,9 @@ async def test_process_job_with_backoff_posted_time_no_elements_error(mock_scrap
     crawler = AsyncMock()
     location_search = "Sydney"
     terminate_event = Mock()
+    day_range_limit = DAY_RANGE_LIMIT
 
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit)
     assert result["status"] == SKIPPED
     assert result["job"] is None
     assert result["error"] == "Posted date selector issue: 'posted_date' selector broke (most likely)"
@@ -429,8 +470,9 @@ async def test_process_job_with_backoff_posted_time_no_matching_text_error(mock_
     crawler = AsyncMock()
     location_search = "Sydney"
     terminate_event = Mock()
+    day_range_limit = DAY_RANGE_LIMIT
 
-    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+    result = await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit)
     assert result["status"] == SKIPPED
     assert result["job"] is None
     assert result["error"] == "Posted date selector issue: no matching 'Posted X ago' text found"

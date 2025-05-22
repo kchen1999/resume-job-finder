@@ -117,7 +117,7 @@ async def scrape_individual_job_url(job_url, crawler):
         logging.debug("Successfully scraped job markdown and metadata.")
         return result.markdown.fit_markdown, job_metadata
         
-async def process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, max_retries=MAX_RETRIES):
+async def process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit, max_retries=MAX_RETRIES):
     delay = 1
     for attempt in range(max_retries):
         try:
@@ -152,7 +152,7 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
             enrich_job_json(job_json, location_search, job_url, quick_apply_url, job_metadata)
             print("Enriched Job JSON: ", job_json)
 
-            if not is_job_within_date_range(job_json, DAY_RANGE_LIMIT):
+            if not is_job_within_date_range(job_json, day_range_limit):
                 print(f"Skipping job {job_link}, posted too old.")
                 terminate_event.set()
                 return {"status": TERMINATE, "job": None, "error": None}
@@ -174,18 +174,18 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
                     "error": f"{job_link} failed after {max_retries} retries: {str(e)}"
                 }
             
-async def bounded_process_job(job_link, count, crawler, location_search, terminate_event):
+async def bounded_process_job(job_link, count, crawler, location_search, terminate_event, day_range_limit):
     if terminate_event.is_set():
         return {"status": "terminate", "job": None, "error": None}
     
     async with semaphore:
         await pause_briefly(0.5, 1.5) 
-        return await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event)
+        return await process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit)
     
-async def process_all_jobs_concurrently(job_urls, crawler, location_search):
+async def process_all_jobs_concurrently(job_urls, crawler, location_search, day_range_limit):
     terminate_event = asyncio.Event()
     tasks = [
-        bounded_process_job(job_link, idx, crawler, location_search, terminate_event)
+        bounded_process_job(job_link, idx, crawler, location_search, terminate_event, day_range_limit)
         for idx, job_link in enumerate(job_urls)
     ]
     job_results = await asyncio.gather(*tasks)
@@ -209,18 +209,22 @@ async def process_all_jobs_concurrently(job_urls, crawler, location_search):
 
     return final_jobs, early_termination, all_errors
 
-async def scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors):
+async def scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors, day_range_limit):
     markdown = await scrape_page_markdown(base_url, crawler, page_num)
     if not markdown:
-        print(f"No markdown scraped on page {page_num}")
-        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True, 'invalid_jobs': []}
+        error_msg = f"No markdown scraped on page {page_num}"
+        all_errors.append(error_msg)
+        print(error_msg)
+        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': False, 'invalid_jobs': []}
 
     job_urls = process_markdown_to_job_links(markdown)
     if not job_urls:
-        print(f"No job links found on page {page_num}")
-        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': True, 'invalid_jobs': []}
+        error_msg = f"No job links found on page {page_num}"
+        all_errors.append(error_msg)
+        print(error_msg)
+        return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': False, 'invalid_jobs': []}
 
-    page_job_data, terminated_early, job_errors = await process_all_jobs_concurrently(job_urls, crawler, location_search)
+    page_job_data, terminated_early, job_errors = await process_all_jobs_concurrently(job_urls, crawler, location_search, day_range_limit)
     all_errors.extend(job_errors)
 
     invalid_jobs = []
@@ -235,7 +239,7 @@ async def scrape_job_listing_page(base_url, location_search, crawler, page_num, 
         'invalid_jobs': invalid_jobs  
     }
 
-async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_PAGE, max_pages=None):
+async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_PAGE, max_pages=None, day_range_limit=DAY_RANGE_LIMIT):
     async with AsyncWebCrawler() as crawler:
         print("AsyncWebCrawler initialized successfully!")
         markdown = await scrape_page_markdown(base_url, crawler, 1)
@@ -248,7 +252,8 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
             return {
                 'message': 'Scraped and inserted 0 jobs.',
                 'errors': None,
-                'invalid_jobs': []
+                'invalid_jobs': [],
+                'terminated_early': False
             }
         total_pages = math.ceil(total_jobs / pagesize) if total_jobs else 1
         if max_pages is not None:
@@ -258,22 +263,24 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
         job_count = 0
         all_errors = []
         all_invalid_jobs = []
+        terminated_early = False
 
         for page_num in range(1, total_pages + 1):
-            result = await scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors)
+            result = await scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors, day_range_limit)
             job_count = result['job_count']
             all_errors = result['all_errors']
             if result['invalid_jobs']:
                 all_invalid_jobs.extend(result['invalid_jobs'])
             if result['terminated_early']:
-                print(f"Inserted {job_count} jobs before early termination.")
+                terminated_early = True
                 print(f"Early termination triggered on page {page_num}. Stopping scraping.")
                 break
 
         return {
             'message': f"Scraped and inserted {job_count} jobs.",
             'errors': all_errors if all_errors else None,
-            'invalid_jobs': all_invalid_jobs
+            'invalid_jobs': all_invalid_jobs,
+            'terminated_early': terminated_early
         }
     
 

@@ -1,11 +1,11 @@
 import pytest
 import asyncio
 import json
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from httpx import AsyncClient, ASGITransport
 from scraper.app import app  
 from scraper.job_scrape import scrape_job_listing
-from scraper.constants import REQUIRED_FIELDS, NON_REQUIRED_FIELDS, LIST_FIELDS, TOTAL_JOBS_PER_PAGE, OPTIONAL_FIELDS, REQUIRED_JOB_METADATA_FIELDS
+from scraper.constants import REQUIRED_FIELDS, NON_REQUIRED_FIELDS, LIST_FIELDS, TOTAL_JOBS_PER_PAGE, OPTIONAL_FIELDS, REQUIRED_JOB_METADATA_FIELDS, DAY_RANGE_LIMIT
 from collections import Counter
 
 def assert_valid_job(job):
@@ -33,8 +33,8 @@ async def test_scrape_and_send_jobs():
     async def mock_send_page_jobs_to_node(job_data_list):
         jobs_received.extend(job_data_list)
 
-    async def mock_scrape_job_listing(base_url, location_search, max_pages=None):
-        result = await scrape_job_listing(base_url, location_search, max_pages=1)
+    async def mock_scrape_job_listing(base_url, location_search, max_pages=None, day_range_limit=DAY_RANGE_LIMIT):
+        result = await scrape_job_listing(base_url, location_search, max_pages=1, day_range_limit=DAY_RANGE_LIMIT)
         scrape_results.update(result)
         return result
 
@@ -46,8 +46,8 @@ async def test_scrape_and_send_jobs():
                 "/start-scraping",
                 json={"job_title": "software engineer", "location": "sydney", "max_pages": 1}
             )
-            assert response.status_code == 202
-            await asyncio.sleep(120) 
+    assert response.status_code == 202
+    await asyncio.sleep(90) 
     
     print(f"Received {len(jobs_received)} jobs")
     print("\nScrape Summary:")
@@ -83,4 +83,5 @@ async def test_scrape_and_send_jobs():
 
     print("Job metadata selector health checks passed.")
     assert len(jobs_received) == TOTAL_JOBS_PER_PAGE
+
 

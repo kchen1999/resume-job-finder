@@ -8,7 +8,6 @@ from rapidfuzz import fuzz
 from sentence_transformers import SentenceTransformer, util
 from scraper.utils import parse_job_json_from_markdown, override_experience_level_with_title, set_default_work_model, normalize_experience_level
 
-
 # Threshold constants for matching
 FUZZY_MATCH_THRESHOLD = 75
 DESCRIPTION_THRESHOLD = 65
