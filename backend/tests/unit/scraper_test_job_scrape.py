@@ -125,6 +125,33 @@ async def test_scrape_job_listing_with_errors(
     assert mock_scrape_page.await_count == 2
 
 @pytest.mark.asyncio
+@patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
+async def test_scrape_job_listing_collects_errors(mock_scrape_page_markdown):
+    async def mocked_scrape_page_markdown(base_url, crawler, page_num, all_errors):
+        all_errors.append(f"[scrape_page_markdown] No markdown found on page {page_num}")
+        return []
+    
+    mock_scrape_page_markdown.side_effect = mocked_scrape_page_markdown
+
+    result = await scrape_job_listing(
+        base_url="https://seek.com",
+        location_search="sydney",
+        max_pages=1,
+        day_range_limit=3
+    )
+
+    assert result["message"] == "No job search markdown found. Scraped 0 jobs."
+
+    assert result["errors"] is not None
+    assert isinstance(result["errors"], list)
+    assert any(
+        err.startswith("[scrape_page_markdown]") for err in result["errors"]
+    ), "Expected error messages to start with '[scrape_page_markdown]'"
+
+    assert result["invalid_jobs"] == []
+    assert result["terminated_early"] is False
+
+@pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_job_listing_page", new_callable=AsyncMock)
 @patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
 @patch("scraper.job_scrape.AsyncWebCrawler") 
@@ -175,17 +202,29 @@ async def test_scrape_job_listing_multiple_pages_with_early_exit(
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)
 async def test_scrape_job_listing_page_empty_markdown(mock_scrape_page_markdown):
-    mock_scrape_page_markdown.return_value = []
+    async def side_effect(base_url, crawler, page_num, all_errors):
+        all_errors.append(f"[scrape_page_markdown] No markdown found on page {page_num}")
+        return []
+    
+    mock_scrape_page_markdown.side_effect = side_effect
+    errors = []
+
     result = await scrape_job_listing_page(
-        base_url="https://seek.com", 
+        base_url="https://seek.com",
         location_search="sydney",
         crawler=AsyncMock(),
         page_num=1,
         job_count=0,
-        all_errors=[],
-        day_range_limit=DAY_RANGE_LIMIT
+        all_errors=errors,
+        day_range_limit=DAY_RANGE_LIMIT,
     )
-    assert result == {"job_count": 0, "all_errors": ["No markdown scraped on page 1"], "terminated_early": False, "invalid_jobs": []}
+    assert result == {
+        "job_count": 0,
+        "all_errors": errors,
+        "terminated_early": False,
+        "invalid_jobs": []
+    }
+    assert f"[scrape_page_markdown] No markdown found on page 1" in errors
 
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.scrape_page_markdown", new_callable=AsyncMock)

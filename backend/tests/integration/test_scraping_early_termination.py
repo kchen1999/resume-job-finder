@@ -9,9 +9,9 @@ from datetime import datetime, timedelta
 
 # Global metadata simulation
 metadata_global = {
-    "http://seek.com.au/1": (datetime.today() - timedelta(days=1)).strftime("%d/%m/%Y"),
-    "http://seek.com.au/2": (datetime.today() - timedelta(days=5)).strftime("%d/%m/%Y"),
-    "http://seek.com.au/3": (datetime.today() - timedelta(days=2)).strftime("%d/%m/%Y"),
+    "http://seek.com.au/job1": (datetime.today() - timedelta(days=1)).strftime("%d/%m/%Y"),
+    "http://seek.com.au/job2": (datetime.today() - timedelta(days=5)).strftime("%d/%m/%Y"),
+    "http://seek.com.au/job3": (datetime.today() - timedelta(days=2)).strftime("%d/%m/%Y"),
 }
 
 @pytest.mark.asyncio
@@ -46,9 +46,9 @@ async def test_start_scraping_early_termination(
     mock_send_page_jobs_to_node.side_effect = mock_send_page_jobs
     mock_scrape_page_markdown.return_value = ["dummy markdown content"]
     mock_process_links.return_value = [
-        "http://seek.com.au/1",
-        "http://seek.com.au/2",
-        "http://seek.com.au/3",
+        "http://seek.com.au/job1",
+        "http://seek.com.au/job2",
+        "http://seek.com.au/job3",
     ]
     mock_process_job_with_backoff.side_effect = mock_process_job
 
