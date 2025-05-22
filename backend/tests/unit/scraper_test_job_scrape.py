@@ -41,7 +41,12 @@ async def test_scrape_job_listing_empty_markdown(
     mock_scrape_first_page.return_value = [] 
 
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
-    assert result == {"error": "No markdown scraped"}
+    assert result == {
+        "message": "No job search markdown found. Scraped 0 jobs.",
+        "errors": None,
+        "invalid_jobs": [],
+        "terminated_early": False
+    }
     mock_scrape_first_page.assert_awaited_once()
     mock_scrape_page.assert_not_awaited()
 
@@ -58,7 +63,7 @@ async def test_scrape_job_listing_zero_jobs(
 
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
     assert result == {
-        "message": "Scraped and inserted 0 jobs.",
+        "message": "No jobs found. Scraped 0 jobs.",
         "errors": None,
         "invalid_jobs": [],
         "terminated_early": False
@@ -160,7 +165,7 @@ async def test_scrape_job_listing_multiple_pages_with_early_exit(
     ]
     result = await scrape_job_listing("https://seek.com", location_search="sydney")
     assert result == {
-        "message": "Scraped and inserted 57 jobs.",
+        "message": "Scraped and inserted 57 jobs. Early termination triggered on page 3 due to day range limit of 7 days.",
         "errors": None,
         "invalid_jobs": [],
         "terminated_early": True
@@ -543,7 +548,7 @@ async def test_scrape_job_metadata_success(mock_extract_posted_time, mock_extrac
     mock_extract_logo.assert_called_once_with(mock_page)
     mock_extract_metadata.assert_called_once_with(mock_page, ["metadata_id_1", "metadata_id_2"])
     mock_extract_posted_time.assert_called_once_with(mock_page, POSTED_TIME_SELECTOR)
-
+    
 @pytest.mark.asyncio
 @patch("scraper.job_scrape.create_browser_context", new_callable=AsyncMock)
 async def test_scrape_job_metadata_error_handling(mock_create_browser_context):
@@ -555,8 +560,10 @@ async def test_scrape_job_metadata_error_handling(mock_create_browser_context):
     mock_context.new_page.return_value = mock_page
     mock_page.goto.side_effect = Exception("Page load failed")
 
-    with pytest.raises(Exception, match="Page load failed"):
-        await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
+    result = await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
+
+    assert "error" in result
+    assert "Page load failed" in result["error"]
 
     mock_page.goto.assert_called_once_with("https://www.seek.com.au/job/123")
 
@@ -602,8 +609,11 @@ async def test_scrape_job_metadata_cleanup_on_exception(mock_create_browser_cont
     mock_context.new_page.return_value = mock_page
     mock_page.goto.side_effect = Exception("Navigation error")
 
-    with pytest.raises(Exception, match="Navigation error"):
-        await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
+    result = await scrape_job_metadata("https://www.seek.com.au/job/123", ["metadata_id_1"])
+
+    assert "error" in result
+    assert "Navigation error" in result["error"]
+
     mock_browser.close.assert_awaited_once()
     mock_playwright.stop.assert_awaited_once()
 

@@ -108,7 +108,7 @@ async def test_extract_posted_date_by_class_with_days(mock_random, mock_get_post
     page.query_selector_all = AsyncMock(return_value=[mock_elem])
 
     result = await extract_posted_date_by_class(page, "posted-time")
-    assert result == "05/05/2024"
+    assert result == {"posted_time": "05/05/2024", "error" : None}
     mock_get_posted_date.assert_called_once_with(3)
 
 @pytest.mark.asyncio
@@ -121,7 +121,7 @@ async def test_extract_posted_date_by_class_with_hours(mock_random, mock_get_pos
     page.query_selector_all = AsyncMock(return_value=[mock_elem])
 
     result = await extract_posted_date_by_class(page, "posted-time")
-    assert result == "04/04/2024"
+    assert result == {"posted_time": "04/04/2024", "error" : None}
     mock_get_posted_date.assert_called_once_with(0)
 
 @pytest.mark.asyncio
@@ -134,7 +134,7 @@ async def test_extract_posted_date_by_class_with_minutes(mock_random, mock_get_p
     page.query_selector_all = AsyncMock(return_value=[mock_elem])
 
     result = await extract_posted_date_by_class(page, "posted-time")
-    assert result == "03/03/2024"
+    assert result == {"posted_time": "03/03/2024", "error" : None}
     mock_get_posted_date.assert_called_once_with(0)
   
 @pytest.mark.parametrize("markdown, expected", [ 

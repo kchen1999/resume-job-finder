@@ -31,13 +31,11 @@ async def scrape_page_markdown(base_url, crawler, page_num):
     await pause_briefly(1, 3)
     result = await crawler.arun(page_url)
     if result is None: 
-        print(f"No markdown found on page {page_num}")
         return []
     if result.markdown:
         print(f"Successfully scraped page {page_num}")
         return [result.markdown]
     else:
-        print(f"No markdown found on page {page_num}")
         return []
 
 async def scrape_job_metadata(url, job_metadata_fields):
@@ -60,7 +58,9 @@ async def scrape_job_metadata(url, job_metadata_fields):
         
     except Exception as e:
         logging.error(f"Error during scraping job metadata: {e}")
-        raise
+        return {
+            "error": f"Error during job metadata scraping: {str(e)}"
+        }
 
     finally:
         try:
@@ -70,7 +70,9 @@ async def scrape_job_metadata(url, job_metadata_fields):
                 await playwright.stop()
         except Exception as close_error:
             logging.error(f"Error during browser close: {close_error}")
-            raise
+            return {
+                "error": f"Browser close error: {str(close_error)}"
+            }
     
     logging.debug("Finished scraping job metadata.")
     return {
@@ -106,15 +108,7 @@ async def scrape_individual_job_url(job_url, crawler):
             logging.warning(f"Skipping job URL {job_url}, no markdown extracted.")
             return None, {"error": "No markdown extracted"}
 
-        try:
-            job_metadata = await scrape_job_metadata(page_url, JOB_METADATA_FIELDS)
-            if job_metadata is None:
-                return result.markdown.fit_markdown, {"error": "Metadata scraping returned None"}
-        except Exception as e:
-            logging.error(f"Error scraping metadata: {e}")
-            return result.markdown.fit_markdown, {"error": str(e)}
-
-        logging.debug("Successfully scraped job markdown and metadata.")
+        job_metadata = await scrape_job_metadata(page_url, JOB_METADATA_FIELDS)
         return result.markdown.fit_markdown, job_metadata
         
 async def process_job_with_backoff(job_link, count, crawler, location_search, terminate_event, day_range_limit, max_retries=MAX_RETRIES):
@@ -153,7 +147,6 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
             print("Enriched Job JSON: ", job_json)
 
             if not is_job_within_date_range(job_json, day_range_limit):
-                print(f"Skipping job {job_link}, posted too old.")
                 terminate_event.set()
                 return {"status": TERMINATE, "job": None, "error": None}
 
@@ -167,11 +160,10 @@ async def process_job_with_backoff(job_link, count, crawler, location_search, te
                 await pause_briefly(delay, delay)
                 delay *= 2
             else:
-                print(f"{job_link} failed after {max_retries} retries: {str(e)}")
                 return {
                     "status": "error",
                     "job": None,
-                    "error": f"{job_link} failed after {max_retries} retries: {str(e)}"
+                    "error": f"Scraping {job_link} failed after {max_retries} retries: {str(e)}"
                 }
             
 async def bounded_process_job(job_link, count, crawler, location_search, terminate_event, day_range_limit):
@@ -196,15 +188,12 @@ async def process_all_jobs_concurrently(job_urls, crawler, location_search, day_
 
     for job_result in job_results:
         if job_result["status"] == TERMINATE:
-            print("Terminating early due to outdated job.")
             early_termination = True
         elif job_result["status"] == SUCCESS:
             final_jobs.append(job_result["job"])
         elif job_result["status"] == SKIPPED:
-            print("Skipped:", job_result["error"])
             all_errors.append(job_result["error"])
         elif job_result["status"] == ERROR:
-            print("Error:", job_result["error"])
             all_errors.append(job_result["error"])
 
     return final_jobs, early_termination, all_errors
@@ -244,13 +233,17 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
         print("AsyncWebCrawler initialized successfully!")
         markdown = await scrape_page_markdown(base_url, crawler, 1)
         if not markdown:
-            return {'error': 'No markdown scraped'}
+            return {
+                'message': 'No job search markdown found. Scraped 0 jobs.',
+                'errors': None,
+                'invalid_jobs': [],
+                'terminated_early': False
+            }
 
         total_jobs = extract_total_job_count(markdown[0])
         if total_jobs == 0:
-            print("No jobs found.")
             return {
-                'message': 'Scraped and inserted 0 jobs.',
+                'message': 'No jobs found. Scraped 0 jobs.',
                 'errors': None,
                 'invalid_jobs': [],
                 'terminated_early': False
@@ -264,6 +257,7 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
         all_errors = []
         all_invalid_jobs = []
         terminated_early = False
+        terminated_page_num = None
 
         for page_num in range(1, total_pages + 1):
             result = await scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors, day_range_limit)
@@ -273,11 +267,15 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
                 all_invalid_jobs.extend(result['invalid_jobs'])
             if result['terminated_early']:
                 terminated_early = True
-                print(f"Early termination triggered on page {page_num}. Stopping scraping.")
+                terminated_page_num = page_num
                 break
+        
+        message = f"Scraped and inserted {job_count} jobs."
+        if terminated_early:
+            message += f" Early termination triggered on page {terminated_page_num} due to day range limit of {day_range_limit} days."
 
         return {
-            'message': f"Scraped and inserted {job_count} jobs.",
+            'message': message,
             'errors': all_errors if all_errors else None,
             'invalid_jobs': all_invalid_jobs,
             'terminated_early': terminated_early

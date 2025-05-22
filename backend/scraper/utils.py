@@ -77,11 +77,9 @@ async def extract_posted_date_by_class(page, class_name: str) -> str:
                 logging.debug(f"Extracted posted date: {posted_date}")
                 return {"posted_time": posted_date, "error": None}
         
-        logging.warning("No matching 'Posted X ago' text found.")
-        return  
+        return {"posted_time": None, "error": "__NO_MATCHING_TEXT__"}
     
     except Exception as e:
-        logging.error(f"Unexpected error while extracting posted date: {e}")
         raise 
 
 # Extract total job count from markdown using regex
