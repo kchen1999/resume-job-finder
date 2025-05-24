@@ -1,0 +1,12 @@
+# Node.js
+node_modules/
+
+# Environment files
+.env
+
+# Python cache 
+__pycache__/
+
+# Build output
+frontend/dist/
+node-backend/dist/

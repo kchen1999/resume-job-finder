@@ -1,0 +1,55 @@
+{
+  "timestamp": "2025-05-23T21:53:05.469242",
+  "num_runs": 3,
+  "per_run_results": [
+    {
+      "avg_desc_score": 99.42304668711485,
+      "avg_resp_score": 97.14285714285714,
+      "avg_req_score": 95.83333333333334,
+      "exp_match_rate": 100.0,
+      "work_model_match_rate": 100.0,
+      "total_tests": 10,
+      "errors": [
+        "[Test Case 9] [REQUIREMENTS MISMATCH] Match Ratio: 58.33%\nExpected: ['Bachelor\u2019s or Master\u2019s degree in Computer Science, AI, or related field', '3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications (prefer in autonomous agents)', 'Strong programming skills, particularly in Python, Java', 'Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.', 'Understanding of reinforcement learning, planning algorithms, and decision-making systems', 'Familiarity with tools, APIs, and infrastructure needed for agent deployment', 'Experience with workflow orchestration and system design', 'Excellent problem-solving and analytical thinking skills', 'Strong communication and collaboration abilities', 'Conduct at least one AI chatbot/agent application using Dify / LangChain or similar framework', 'Experience in CS chatbot development, like user intend recognition, conversation, and knowledge base enhancement', 'Familiar with data analysis, model tuning through data cleaning and feature engineering']\nActual: ['Bachelor\u2019s or Master\u2019s degree in Computer Science, AI, or related field', '3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications (prefer in autonomous agents)', 'Strong programming skills, particularly in Python, Java', 'Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.', 'Understanding of reinforcement learning, planning algorithms, and decision-making systems', 'Familiarity with tools, APIs, and infrastructure needed for agent deployment', 'Experience with workflow orchestration and system design']\nScores: [100, 100, 100, 100, 100, 100, 100, 0, 0, 0, 0, 0]"
+      ]
+    },
+    {
+      "avg_desc_score": 98.23884802814466,
+      "avg_resp_score": 95.47619047619048,
+      "avg_req_score": 93.13398692810458,
+      "exp_match_rate": 100.0,
+      "work_model_match_rate": 100.0,
+      "total_tests": 10,
+      "errors": [
+        "[Test Case 9] [REQUIREMENTS MISMATCH] Match Ratio: 58.33%\nExpected: ['Bachelor\u2019s or Master\u2019s degree in Computer Science, AI, or related field', '3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications (prefer in autonomous agents)', 'Strong programming skills, particularly in Python, Java', 'Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.', 'Understanding of reinforcement learning, planning algorithms, and decision-making systems', 'Familiarity with tools, APIs, and infrastructure needed for agent deployment', 'Experience with workflow orchestration and system design', 'Excellent problem-solving and analytical thinking skills', 'Strong communication and collaboration abilities', 'Conduct at least one AI chatbot/agent application using Dify / LangChain or similar framework', 'Experience in CS chatbot development, like user intend recognition, conversation, and knowledge base enhancement', 'Familiar with data analysis, model tuning through data cleaning and feature engineering']\nActual: ['Bachelor\u2019s or Master\u2019s degree in Computer Science, AI, or related field', '3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications', 'Strong programming skills, particularly in Python, Java', 'Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.', 'Understanding of reinforcement learning, planning algorithms, and decision-making systems', 'Familiarity with tools, APIs, and infrastructure needed for agent deployment', 'Experience with workflow orchestration and system design']\nScores: [100, 100, 100, 100, 100, 100, 100, 0, 0, 0, 0, 0]"
+      ]
+    },
+    {
+      "avg_desc_score": 99.3539273773728,
+      "avg_resp_score": 100.0,
+      "avg_req_score": 96.07843137254902,
+      "exp_match_rate": 90.0,
+      "work_model_match_rate": 100.0,
+      "total_tests": 10,
+      "errors": [
+        "[Test Case 9] [REQUIREMENTS MISMATCH] Match Ratio: 66.67%\nExpected: ['Bachelor\u2019s or Master\u2019s degree in Computer Science, AI, or related field', '3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications (prefer in autonomous agents)', 'Strong programming skills, particularly in Python, Java', 'Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.', 'Understanding of reinforcement learning, planning algorithms, and decision-making systems', 'Familiarity with tools, APIs, and infrastructure needed for agent deployment', 'Experience with workflow orchestration and system design', 'Excellent problem-solving and analytical thinking skills', 'Strong communication and collaboration abilities', 'Conduct at least one AI chatbot/agent application using Dify / LangChain or similar framework', 'Experience in CS chatbot development, like user intend recognition, conversation, and knowledge base enhancement', 'Familiar with data analysis, model tuning through data cleaning and feature engineering']\nActual: ['3+ years of experience building AI/ML systems, with a proven track of building production-grade AI applications (prefer in autonomous agents)', 'Strong programming skills, particularly in Python, Java', 'Practical experience with large language models (e.g., GPT, Claude, Gemini, Deepseek), prompt engineering, MCP, RAG etc.', 'Understanding of reinforcement learning, planning algorithms, and decision-making systems', 'Familiarity with tools, APIs, and infrastructure needed for agent deployment', 'Experience with workflow orchestration and system design', 'Data analysis, model tuning through data cleaning and feature engineering', 'Bachelor\u2019s or Master\u2019s degree in Computer Science, AI, or related field']\nScores: [100, 100, 100, 100, 100, 100, 100, 0, 0, 0, 0, 100]",
+        "[Test Case 9] [EXPERIENCE MISMATCH] Expected: 'mid_or_senior', Got: 'lead+'"
+      ]
+    }
+  ],
+  "averages": {
+    "avg_desc_score": 99.00527403087744,
+    "avg_resp_score": 97.53968253968253,
+    "avg_req_score": 95.01525054466231,
+    "exp_match_rate": 96.66666666666667,
+    "work_model_match_rate": 100.0
+  },
+  "stddevs": {
+    "avg_desc_score": 0.6646435006780028,
+    "avg_resp_score": 2.2878627468888193,
+    "avg_req_score": 1.633824610674219,
+    "exp_match_rate": 5.773502691896257,
+    "work_model_match_rate": 0.0
+  },
+  "total_tests_run": 30
+}

@@ -1,0 +1,9 @@
+Crawl4AI==0.5.0.post8
+fastapi==0.115.12
+groq==0.22.0
+httpx==0.28.1
+json_repair==0.41.1
+playwright==1.51.0
+python-dotenv==1.1.0
+uvicorn==0.34.2
+
