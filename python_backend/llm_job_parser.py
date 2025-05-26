@@ -3,7 +3,7 @@ from groq import Groq
 from dotenv import load_dotenv
 from constants import ALLOWED_WORK_MODEL_VALUES, ALLOWED_EXPERIENCE_LEVEL_VALUES
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 client = Groq(
     api_key=os.environ.get("GROQ_API_KEY")
 )

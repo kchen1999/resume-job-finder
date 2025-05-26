@@ -5,22 +5,6 @@ from constants import DAY_RANGE_LIMIT
 
 app = FastAPI()
 
-# Manual scraping (immediate, returns result)
-@app.post("/jobs")
-async def get_jobs(request: Request):
-    try:
-        data = await request.json()
-        job_title = data.get('job_title', 'software engineer')
-        location = data.get('location', 'sydney')
-        base_url = f"https://www.seek.com.au/jobs?keywords={job_title}&where={location}&sortmode=ListedDate"
-
-        result = await scrape_job_listing(base_url, location)
-        return JSONResponse(content=result, status_code=200)
-
-    except Exception as e:
-        print("Scraping all jobs error:", e)
-        return JSONResponse(content={'error': str(e)}, status_code=500)
-
 # Background scraping trigger
 @app.post("/start-scraping")
 async def start_scraping(request: Request, background_tasks: BackgroundTasks):

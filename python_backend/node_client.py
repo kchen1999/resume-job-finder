@@ -1,8 +1,11 @@
 import logging
 import httpx
 import os
+from dotenv import load_dotenv
 
-NODE_BACKEND_URL = os.getenv("NODE_BACKEND_URL", "http://localhost:3000")
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+
+NODE_BACKEND_URL = os.getenv("NODE_BACKEND_URL", "http://localhost:3000/api")
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -10,7 +13,7 @@ async def send_page_jobs_to_node(jobs):
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
             response = await client.post(
-                f"{NODE_BACKEND_URL}/api/jobs/page-batch",
+                f"{NODE_BACKEND_URL}/jobs/page-batch",
                 json={"jobs": jobs}
             )
             response.raise_for_status()

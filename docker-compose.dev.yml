@@ -1,0 +1,56 @@
+services:
+  node-backend:
+    build:
+      context: ./node-backend
+      dockerfile: Dockerfile.node
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - JINA_API_KEY=${JINA_API_KEY}  
+    ports:
+      - 3000:3000
+    volumes:
+      - ./node-backend:/usr/src/app
+      - ./node-backend/certs:/usr/src/app/certs:ro
+    restart: unless-stopped
+
+  python-backend:
+    build:
+      context: ./python_backend
+      dockerfile: Dockerfile.python
+    environment:
+      - NODE_BACKEND_URL=http://localhost:8080/api
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./python_backend:/usr/src/app
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - 5173:5173
+    volumes:
+      - ./frontend:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+    command: npm run dev
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - 8080:80
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - node-backend
+      - python-backend
+    restart: unless-stopped
+
+volumes:
+  node_modules:
+

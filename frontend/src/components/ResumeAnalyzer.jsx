@@ -4,6 +4,7 @@ import ResumeDropzone from "./ResumeDropzone"
 import JobResults from "./JobResults"
 import JobFilters from "./JobFilters"
 import { Box } from '@mui/material'
+const API_BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL;
 
 const ResumeAnalyzer = () => {
   const [file, setFile] = useState(null)
@@ -22,7 +23,7 @@ const ResumeAnalyzer = () => {
    useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/jobs");
+        const res = await axios.get(`${API_BASE_URL}/jobs`);
         setResults(res.data); // Set the initial results (jobs from DB)
       } catch (err) {
         console.error("Failed to fetch jobs", err)
@@ -37,7 +38,7 @@ const ResumeAnalyzer = () => {
     const rematch = async () => {
       if (filters.experienceIds.length === 0) return;
       try {
-        const res = await axios.post("http://localhost:3000/api/resume/rematch", {
+        const res = await axios.post(`${API_BASE_URL}/resume/rematch`, {
           experienceIds: filters.experienceIds,
         });
         setResults(res.data.matchedJobs)
@@ -60,7 +61,7 @@ const ResumeAnalyzer = () => {
     formData.append("resume", fileToUse);
 
     try {
-        const res = await axios.post("http://localhost:3000/api/resume/upload", formData)
+        const res = await axios.post(`${API_BASE_URL}/resume/upload`, formData)
         if (res.data.matchedJobs.length > 0) {
           setResults(res.data.matchedJobs)
           console.log("matchedJobs:")
@@ -89,10 +90,13 @@ const ResumeAnalyzer = () => {
 
   const parseDDMMYYYY = (str) => {
     const [day, month, year] = str.split('/')
-    return new Date(`${year}-${month}-${day}`) // converts safely to YYYY-MM-DD
-  };
+    return new Date(`${year}-${month}-${day}`)
+  }
 
   const applyFilters = (jobs, filters) => {
+    if (!Array.isArray(jobs)) {
+      return []
+    }
     return jobs.filter(job => {
       // Experience filter (if set and not empty)
       if (filters.experience && filters.experience.length > 0) {

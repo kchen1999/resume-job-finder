@@ -1,5 +1,6 @@
-require('dotenv').config()
+const path = require('path')
 const { Experience } = require('../models')
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 
 const embedExperienceAndStore = async (experience, resumeId) => {
     try {
@@ -19,14 +20,14 @@ const embedExperienceAndStore = async (experience, resumeId) => {
           dimensions: 768,
           input: [text],              // Experience text as input
         }),
-      });
+      })
   
-      const data = await response.json();
+      const data = await response.json()
   
       // Check if the embedding is returned and handle failure
       if (!data.data || !data.data[0]?.embedding) {
         console.error('No embedding returned for experience:', text);
-        return;
+        return
       }
   
       // Extract embedding from the response
@@ -41,14 +42,14 @@ const embedExperienceAndStore = async (experience, resumeId) => {
         skills: experience.skills || [],  
         embedding: embedding, 
         resume_id: resumeId,             
-      });
+      })
       
-      return { id: stored.id, title: stored.title };
+      return { id: stored.id, title: stored.title }
     } catch (error) {
-      console.error('Error embedding and storing experience:', error);
-      return { id: null };
+      console.error('Error embedding and storing experience:', error)
+      return { id: null }
     }
-  };
+  }
   
-  module.exports = embedExperienceAndStore;
+  module.exports = embedExperienceAndStore
   
