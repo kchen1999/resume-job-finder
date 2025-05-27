@@ -4,7 +4,7 @@ import ResumeDropzone from "./ResumeDropzone"
 import JobResults from "./JobResults"
 import JobFilters from "./JobFilters"
 import { Box } from '@mui/material'
-const API_BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL;
+const API_BASE_URL = import.meta.env.VITE_NODE_BACKEND_URL
 
 const ResumeAnalyzer = () => {
   const [file, setFile] = useState(null)

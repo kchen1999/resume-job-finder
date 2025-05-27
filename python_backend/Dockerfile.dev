@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements-dev.txt
 # Copy all source files including certs folder
 COPY . .
 
-# Expose the port your FastAPI app listens on (5000 from your script)
+# Expose the port your FastAPI app listens on
 EXPOSE 5000
 
 # Command to run your python FastAPI app via uvicorn

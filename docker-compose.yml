@@ -2,55 +2,56 @@ services:
   node-backend:
     build:
       context: ./node-backend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile 
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - GROQ_API_KEY=${GROQ_API_KEY}
       - JINA_API_KEY=${JINA_API_KEY}  
+      - NODE_ENV=production
     ports:
-      - 3001:3000
-    volumes:
-      - ./node-backend:/usr/src/app
-      - ./node-backend/certs:/usr/src/app/certs:ro
+      - "3000:3000"
+    networks:
+      - resume-app-net
     restart: unless-stopped
 
   python-backend:
     build:
       context: ./python_backend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile 
     environment:
-      - NODE_BACKEND_URL=http://node-backend:3000/api 
+      - NODE_BACKEND_URL=http://node-backend:3000/api  
       - GROQ_API_KEY=${GROQ_API_KEY}
     ports:
-      - "5001:5000"
-    volumes:
-      - ./python_backend:/usr/src/app
+      - "5000:5000"
+    networks:
+      - resume-app-net
     restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile      
     ports:
-      - 5173:5173
-    volumes:
-      - ./frontend:/usr/src/app
-      - node_modules:/usr/src/app/node_modules
-    command: npm run dev
+      - "80:80"   
+    networks:
+      - resume-app-net                     
     restart: unless-stopped
 
   nginx:
     image: nginx:stable-alpine
     ports:
-      - 8081:80
+      - "8080:80"                       
     volumes:
-      - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro 
+      - ./empty-default.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - frontend
       - node-backend
       - python-backend
+    networks:
+      - resume-app-net
     restart: unless-stopped
 
-volumes:
-  node_modules:
-
+networks:
+  resume-app-net:
+    driver: bridge

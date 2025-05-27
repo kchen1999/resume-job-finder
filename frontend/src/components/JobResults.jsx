@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Skeleton } from '@mui/material';
-import JobDetailsPanel from './JobDetailsPanel';
-import JobListPanel from './JobListPanel';
+import React, { useState, useEffect } from 'react'
+import { Box, Typography, Skeleton } from '@mui/material'
+import JobDetailsPanel from './JobDetailsPanel'
+import JobListPanel from './JobListPanel'
 
 const JobResults = ({ results }) => {
   const [selectedJob, setSelectedJob] = useState(results[0])
@@ -14,7 +14,7 @@ const JobResults = ({ results }) => {
 
 
   const handleJobClick = (job) => {
-    setSelectedJob(job);
+    setSelectedJob(job)
   }
 
   if (results === undefined) {
