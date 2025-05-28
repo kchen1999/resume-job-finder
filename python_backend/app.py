@@ -5,7 +5,10 @@ from constants import DAY_RANGE_LIMIT
 
 app = FastAPI()
 
-#Automated daily scraping trigger
+@app.get("/")
+def root():
+    return {"message": "Python backend is running!"}
+
 @app.get("/cron-daily-scrape")
 async def cron_daily_scrape(background_tasks: BackgroundTasks):
     job_title = "software engineer"

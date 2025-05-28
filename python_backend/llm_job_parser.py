@@ -3,10 +3,17 @@ from groq import Groq
 from dotenv import load_dotenv
 from constants import ALLOWED_WORK_MODEL_VALUES, ALLOWED_EXPERIENCE_LEVEL_VALUES
 
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
-client = Groq(
-    api_key=os.environ.get("GROQ_API_KEY")
-)
+# Only load .env if it exists (i.e., in development)
+if os.environ.get("FLY_REGION") is None:
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+
+def get_groq_client():
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("Missing GROQ_API_KEY environment variable")
+    return Groq(api_key=api_key)
+    
+client = get_groq_client()
 
 async def parse_job_posting(markdown, count):
     try:
