@@ -19,7 +19,7 @@ services:
       context: ./python_backend
       dockerfile: Dockerfile 
     environment:
-      - NODE_BACKEND_URL=http://node-backend:3000/api  
+      - NODE_BACKEND_URL={NODE_BACKEND_URL} 
       - GROQ_API_KEY=${GROQ_API_KEY}
     ports:
       - "5000:5000"
