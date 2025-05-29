@@ -1,27 +1,35 @@
-const express = require('express');
-const app = express();
+const express = require('express')
+const app = express()
 
 const { PORT } = require('./util/config')
 const { connectToDatabase } = require('./util/db')
-const cors = require('cors');
+const cors = require('cors')
 
-const resumeRouter = require('./controllers/resume');
-const jobsRouter = require('./controllers/jobs');
+const resumeRouter = require('./controllers/resume')
+const jobsRouter = require('./controllers/jobs')
+const pingRouter = require('./controllers/ping')
 
-app.use(express.json());
-app.use(cors());
+app.use(express.json())
+app.use(cors())
 
-app.use('/api/resume', resumeRouter);
-app.use('/api/jobs', jobsRouter);
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to the backend' });
+})
 
-// Optionally serve uploaded files statically
-//app.use('/uploads', express.static('uploads'));
+app.use('/api/resume', resumeRouter)
+app.use('/api/jobs', jobsRouter)
+app.use('/api/ping', pingRouter)
 
 const start = async () => {
-  await connectToDatabase()
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`)
-  })
+  try {
+    await connectToDatabase()
+    console.log('Connected to DB')
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`)
+    })
+  } catch (err) {
+    console.error('Startup failed:', err)
+  }
 }
 
 start()
