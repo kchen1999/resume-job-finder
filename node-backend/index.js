@@ -19,7 +19,7 @@ app.use('/api/jobs', jobsRouter);
 
 const start = async () => {
   await connectToDatabase()
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`)
   })
 }

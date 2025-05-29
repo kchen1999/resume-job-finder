@@ -13,6 +13,7 @@ RUN npm ci --omit=dev
 
 # Copy source files
 COPY . .
+COPY certs ./certs
 
 # Expose port 3000
 EXPOSE 3000

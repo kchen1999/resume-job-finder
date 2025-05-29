@@ -1,5 +1,16 @@
 const path = require('path')
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
+
+if (!process.env.FLY_REGION) {
+  require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
+}
+
+const getJinaAPIKey = () => {
+  const apiKey = process.env.JINA_API_KEY
+  if (!apiKey) {
+    throw new Error('JINA_API_KEY is not defined in the environment.')
+  }
+  return apiKey
+}
 
 const generateJobEmbeddings = async (jobDataList) => {
   const inputs = jobDataList
@@ -9,7 +20,7 @@ const generateJobEmbeddings = async (jobDataList) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.JINA_API_KEY}`,
+        'Authorization': `Bearer ${getJinaAPIKey()}`,
       },
       body: JSON.stringify({
         model: 'jina-embeddings-v3',

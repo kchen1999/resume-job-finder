@@ -1,8 +1,19 @@
 const path = require('path')
 const Groq = require("groq-sdk")
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+if (!process.env.FLY_REGION) {
+  require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
+}
+
+const getGroqAPIKey = () => {
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) {
+    throw new Error('GROQ_API_KEY is not defined in the environment.')
+  }
+  return apiKey
+}
+
+const groq = new Groq({ apiKey: getGroqAPIKey() })
 
 // Extracts relevant resume sections using LLM 
 const extractResumeSections = async (resumeText, jobTitle) => {
