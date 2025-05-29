@@ -1,0 +1,15 @@
+name: Daily Scrape Trigger
+
+on:
+  schedule:
+    - cron: '20 11 * * *'  # runs daily at midnight UTC, adjust as needed
+  workflow_dispatch:     # manual trigger option
+
+jobs:
+  trigger_scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Python backend daily scrape
+        run: |
+          curl -X GET https://python-backend-cold-feather-2329.fly.dev/cron-daily-scrape
