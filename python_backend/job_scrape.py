@@ -1,6 +1,7 @@
 import asyncio
 import math
 import logging
+import traceback
 
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
@@ -9,6 +10,7 @@ from playwright.async_api import async_playwright
 from utils import process_markdown_to_job_links, parse_job_data_from_markdown, enrich_job_data, is_job_within_date_range, pause_briefly, override_experience_level_with_title
 from utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields, set_default_work_model, normalize_experience_level
 from job_validate_and_db_insert import validate_and_insert_jobs
+from node_client import send_scrape_summary_to_node
 from constants import DAY_RANGE_LIMIT, TOTAL_JOBS_PER_PAGE, MAX_RETRIES, SUCCESS, TERMINATE, SKIPPED, ERROR, CONCURRENT_JOBS_NUM, POSTED_TIME_SELECTOR, JOB_METADATA_FIELDS, BROWSER_USER_AGENT
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -235,58 +237,74 @@ async def scrape_job_listing_page(base_url, location_search, crawler, page_num, 
     }
 
 async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_PAGE, max_pages=None, day_range_limit=DAY_RANGE_LIMIT):
-    async with AsyncWebCrawler() as crawler:
-        print("AsyncWebCrawler initialized successfully!")
-        all_errors = []
-        markdown = await scrape_page_markdown(base_url, crawler, 1, all_errors)
-        if not markdown:
-            return {
-                'message': 'No job search markdown found. Scraped 0 jobs.',
+    all_errors = []
+
+    async def return_and_report(summary: dict):
+        await send_scrape_summary_to_node(summary)
+        return summary
+
+    try:
+        async with AsyncWebCrawler() as crawler:
+            logging.info("AsyncWebCrawler initialized successfully!")
+            markdown = await scrape_page_markdown(base_url, crawler, 1, all_errors)
+            if not markdown:
+                return await return_and_report({
+                    'message': 'No job search markdown found. Scraped 0 jobs.',
+                    'errors': all_errors if all_errors else None,
+                    'invalid_jobs': [],
+                    'terminated_early': False
+                })
+
+            total_jobs = extract_total_job_count(markdown[0])
+            if total_jobs == 0:
+                return await return_and_report({
+                    'message': 'No jobs found. Scraped 0 jobs.',
+                    'errors': all_errors if all_errors else None,
+                    'invalid_jobs': [],
+                    'terminated_early': False
+                })
+            total_pages = math.ceil(total_jobs / pagesize) if total_jobs else 1
+            if max_pages is not None:
+                total_pages = min(total_pages, max_pages)
+            logging.info(f"Detected {total_jobs} jobs — scraping {total_pages} pages.")
+
+            job_count = 0
+            all_invalid_jobs = []
+            terminated_early = False
+            terminated_page_num = None
+
+            for page_num in range(1, total_pages + 1):
+                result = await scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors, day_range_limit)
+                job_count = result['job_count']
+                all_errors = result['all_errors']
+                if result['invalid_jobs']:
+                    all_invalid_jobs.extend(result['invalid_jobs'])
+                if result['terminated_early']:
+                    terminated_early = True
+                    terminated_page_num = page_num
+                    break
+            
+            message = f"Scraped and inserted {job_count} jobs."
+            if terminated_early:
+                message += f" Early termination triggered on page {terminated_page_num} due to day range limit of {day_range_limit} days."
+
+            return await return_and_report({
+                'message': message,
                 'errors': all_errors if all_errors else None,
-                'invalid_jobs': [],
-                'terminated_early': False
-            }
-
-        total_jobs = extract_total_job_count(markdown[0])
-        if total_jobs == 0:
-            return {
-                'message': 'No jobs found. Scraped 0 jobs.',
-                'errors': all_errors if all_errors else None,
-                'invalid_jobs': [],
-                'terminated_early': False
-            }
-        total_pages = math.ceil(total_jobs / pagesize) if total_jobs else 1
-        if max_pages is not None:
-            total_pages = min(total_pages, max_pages)
-        print(f"Detected {total_jobs} jobs — scraping {total_pages} pages.")
-
-        job_count = 0
-        all_invalid_jobs = []
-        terminated_early = False
-        terminated_page_num = None
-
-        for page_num in range(1, total_pages + 1):
-            result = await scrape_job_listing_page(base_url, location_search, crawler, page_num, job_count, all_errors, day_range_limit)
-            job_count = result['job_count']
-            all_errors = result['all_errors']
-            if result['invalid_jobs']:
-                all_invalid_jobs.extend(result['invalid_jobs'])
-            if result['terminated_early']:
-                terminated_early = True
-                terminated_page_num = page_num
-                break
-        
-        message = f"Scraped and inserted {job_count} jobs."
-        if terminated_early:
-            message += f" Early termination triggered on page {terminated_page_num} due to day range limit of {day_range_limit} days."
-
-        return {
-            'message': message,
-            'errors': all_errors if all_errors else None,
-            'invalid_jobs': all_invalid_jobs,
-            'terminated_early': terminated_early
-        }
-    
+                'invalid_jobs': all_invalid_jobs,
+                'terminated_early': terminated_early
+            })
+    except Exception as e: 
+        logging.error(f"Error during crawler startup: {e}")
+        tb = traceback.format_exc()
+        logging.debug(tb)
+        all_errors.append(str(e))
+        return await return_and_report({
+            'message': 'Job scraping failed due to critical error.',
+            'errors': all_errors,
+            'invalid_jobs': [],
+            'terminated_early': False
+        })
 
     
 

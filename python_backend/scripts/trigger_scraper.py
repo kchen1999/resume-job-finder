@@ -1,7 +1,7 @@
 import requests
 
 response = requests.post(
-    "http://localhost:8080/start-scraping",
+    "http://localhost:8081/start-scraping",
     json={"job_title": "software engineer", "location": "sydney", "max_pages": "1"}
 )
 

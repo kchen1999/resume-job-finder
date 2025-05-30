@@ -3,13 +3,33 @@ const { Job } = require('../models')
 const { sequelize } = require("../util/db");
 const { generateJobEmbeddings } = require('../utils/jinaEmbedding')
 
-// Existing GET /jobs endpoint
 router.get('/', async (req, res) => {
   const jobs = await Job.findAll()
   res.json(jobs)
 })
 
-// New POST /jobs/page-batch endpoint
+router.post('/scrape-summary', async (req, res) => {
+  try {
+    const { message, errors, invalid_jobs, terminated_early } = req.body
+
+    console.log("Scrape summary received:")
+    console.log("Message:", message)
+
+    if (terminated_early) console.warn("Scrape terminated early!")
+    if (errors) console.error("Errors:", errors)
+    if (invalid_jobs?.length) {
+      console.warn(`${invalid_jobs.length} invalid jobs received`)
+      console.log("Invalid jobs list:", JSON.stringify(invalid_jobs, null, 2))
+    } else {
+      console.log("No invalid jobs received.")
+    }
+    return res.status(200).json({ received: true })
+  } catch (err) {
+    console.error("Failed to handle scrape summary:", err);
+    return res.status(500).json({ error: "Failed to process summary" })
+  }
+})
+
 router.post('/page-batch', async (req, res) => {
   const pageJobDataList = req.body.jobs
 
@@ -17,7 +37,6 @@ router.post('/page-batch', async (req, res) => {
     return res.status(400).json({ error: 'Empty or invalid job data batch.' })
   }
 
-  // Format embedding input
   const embeddingInputs = pageJobDataList.map(jobData => {
     return [
       jobData.title,
