@@ -18,13 +18,31 @@ semaphore = asyncio.Semaphore(CONCURRENT_JOBS_NUM)
 
 async def create_browser_context():
     playwright = await async_playwright().start()
-    browser = await playwright.chromium.launch(headless=True)
+    browser = await playwright.chromium.launch(
+        headless=True,
+        args=[
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--single-process",
+            "--no-zygote",
+        ],
+    )
     context = await browser.new_context(
         viewport={"width": 1280, "height": 720},
         locale="en-US",
         timezone_id="Australia/Sydney",
+        user_agent=BROWSER_USER_AGENT["User-Agent"],
     )
-    await context.set_extra_http_headers(BROWSER_USER_AGENT)
+    await context.add_init_script(
+        """() => {
+            Object.defineProperty(navigator, 'webdriver', {get: () => false});
+            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+            Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+        }"""
+    )
+
     return playwright, browser, context
 
 
@@ -53,6 +71,7 @@ async def scrape_job_metadata(url, job_metadata_fields, context):
 
     finally:
         await page.close()
+        await asyncio.sleep(0.1) 
     
     return {
         "logo_src": logo_src,
