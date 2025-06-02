@@ -11,6 +11,7 @@ from utils import process_markdown_to_job_links, parse_job_data_from_markdown, e
 from utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields, set_default_work_model, normalize_experience_level
 from job_validate_and_db_insert import validate_and_insert_jobs
 from node_client import send_scrape_summary_to_node
+from page_pool import PagePool
 from constants import DAY_RANGE_LIMIT, TOTAL_JOBS_PER_PAGE, MAX_RETRIES, SUCCESS, TERMINATE, SKIPPED, ERROR, CONCURRENT_JOBS_NUM, POSTED_TIME_SELECTOR, JOB_METADATA_FIELDS, BROWSER_USER_AGENT
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -43,12 +44,16 @@ async def create_browser_context():
         }"""
     )
 
+    await context.route("**/*", lambda route, request: asyncio.create_task(
+        route.abort() if request.resource_type in ["image", "font"] else route.continue_()
+    ))
+
     return playwright, browser, context
 
 
-async def scrape_job_metadata(url, job_metadata_fields, context):
+async def scrape_job_metadata(url, job_metadata_fields, page_pool):
     logging.debug(f"Scraping job metadata for URL: {url}")
-    page = await context.new_page()
+    page = await page_pool.acquire()
     try:
         await page.goto(url)
         logging.debug(f"Page loaded: {url}")
@@ -70,8 +75,8 @@ async def scrape_job_metadata(url, job_metadata_fields, context):
         }
 
     finally:
-        await page.close()
-        await asyncio.sleep(0.1) 
+        await page_pool.release(page)
+        await pause_briefly(0.1, 0.1) 
     
     return {
         "logo_src": logo_src,
@@ -80,7 +85,7 @@ async def scrape_job_metadata(url, job_metadata_fields, context):
         **job_metadata
     }
      
-async def scrape_individual_job_url(job_url, crawler, context): 
+async def scrape_individual_job_url(job_url, crawler, page_pool): 
         logging.debug(f"Starting to scrape job URL: {job_url}")
         prune_filter = PruningContentFilter(threshold=0.5, threshold_type="fixed")
         md_generator = DefaultMarkdownGenerator(
@@ -100,16 +105,16 @@ async def scrape_individual_job_url(job_url, crawler, context):
             logging.warning(f"Skipping job URL {job_url}, no markdown extracted.")
             return None, {"error": "No markdown extracted"}
 
-        job_metadata = await scrape_job_metadata(job_url, JOB_METADATA_FIELDS, context)
+        job_metadata = await scrape_job_metadata(job_url, JOB_METADATA_FIELDS, page_pool)
         return result.markdown.fit_markdown, job_metadata
         
-async def process_job_with_backoff(job_link, count, crawler, context, location_search, terminate_event, day_range_limit, max_retries=MAX_RETRIES):
+async def process_job_with_backoff(job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit, max_retries=MAX_RETRIES):
     delay = 1
     for attempt in range(max_retries):
         try:
             print("Scraping job:", count + 1)
             print("Scraping:", job_link)
-            job_markdown, job_metadata = await scrape_individual_job_url(job_link, crawler, context)
+            job_markdown, job_metadata = await scrape_individual_job_url(job_link, crawler, page_pool)
 
             if job_metadata.get("error"):
                 print(f"Skipping job {job_link}, error scraping metadata: {job_metadata['error']}")
@@ -158,18 +163,18 @@ async def process_job_with_backoff(job_link, count, crawler, context, location_s
                     "error": f"Scraping {job_link} failed after {max_retries} retries: {str(e)}"
                 }
             
-async def bounded_process_job(job_link, count, crawler, context, location_search, terminate_event, day_range_limit):
+async def bounded_process_job(job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit):
     if terminate_event.is_set():
         return {"status": "terminate", "job": None, "error": None}
     
     async with semaphore:
         await pause_briefly(0.5, 1.5) 
-        return await process_job_with_backoff(job_link, count, crawler, context, location_search, terminate_event, day_range_limit)
+        return await process_job_with_backoff(job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit)
     
-async def process_all_jobs_concurrently(job_urls, crawler, context, location_search, day_range_limit):
+async def process_all_jobs_concurrently(job_urls, crawler, page_pool, location_search, day_range_limit):
     terminate_event = asyncio.Event()
     tasks = [
-        bounded_process_job(job_link, idx, crawler, context, location_search, terminate_event, day_range_limit)
+        bounded_process_job(job_link, idx, crawler, page_pool, location_search, terminate_event, day_range_limit)
         for idx, job_link in enumerate(job_urls)
     ]
     job_results = await asyncio.gather(*tasks)
@@ -213,7 +218,7 @@ async def scrape_page_markdown(base_url, crawler, page_num, all_errors):
         all_errors.append(warning_msg)
         return []
 
-async def scrape_job_listing_page(base_url, location_search, crawler, context, page_num, job_count, all_errors, day_range_limit):
+async def scrape_job_listing_page(base_url, location_search, crawler, page_pool, page_num, job_count, all_errors, day_range_limit):
     markdown = await scrape_page_markdown(base_url, crawler, page_num, all_errors)
     if not markdown:
         return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': False, 'invalid_jobs': []}
@@ -224,7 +229,7 @@ async def scrape_job_listing_page(base_url, location_search, crawler, context, p
         all_errors.append(error_msg)
         return {'job_count': job_count, 'all_errors': all_errors, 'terminated_early': False, 'invalid_jobs': []}
 
-    page_job_data, terminated_early, job_errors = await process_all_jobs_concurrently(job_urls, crawler, context, location_search, day_range_limit)
+    page_job_data, terminated_early, job_errors = await process_all_jobs_concurrently(job_urls, crawler, page_pool, location_search, day_range_limit)
     all_errors.extend(job_errors)
 
     invalid_jobs = []
@@ -249,7 +254,11 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
     try:
         async with AsyncWebCrawler() as crawler:
             logging.info("AsyncWebCrawler initialized successfully!")
+            logging.info("HERO!")
             playwright, browser, context = await create_browser_context()
+            page_pool = PagePool(context, max_pages=CONCURRENT_JOBS_NUM)
+            await page_pool.init_pages()
+
             try: 
                 markdown = await scrape_page_markdown(base_url, crawler, 1, all_errors)
                 if not markdown:
@@ -279,7 +288,7 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
                 terminated_page_num = None
 
                 for page_num in range(1, total_pages + 1):
-                    result = await scrape_job_listing_page(base_url, location_search, crawler, context, page_num, job_count, all_errors, day_range_limit)
+                    result = await scrape_job_listing_page(base_url, location_search, crawler, page_pool, page_num, job_count, all_errors, day_range_limit)
                     job_count = result['job_count']
                     all_errors = result['all_errors']
                     if result['invalid_jobs']:
@@ -294,6 +303,7 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
                     message += f" Early termination triggered on page {terminated_page_num} due to day range limit of {day_range_limit} days."
 
             finally:
+                await page_pool.close_all()
                 await browser.close()
                 await playwright.stop()
 
