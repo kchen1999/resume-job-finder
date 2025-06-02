@@ -25,9 +25,8 @@ async def create_browser_context():
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
-            "--disable-gpu",
             "--single-process",
-            "--no-zygote",
+            "--no-zygote"
         ],
     )
     context = await browser.new_context(
@@ -51,60 +50,69 @@ async def create_browser_context():
     return playwright, browser, context
 
 
-async def scrape_job_metadata(url, job_metadata_fields, page_pool):
-    logging.debug(f"Scraping job metadata for URL: {url}")
-    page = await page_pool.acquire()
-    try:
-        await page.goto(url)
-        logging.debug(f"Page loaded: {url}")
+async def scrape_job_metadata(url, job_metadata_fields, page_pool, max_retries=MAX_RETRIES, base_delay=1.0):
+    attempt = 0
+    last_exception = None
 
-        logo_src = await extract_logo_src(page)
-        logging.debug(f"Logo src: {logo_src}")
-        
-        job_metadata = await extract_job_metadata_fields(page, job_metadata_fields)
-        logging.debug(f"Extracted metadata fields: {job_metadata}")  
+    while attempt < max_retries:
+        page = await page_pool.acquire()
+        try:
+            logging.debug(f"[Attempt {attempt+1}] Scraping job metadata for URL: {url}")
 
-        posted_result = await extract_posted_date_by_class(page, POSTED_TIME_SELECTOR)
-        posted_time = posted_result.get("posted_time")
-        posted_time_error = posted_result.get("error")
-        
-    except Exception as e:
-        logging.error(f"Error during scraping job metadata: {e}")
-        return {
-            "error": f"Error during job metadata scraping: {str(e)}"
-        }
+            await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+            logging.debug(f"Page loaded: {url}")
 
-    finally:
-        await page_pool.release(page)
-        await pause_briefly(0.1, 0.1) 
+            logo_src = await extract_logo_src(page)
+            logging.debug(f"Logo src: {logo_src}")
+            
+            job_metadata = await extract_job_metadata_fields(page, job_metadata_fields)
+            logging.debug(f"Extracted metadata fields: {job_metadata}")  
+
+            posted_result = await extract_posted_date_by_class(page, POSTED_TIME_SELECTOR)
+            posted_time = posted_result.get("posted_time")
+            posted_time_error = posted_result.get("error")
+
+            return {
+                "logo_src": logo_src,
+                "posted_time": posted_time,
+                "posted_time_error": posted_time_error,
+                **job_metadata
+            }
+            
+        except Exception as e:
+            last_exception = e
+            logging.warning(f"[Attempt {attempt+1}] Error scraping metadata for {url}: {e}")
+            attempt += 1
+            await asyncio.sleep(base_delay * (2 ** (attempt - 1))) 
+
+        finally:
+            await page_pool.release(page)
+            await pause_briefly(0.1, 0.1) 
     
+    logging.error(f"Failed to scrape metadata after {max_retries} attempts: {last_exception}")
     return {
-        "logo_src": logo_src,
-        "posted_time": posted_time,
-        "posted_time_error": posted_time_error,
-        **job_metadata
+        "error": f"Failed after {max_retries} retries: {str(last_exception)}"
     }
+        
      
 async def scrape_individual_job_url(job_url, crawler, page_pool): 
         logging.debug(f"Starting to scrape job URL: {job_url}")
         prune_filter = PruningContentFilter(threshold=0.5, threshold_type="fixed")
         md_generator = DefaultMarkdownGenerator(
             content_filter=prune_filter,
-            options={"ignore_links": True}
+            options={
+                "ignore_links": True,
+                "ignore_images" : True
+            }
         )
         config = CrawlerRunConfig(markdown_generator=md_generator)  
         await pause_briefly(1, 3)
 
-        try:
-            result = await crawler.arun(job_url, config=config)
-        except Exception as e:
-            logging.error(f"Error extracting markdown: {e}")
-            return None, {"error": f"Markdown extraction error: {str(e)}"}
-
-        if result is None or not result.markdown:
-            logging.warning(f"Skipping job URL {job_url}, no markdown extracted.")
-            return None, {"error": "No markdown extracted"}
-
+        result = await crawler.arun(job_url, config=config)
+        if not result.success: 
+            logging.warning(f"Skipping job URL {job_url}, crawl failed.")
+            return None, {"error": f"{result.error_message}"}
+        
         job_metadata = await scrape_job_metadata(job_url, JOB_METADATA_FIELDS, page_pool)
         return result.markdown.fit_markdown, job_metadata
         
@@ -254,7 +262,6 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
     try:
         async with AsyncWebCrawler() as crawler:
             logging.info("AsyncWebCrawler initialized successfully!")
-            logging.info("HERO!")
             playwright, browser, context = await create_browser_context()
             page_pool = PagePool(context, max_pages=CONCURRENT_JOBS_NUM)
             await page_pool.init_pages()
