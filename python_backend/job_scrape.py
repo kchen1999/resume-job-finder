@@ -2,14 +2,13 @@ import asyncio
 import math
 import logging
 import traceback
-import psutil
 
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from playwright.async_api import async_playwright
 from utils import process_markdown_to_job_links, parse_job_data_from_markdown, enrich_job_data, is_job_within_date_range, pause_briefly, override_experience_level_with_title, backoff_if_high_cpu
-from utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields, set_default_work_model, normalize_experience_level
+from utils import extract_job_urls, extract_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields, set_default_work_model, normalize_experience_level, retry_with_backoff
 from job_validate_and_db_insert import validate_and_insert_jobs
 from node_client import send_scrape_summary_to_node
 from page_pool import PagePool
@@ -50,149 +49,131 @@ async def create_browser_context():
 
     return playwright, browser, context
 
-
-async def scrape_job_metadata(url, job_metadata_fields, page_pool, max_retries=MAX_RETRIES, base_delay=1.0):
+async def scrape_job_metadata(url, job_metadata_fields, page_pool):
     attempt = 0
-    last_exception = None
-
-    while attempt < max_retries:
-        await backoff_if_high_cpu()
-        page = await page_pool.acquire()
-        try:
-            logging.debug(f"[Attempt {attempt+1}] Scraping job metadata for URL: {url}")
- 
+    page = await page_pool.acquire()
+    try:
+        async def go_to_page():
+            logging.debug(f"[Attempt {attempt+1}] Navigating to page: {url}")
+            await backoff_if_high_cpu()
             await page.goto(url, timeout=60000, wait_until="domcontentloaded")
             await pause_briefly(0.05, 0.25)
-            await backoff_if_high_cpu()
-            logging.debug(f"Page loaded: {url}")
 
-            logo_src = await extract_logo_src(page)
-            await pause_briefly(0.05, 0.25)
-            await backoff_if_high_cpu()
-            logging.debug(f"Logo src: {logo_src}")
-            
-            job_metadata = await extract_job_metadata_fields(page, job_metadata_fields)
-            await pause_briefly(0.05, 0.25)
-            await backoff_if_high_cpu()
-            logging.debug(f"Extracted metadata fields: {job_metadata}")  
+        await retry_with_backoff(
+            go_to_page,
+            max_retries=MAX_RETRIES,
+            base_delay=1.0,
+            label=f"page.goto({url})"
+        )
+        logging.debug(f"Page loaded: {url}")
 
-            posted_result = await extract_posted_date_by_class(page, POSTED_TIME_SELECTOR)
-            await pause_briefly(0.05, 0.25)
-            await backoff_if_high_cpu()
-            posted_time = posted_result.get("posted_time")
-            posted_time_error = posted_result.get("error")
+        logo_src = await extract_logo_src(page)
+        job_metadata = await extract_job_metadata_fields(page, job_metadata_fields)
+        posted_result = await extract_posted_date_by_class(page, POSTED_TIME_SELECTOR)
 
-            return {
-                "logo_src": logo_src,
-                "posted_time": posted_time,
-                "posted_time_error": posted_time_error,
-                **job_metadata
-            }
-            
-        except Exception as e:
-            last_exception = e
-            logging.warning(f"[Attempt {attempt+1}] Error scraping metadata for {url}: {e}")
-            attempt += 1
-            await asyncio.sleep(base_delay * (2 ** (attempt - 1))) 
+        return {
+            "logo_src": logo_src,
+            "posted_time": posted_result.get("posted_time"),
+            "posted_time_error": posted_result.get("error"),
+            **job_metadata
+        }
 
-        finally:
-            await page_pool.release(page)
-            await pause_briefly(0.05, 0.25) 
+    except Exception as e:
+        logging.error(f"Failed to scrape metadata for {url}: {e}")
+        return {"error": f"Failed to scrape metadata: {str(e)}"}
+
+    finally:
+        await page_pool.release(page)
+        await pause_briefly(0.05, 0.25)
     
-    logging.error(f"Failed to scrape metadata after {max_retries} attempts: {last_exception}")
-    return {
-        "error": f"Failed after {max_retries} retries: {str(last_exception)}"
-    }
-        
-     
-async def scrape_individual_job_url(job_url, crawler, page_pool): 
-        logging.debug(f"Starting to scrape job URL: {job_url}")
+async def generate_job_markdown(job_url, crawler):
+    async def crawl():
         prune_filter = PruningContentFilter(threshold=0.5, threshold_type="fixed")
         md_generator = DefaultMarkdownGenerator(
             content_filter=prune_filter,
-            options={
-                "ignore_links": True,
-                "ignore_images" : True
-            }
+            options={"ignore_links": True, "ignore_images": True}
         )
-        config = CrawlerRunConfig(markdown_generator=md_generator)  
+        config = CrawlerRunConfig(markdown_generator=md_generator)
+
+        logging.debug(f"Crawling job URL: {job_url}")
         result = await crawler.arun(job_url, config=config)
         await pause_briefly(0.05, 0.25)
         await backoff_if_high_cpu()
 
-        if not result.success: 
-            logging.warning(f"Skipping job URL {job_url}, crawl failed.")
-            return None, {"error": f"{result.error_message}"}
-        
-        job_metadata = await scrape_job_metadata(job_url, JOB_METADATA_FIELDS, page_pool)
+        if not result.success:
+            raise Exception(result.error_message)
+
+        return result.markdown.fit_markdown
+
+    result = await retry_with_backoff(
+        crawl,
+        max_retries=MAX_RETRIES,
+        base_delay=1.0,
+        label=f"generate_job_markdown: {job_url}"
+    )
+    return result
+
+async def scrape_individual_job_url(job_url, crawler, page_pool):
+    markdown = await generate_job_markdown(job_url, crawler)
+    job_metadata = await scrape_job_metadata(job_url, JOB_METADATA_FIELDS, page_pool)
+    await pause_briefly(0.05, 0.25)
+    return markdown, job_metadata
+         
+async def process_job_with_backoff(job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit):
+    try:
+        print("Scraping job:", count + 1)
+        print("Scraping:", job_link)
+        await backoff_if_high_cpu()
+        job_markdown, job_metadata = await scrape_individual_job_url(job_link, crawler, page_pool)
         await pause_briefly(0.05, 0.25)
-        return result.markdown.fit_markdown, job_metadata
-        
-async def process_job_with_backoff(job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit, max_retries=MAX_RETRIES):
-    delay = 1
-    for attempt in range(max_retries):
-        try:
-            print("Scraping job:", count + 1)
-            print("Scraping:", job_link)
-            await backoff_if_high_cpu()
-            job_markdown, job_metadata = await scrape_individual_job_url(job_link, crawler, page_pool)
-            await pause_briefly(0.05, 0.25)
 
-            if job_metadata.get("error"):
-                print(f"Skipping job {job_link}, error scraping metadata: {job_metadata['error']}")
-                return {"status": SKIPPED, "job": None, "error": job_metadata["error"]}
-           
-            if job_metadata.get("posted_time_error") in {"__NO_ELEMENTS__", "__NO_MATCHING_TEXT__"}:
-                if job_metadata["posted_time_error"] == "__NO_ELEMENTS__":
-                    error_message = "'posted_date' selector broke (most likely)"
-                else: 
-                    error_message = "no matching 'Posted X ago' text found"
+        if job_metadata.get("error"):
+            print(f"Skipping job {job_link}, error scraping metadata: {job_metadata['error']}")
+            return {"status": SKIPPED, "job": None, "error": job_metadata["error"]}
 
-                print(f"Skipping job {job_link}, posted date issue: {error_message}")
-                return {
-                    "status": SKIPPED,
-                    "job": None,
-                    "error": f"Posted date selector issue: {error_message}"
-                }
+        if job_metadata.get("posted_time_error") in {"__NO_ELEMENTS__", "__NO_MATCHING_TEXT__"}:
+            error_message = "'posted_date' selector broke" if job_metadata["posted_time_error"] == "__NO_ELEMENTS__" \
+                            else "no matching 'Posted X ago' text found"
+            print(f"Skipping job {job_link}, posted date issue: {error_message}")
+            return {
+                "status": SKIPPED,
+                "job": None,
+                "error": f"Posted date selector issue: {error_message}"
+            }
 
-            job_data = await parse_job_data_from_markdown(job_markdown, count)
-            await pause_briefly(0.05, 0.25)
-            if not job_data:
-                print(f"Skipping job {job_link}, no JSON extracted.")
-                return {"status": SKIPPED, "job": None, "error": "No JSON extracted"}
-            
-            job_data = set_default_work_model(job_data)
-            job_url, quick_apply_url = extract_job_urls(job_link)
-            enrich_job_data(job_data, location_search, job_url, quick_apply_url, job_metadata)
-            print("Enriched job data: ", job_data)
+        job_data = await parse_job_data_from_markdown(job_markdown, count)
+        await pause_briefly(0.05, 0.25)
+        if not job_data:
+            print(f"Skipping job {job_link}, no JSON extracted.")
+            return {"status": SKIPPED, "job": None, "error": "No JSON extracted"}
 
-            if not is_job_within_date_range(job_data, day_range_limit):
-                terminate_event.set()
-                return {"status": TERMINATE, "job": None, "error": None}
+        job_data = set_default_work_model(job_data)
+        job_url, quick_apply_url = extract_job_urls(job_link)
+        enrich_job_data(job_data, location_search, job_url, quick_apply_url, job_metadata)
+        print("Enriched job data: ", job_data)
 
-            job_data = override_experience_level_with_title(job_data)
-            job_data = normalize_experience_level(job_data)
-            await pause_briefly(0.05, 0.25)
-            return {"status": SUCCESS, "job": job_data, "error": None}
+        if not is_job_within_date_range(job_data, day_range_limit):
+            terminate_event.set()
+            return {"status": TERMINATE, "job": None, "error": None}
 
-        except Exception as e:
-            print(f"[Attempt {attempt+1}] Error scraping {job_link}: {e}")
-            if attempt < max_retries - 1:
-                await pause_briefly(delay, delay)
-                delay *= 2
-            else:
-                return {
-                    "status": "error",
-                    "job": None,
-                    "error": f"Scraping {job_link} failed after {max_retries} retries: {str(e)}"
-                }
+        job_data = override_experience_level_with_title(job_data)
+        job_data = normalize_experience_level(job_data)
+        await pause_briefly(0.05, 0.25)
+        return {"status": SUCCESS, "job": job_data, "error": None}
+
+    except Exception as e:
+        return {
+            "status": ERROR,
+            "job": None,
+            "error": f"Unexpected error in process_job_with_backoff: {str(e)}"
+        }
             
 async def bounded_process_job(job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit, semaphore):
     if terminate_event.is_set():
         return {"status": "terminate", "job": None, "error": None}
 
-    async with semaphore:  # Hold the slot here
-        await backoff_if_high_cpu()  # <== Move this inside the semaphore block to avoid idle slot locking
+    async with semaphore: 
+        await backoff_if_high_cpu()  
         await pause_briefly(1.0, 2.0) 
         return await process_job_with_backoff(
             job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit
@@ -205,7 +186,7 @@ async def process_all_jobs_concurrently(job_urls, crawler, page_pool, location_s
     tasks = []
 
     for idx, job_link in enumerate(job_urls):
-        await backoff_if_high_cpu()  # <== BEFORE creating the task
+        await backoff_if_high_cpu() 
         task = asyncio.create_task(
             bounded_process_job(
                 job_link, idx, crawler, page_pool, location_search, terminate_event, day_range_limit, semaphore
