@@ -4,6 +4,7 @@ import json
 import asyncio
 import random
 import logging
+import psutil
 
 from json_repair import repair_json
 from datetime import datetime, timedelta
@@ -11,6 +12,18 @@ from llm_job_parser import parse_job_posting
 from constants import LOGO_SELECTOR
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+
+async def backoff_if_high_cpu(soft_limit=70, hard_limit=90):
+    try:
+        cpu = psutil.cpu_percent(interval=0.1)  
+        if cpu >= hard_limit:
+            logging.warning(f"CPU usage at {cpu}%. Hard backoff...")
+            await pause_briefly(1.0, 3.0)
+        elif cpu >= soft_limit:
+            logging.warning(f"CPU usage at {cpu}%. Soft backoff...")
+            await pause_briefly(0.25, 0.75)
+    except Exception as e:
+        logging.warning(f"Failed to measure CPU usage: {e}")
 
 async def pause_briefly(min_delay: float = 0.2, max_delay: float = 0.6):
     delay = random.uniform(min_delay, max_delay)
@@ -36,8 +49,8 @@ async def extract_logo_src(page):
 
 async def extract_job_metadata_fields(page, job_metadata_fields):
     results = {}
-    logging.debug(f"Extracting job metadata for fields: {job_metadata_fields}")
     for key, job_metadata_field in job_metadata_fields.items():
+        await backoff_if_high_cpu()
         try:
             elem = await page.query_selector(f'[data-automation="{job_metadata_field}"]')
             if elem:
@@ -50,8 +63,7 @@ async def extract_job_metadata_fields(page, job_metadata_fields):
         except Exception as e:
             logging.error(f"Error extracting {key}: {e}")
             results[key] = ""
-        if random.random() < 0.8:  
-            await pause_briefly()
+        await pause_briefly()
     return results
 
 async def extract_posted_date_by_class(page, class_name: str) -> str:
@@ -66,6 +78,7 @@ async def extract_posted_date_by_class(page, class_name: str) -> str:
             return {"posted_time": None, "error": "__NO_ELEMENTS__"}
 
         for elem in elements:
+            await backoff_if_high_cpu()
             text = (await elem.inner_text()).strip()
             logging.debug(f"Found element text: {text}")
 
