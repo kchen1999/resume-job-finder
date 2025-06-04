@@ -60,8 +60,9 @@ def get_posted_date(posted_days_ago: int) -> str:
     return posted_date.strftime("%d/%m/%Y") 
 
 async def extract_logo_src(page):
-    await pause_briefly(1, 3)
+    await pause_briefly()
     logo_element = await page.query_selector(LOGO_SELECTOR)
+    await backoff_if_high_cpu()
     if logo_element:
         logo_src = await logo_element.get_attribute('src')
         logging.debug(f"Logo found with src: {logo_src}")
@@ -259,6 +260,9 @@ def enrich_job_data(job_data, location_search, job_url, quick_apply_url, job_met
     job_data["salary"] = job_metadata["salary"]
     job_data["title"] = job_metadata["title"]
     job_data["company"] = job_metadata["company"]
+    job_data = set_default_work_model(job_data)
+    job_data = override_experience_level_with_title(job_data)
+    job_data = normalize_experience_level(job_data)
     return job_data
 
 def flatten_field(field):

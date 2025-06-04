@@ -147,7 +147,6 @@ async def process_job_with_backoff(job_link, count, crawler, page_pool, location
             print(f"Skipping job {job_link}, no JSON extracted.")
             return {"status": SKIPPED, "job": None, "error": "No JSON extracted"}
 
-        job_data = set_default_work_model(job_data)
         job_url, quick_apply_url = extract_job_urls(job_link)
         enrich_job_data(job_data, location_search, job_url, quick_apply_url, job_metadata)
         print("Enriched job data: ", job_data)
@@ -156,9 +155,6 @@ async def process_job_with_backoff(job_link, count, crawler, page_pool, location
             terminate_event.set()
             return {"status": TERMINATE, "job": None, "error": None}
 
-        job_data = override_experience_level_with_title(job_data)
-        job_data = normalize_experience_level(job_data)
-        await pause_briefly(0.05, 0.25)
         return {"status": SUCCESS, "job": job_data, "error": None}
 
     except Exception as e:
@@ -174,7 +170,7 @@ async def bounded_process_job(job_link, count, crawler, page_pool, location_sear
 
     async with semaphore: 
         await backoff_if_high_cpu()  
-        await pause_briefly(1.0, 2.0) 
+        await pause_briefly(0.05, 0.25) 
         return await process_job_with_backoff(
             job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit
         )
