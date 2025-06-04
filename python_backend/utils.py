@@ -7,11 +7,36 @@ import logging
 import psutil
 
 from json_repair import repair_json
-from datetime import datetime, timedelta
 from llm_job_parser import parse_job_posting
+from datetime import datetime, timedelta
+from typing import Callable, Any
 from constants import LOGO_SELECTOR
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+
+async def retry_with_backoff(
+    func: Callable[[], Any],
+    max_retries: int = 3,
+    base_delay: float = 1.0,
+    label: str = "operation"
+):
+    attempt = 0
+    last_exception = None
+
+    while attempt < max_retries:
+        try:
+            return await func()
+        except Exception as e:
+            last_exception = e
+            attempt += 1
+            logging.warning(f"[Attempt {attempt}] {label} failed: {e}")
+            if attempt < max_retries:
+                await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
+
+    logging.error(f"{label} failed after {max_retries} retries: {last_exception}")
+    return {
+        "error": f"Failed after {max_retries} retries: {str(last_exception)}"
+    }
 
 async def backoff_if_high_cpu(soft_limit=70, hard_limit=90):
     try:
@@ -35,9 +60,7 @@ def get_posted_date(posted_days_ago: int) -> str:
     return posted_date.strftime("%d/%m/%Y") 
 
 async def extract_logo_src(page):
-    await pause_briefly(2, 4)
-    logging.debug("Trying to find logo image..")
-
+    await pause_briefly(1, 3)
     logo_element = await page.query_selector(LOGO_SELECTOR)
     if logo_element:
         logo_src = await logo_element.get_attribute('src')
