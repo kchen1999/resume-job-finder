@@ -5,38 +5,47 @@ import asyncio
 import random
 import logging
 import psutil
+import math
 
 from json_repair import repair_json
-from llm_job_parser import parse_job_posting
 from datetime import datetime, timedelta
-from typing import Callable, Any
-from constants import LOGO_SELECTOR
+from playwright.async_api import async_playwright
+from constants import LOGO_SELECTOR, BROWSER_USER_AGENT
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
-async def retry_with_backoff(
-    func: Callable[[], Any],
-    max_retries: int = 3,
-    base_delay: float = 1.0,
-    label: str = "operation"
-):
-    attempt = 0
-    last_exception = None
+async def create_browser_context():
+    playwright = await async_playwright().start()
+    browser = await playwright.chromium.launch(
+        headless=True,
+        args=[
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--single-process",
+            "--no-zygote"
+        ],
+    )
+    context = await browser.new_context(
+        viewport={"width": 1280, "height": 720},
+        locale="en-US",
+        timezone_id="Australia/Sydney",
+        user_agent=BROWSER_USER_AGENT["User-Agent"],
+        java_script_enabled=False
+    )
+    await context.add_init_script(
+        """() => {
+            Object.defineProperty(navigator, 'webdriver', {get: () => false});
+            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+            Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+        }"""
+    )
 
-    while attempt < max_retries:
-        try:
-            return await func()
-        except Exception as e:
-            last_exception = e
-            attempt += 1
-            logging.warning(f"[Attempt {attempt}] {label} failed: {e}")
-            if attempt < max_retries:
-                await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
+    await context.route("**/*", lambda route, request: asyncio.create_task(
+        route.abort() if request.resource_type in ["image", "font", "stylesheet"] else route.continue_()
+    ))
 
-    logging.error(f"{label} failed after {max_retries} retries: {last_exception}")
-    return {
-        "error": f"Failed after {max_retries} retries: {str(last_exception)}"
-    }
+    return playwright, browser, context
 
 async def backoff_if_high_cpu(soft_limit=70, hard_limit=90):
     try:
@@ -73,6 +82,8 @@ async def extract_logo_src(page):
 
 async def extract_job_metadata_fields(page, job_metadata_fields):
     results = {}
+    field_errors = {}
+
     for key, job_metadata_field in job_metadata_fields.items():
         await backoff_if_high_cpu()
         try:
@@ -84,10 +95,14 @@ async def extract_job_metadata_fields(page, job_metadata_fields):
             else:
                 results[key] = ""
                 logging.warning(f"Element not found for job field: {key}")
+                field_errors[key] = "Element not found"
         except Exception as e:
             logging.error(f"Error extracting {key}: {e}")
             results[key] = ""
+            field_errors[key] = str(e)
+
         await pause_briefly()
+
     return results
 
 async def extract_posted_date_by_class(page, class_name: str) -> str:
@@ -99,7 +114,7 @@ async def extract_posted_date_by_class(page, class_name: str) -> str:
 
         if not elements:
             logging.warning("No elements found for posted date selector.")
-            return {"posted_time": None, "error": "__NO_ELEMENTS__"}
+            return {"posted_date": None, "error": "__NO_ELEMENTS__"}
 
         for elem in elements:
             await backoff_if_high_cpu()
@@ -112,15 +127,14 @@ async def extract_posted_date_by_class(page, class_name: str) -> str:
                 days_ago = value if unit == 'd' else 0
                 posted_date = get_posted_date(days_ago)
                 logging.debug(f"Extracted posted date: {posted_date}")
-                return {"posted_time": posted_date, "error": None}
+                return {"posted_date": posted_date, "error": None}
         
-        return {"posted_time": None, "error": "__NO_MATCHING_TEXT__"}
+        return {"posted_date": None, "error": "__NO_MATCHING_TEXT__"}
     
     except Exception as e:
         raise 
 
-# Extract total job count from markdown using regex
-def extract_total_job_count(markdown: str) -> int:
+def get_total_job_count(markdown: str) -> int:
     match = re.search(r'#\s*([\d,]+)\s+.*?\bjob[s]?\b', markdown, re.MULTILINE | re.IGNORECASE)
     if match:
         number_str = match.group(1).replace(',', '') 
@@ -137,13 +151,28 @@ def parse_json_block_from_text(response):
         print("Error parsing JSON:", e)
         print(f"Raw response: {repr(response)}")
         return response
+    
+def clean_repair_parse_json(json_block):
+    try:
+        if isinstance(json_block, str):
+            json_block = clean_string(json_block)
+            print("Cleaned json: ")
+            print(json_block)
+        repaired_json_string = repair_json(json_block)
+        print("repairing json...")
+        job_data = json.loads(repaired_json_string)
+        print("repaired json: ")
+        print(job_data)
+        return job_data
+    except Exception as e:
+        raise e
 
 def extract_job_links(markdown):
-    job_links = re.findall(r"https://www\.seek\.com\.au/job/\d+\?[^)\s]*origin=cardTitle", markdown[0])
+    job_links = re.findall(r"https://www\.seek\.com\.au/job/\d+\?[^)\s]*origin=cardTitle", markdown)
     return job_links 
 
 
-def extract_job_urls(job_link):
+def get_job_urls(job_link):
     job_url = re.search(r"https:\/\/www\.seek\.com\.au\/job\/\d+", job_link).group()
     quick_apply_url = job_url + "/apply"
     return [job_url, quick_apply_url]
@@ -197,30 +226,14 @@ def override_experience_level_with_title(job_data: dict):
             job_data["experience_level"] = inferred
     return job_data
 
-async def parse_job_data_from_markdown(job_markdown, count):
-    raw_llm_output  = await parse_job_posting(job_markdown, count)
-    json_block = parse_json_block_from_text(raw_llm_output)
+def get_total_pages(total_jobs, pagesize, max_pages):
+    total_pages = math.ceil(total_jobs / pagesize)
+    if max_pages is not None:
+        total_pages = min(total_pages, max_pages)
+    return total_pages
 
-     # If it's already a dict (parsed JSON), no need to decode
-    if isinstance(json_block, dict):
-        return json_block
-    
-    # Clean the extracted JSON using json_repair (if needed)
-    try:
-        if isinstance(json_block, str):
-            json_block = clean_string(json_block)
-            print("Cleaned json: ")
-            print(json_block)
-        repaired_json_string = repair_json(json_block)  
-        print("repairing json...")
-        job_data = json.loads(repaired_json_string)
-        print("repaired json: ")
-        print(job_data)
-    except Exception as e:
-        return {'error': f'JSON repair failed: {str(e)}'}
-    return job_data
 
-def is_job_within_date_range(job_data, within_days=7):
+def is_recent_job(job_data, within_days=7):
     try:
         posted_date_str = job_data.get("posted_date", "")
         posted_date = datetime.strptime(posted_date_str, "%d/%m/%Y").date()
@@ -231,8 +244,11 @@ def is_job_within_date_range(job_data, within_days=7):
         return None  
 
 def get_relative_posted_time(job_data):
+    posted_date_str = job_data.get("posted_date")
+    if not posted_date_str:
+        return None
+
     try: 
-        posted_date_str = job_data.get("posted_date", "")
         posted_date = datetime.strptime(posted_date_str, '%d/%m/%Y').date()
         today = datetime.today().date()
         delta = (today - posted_date).days
@@ -251,15 +267,15 @@ def enrich_job_data(job_data, location_search, job_url, quick_apply_url, job_met
     job_data["job_url"] = job_url
     job_data["quick_apply_url"] = quick_apply_url
     job_data["location_search"] = location_search
-    job_data["posted_date"] = job_metadata["posted_time"]
+    job_data["posted_date"] = job_metadata["posted_date"]
     job_data["posted_within"] = get_relative_posted_time(job_data)
     job_data["logo_link"] = job_metadata["logo_src"]
-    job_data["location"] = job_metadata["location"]
-    job_data["classification"] = job_metadata["classification"]
-    job_data["work_type"] = job_metadata["work_type"]
-    job_data["salary"] = job_metadata["salary"]
-    job_data["title"] = job_metadata["title"]
-    job_data["company"] = job_metadata["company"]
+    job_data["location"] = job_metadata.get("location", "")
+    job_data["classification"] = job_metadata.get("classification", "")
+    job_data["work_type"] = job_metadata.get("work_type", "")
+    job_data["salary"] = job_metadata.get("salary", "")
+    job_data["title"] = job_metadata.get("title", "")
+    job_data["company"] = job_metadata.get("company", "")
     job_data = set_default_work_model(job_data)
     job_data = override_experience_level_with_title(job_data)
     job_data = normalize_experience_level(job_data)
