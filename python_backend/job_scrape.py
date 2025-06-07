@@ -5,14 +5,14 @@ import sentry_sdk
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
-from utils import process_markdown_to_job_links, enrich_job_data, is_recent_job, pause_briefly, backoff_if_high_cpu, get_total_pages, parse_json_block_from_text
+from utils import process_markdown_to_job_urls, enrich_job_data, is_recent_job, pause_briefly, backoff_if_high_cpu, get_total_pages, parse_json_block_from_text
 from utils import get_job_urls, get_total_job_count, extract_logo_src, extract_posted_date_by_class, extract_job_metadata_fields, clean_repair_parse_json, create_browser_context
 from llm_job_parser import parse_job_posting
-from job_validate_and_db_insert import validate_and_insert_jobs
+from job_validate_and_db_insert import validate_jobs, insert_jobs_into_database
 from node_client import send_scrape_summary_to_node
 from typing import Callable, Any
 from page_pool import PagePool
-from constants import DAY_RANGE_LIMIT, TOTAL_JOBS_PER_PAGE, MAX_RETRIES, SUCCESS, TERMINATE, SKIPPED, ERROR, CONCURRENT_JOBS_NUM, POSTED_TIME_SELECTOR, JOB_METADATA_FIELDS, BROWSER_USER_AGENT
+from constants import DAY_RANGE_LIMIT, TOTAL_JOBS_PER_PAGE, MAX_RETRIES, SUCCESS, TERMINATE, SKIPPED, ERROR, CONCURRENT_JOBS_NUM, POSTED_TIME_SELECTOR, JOB_METADATA_FIELDS, NO_ELEMENTS, NO_MATCHING_TEXT
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -24,11 +24,6 @@ sentry_sdk.init(
 )
 
 async def safe_extract_logo_src(page, job_url):
-    sentry_sdk.add_breadcrumb(
-        category="extraction",
-        message=f"Attempting to extract logo src from {job_url}",
-        level="info",
-    )
     try:
         return await extract_logo_src(page)
     except Exception as e:
@@ -39,11 +34,6 @@ async def safe_extract_logo_src(page, job_url):
         return ""
 
 async def safe_extract_job_metadata_fields(page, fields, job_url):
-    sentry_sdk.add_breadcrumb(
-        category="extraction",
-        message=f"Attempting to extract job metadata fields from {job_url}",
-        level="info",
-    )
     try:
         results, field_errors = await extract_job_metadata_fields(page, fields)
 
@@ -68,18 +58,13 @@ async def safe_extract_job_metadata_fields(page, fields, job_url):
         return {}
 
 async def safe_extract_posted_date_by_class(page, class_name, job_url):
-    sentry_sdk.add_breadcrumb(
-        category="extraction",
-        message=f"Attempting to extract posted date from {job_url}",
-        level="info",
-    )
     try:
         result = await extract_posted_date_by_class(page, class_name)
         error = result.get("error")
-        if error in {"__NO_ELEMENTS__", "__NO_MATCHING_TEXT__"}:
+        if error in {NO_ELEMENTS, NO_MATCHING_TEXT}:
             error_messages = {
-                "__NO_ELEMENTS__": "'posted_date' selector broke - no elements found",
-                "__NO_MATCHING_TEXT__": "no matching 'Posted X ago' text found"
+                NO_ELEMENTS: "'posted_date' selector broke - no elements found",
+                NO_MATCHING_TEXT: "no matching 'Posted X ago' text found"
             }
             error_message = error_messages.get(error)
 
@@ -117,12 +102,6 @@ async def retry_with_backoff(
         except Exception as e:
             last_exception = e
             attempt += 1
-
-            sentry_sdk.add_breadcrumb(
-                category="retry",
-                message=f"[Attempt {attempt}] {label} failed: {str(e)}",
-                level="warning",
-            )
             logging.warning(f"[Attempt {attempt}] {label} failed: {e}")
 
             if attempt < max_retries:
@@ -137,60 +116,44 @@ async def retry_with_backoff(
     return None
 
 
-async def scrape_job_metadata(job_url, job_metadata_fields, page_pool):
-    page = await page_pool.acquire()
-    sentry_sdk.add_breadcrumb(
-        category="navigation",
-        message=f"Navigating to job URL: {job_url}",
-        level="info",
-    )
-    try:
-        async def go_to_page():
-            await backoff_if_high_cpu()
-            await page.goto(job_url, timeout=60000, wait_until="domcontentloaded")
-            await pause_briefly(0.05, 0.25)
-
-        result = await retry_with_backoff(
-            go_to_page,
-            max_retries=MAX_RETRIES,
-            base_delay=1.0,
-            label=f"page.goto({job_url})"
-        )
-
-        if result is None:
-            with sentry_sdk.push_scope() as scope:
-                scope.set_tag("component", "scrape_job_metadata")
-                scope.set_extra("job_url", job_url)
-                sentry_sdk.capture_message("Navigation to job URL failed after retries", level="error")
-
-        sentry_sdk.add_breadcrumb(
-            category="navigation",
-            message=f"Page loaded successfully: {job_url}",
-            level="info",
-        )
-
-        logo_src = await safe_extract_logo_src(page, job_url)
-        job_metadata = await safe_extract_job_metadata_fields(page, job_metadata_fields, job_url)
-        posted_date = await safe_extract_posted_date_by_class(page, POSTED_TIME_SELECTOR, job_url)
-
-        result = {
-            "logo_src": logo_src,
-            "posted_date": posted_date,
-            **job_metadata
-        }
-
-    finally:
-        sentry_sdk.add_breadcrumb(
-            category="resource",
-            message=f"Releasing page for job URL: {job_url}",
-            level="info"
-        )
-        await page_pool.release(page)
+async def navigate_to_page(page, job_url):
+    async def go():
+        await backoff_if_high_cpu()
+        await page.goto(job_url, timeout=60000, wait_until="domcontentloaded")
         await pause_briefly(0.05, 0.25)
 
+    result = await retry_with_backoff(
+        go, max_retries=MAX_RETRIES, base_delay=1.0, label=f"page.goto({job_url})"
+    )
     return result
+
+async def extract_metadata_from_page(page, job_url, fields):
+    logo_src = await safe_extract_logo_src(page, job_url)
+    job_metadata = await safe_extract_job_metadata_fields(page, fields, job_url)
+    posted_date = await safe_extract_posted_date_by_class(page, POSTED_TIME_SELECTOR, job_url)
+    return {
+        "logo_src": logo_src,
+        "posted_date": posted_date,
+        **job_metadata
+    }
+
+async def extract_job_metadata(job_url, job_metadata_fields, page_pool):
+    page = await page_pool.acquire()
+    try:
+        result = await navigate_to_page(page, job_url)
+        if result is None:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("component", "extract_job_metadata")
+                scope.set_extra("job_url", job_url)
+                sentry_sdk.capture_message("Navigation failed after retries", level="error")
+        metadata = await extract_metadata_from_page(page, job_url, job_metadata_fields)
+
+    finally:
+        await page_pool.release(page)
+        await pause_briefly(0.05, 0.25)
+    return metadata
     
-async def generate_job_markdown(job_url, crawler):
+async def fetch_job_markdown(job_url, crawler):
     async def crawl():
         prune_filter = PruningContentFilter(threshold=0.5, threshold_type="fixed")
         md_generator = DefaultMarkdownGenerator(
@@ -199,12 +162,6 @@ async def generate_job_markdown(job_url, crawler):
         )
         config = CrawlerRunConfig(markdown_generator=md_generator)
 
-        sentry_sdk.add_breadcrumb(
-            category="crawl",
-            message=f"Starting crawl for job URL: {job_url}",
-            level="info",
-        )
-
         logging.debug(f"Starting crawl for job URL: {job_url}")
         result = await crawler.arun(job_url, config=config)
         await pause_briefly(0.05, 0.25)
@@ -212,31 +169,25 @@ async def generate_job_markdown(job_url, crawler):
 
         if not result.success:
             with sentry_sdk.push_scope() as scope:
-                scope.set_tag("component", "generate_job_markdown")
+                scope.set_tag("component", "fetch_job_markdown")
                 scope.set_extra("job_url", job_url)
                 scope.set_extra("crawler_error", result.error_message)
-                sentry_sdk.capture_message("Crawler failed to generate markdown", level="error")
+                sentry_sdk.capture_message("Crawler failed to fetch markdown", level="error")
             return None 
-
-        sentry_sdk.add_breadcrumb(
-            category="crawl",
-            message=f"Crawl successful for job URL: {job_url}",
-            level="info",
-        ) 
-
+        
         return result.markdown.fit_markdown
 
     result = await retry_with_backoff(
         crawl,
         max_retries=MAX_RETRIES,
         base_delay=1.0,
-        label=f"generate_job_markdown: {job_url}"
+        label=f"fetch_job_markdown: {job_url}"
     )
     return result
 
-async def scrape_individual_job_url(job_url, crawler, page_pool):
-    markdown = await generate_job_markdown(job_url, crawler)
-    job_metadata = await scrape_job_metadata(job_url, JOB_METADATA_FIELDS, page_pool)
+async def scrape_job_details(job_url, crawler, page_pool):
+    markdown = await fetch_job_markdown(job_url, crawler)
+    job_metadata = await extract_job_metadata(job_url, JOB_METADATA_FIELDS, page_pool)
     await pause_briefly(0.05, 0.25)
     return markdown, job_metadata
 
@@ -252,7 +203,6 @@ async def parse_job_data_from_markdown(job_markdown, count):
         if not job_data:
             with sentry_sdk.push_scope() as scope:
                 scope.set_tag("component", "parse_job_data_from_markdown")
-                scope.set_extra("job_count", count)
                 scope.capture_message("Parsed job data is empty after JSON repair", level="warning")
             return None
 
@@ -263,94 +213,70 @@ async def parse_job_data_from_markdown(job_markdown, count):
             scope.set_tag("component", "parse_job_data_from_markdown")
             sentry_sdk.capture_exception(e)
         return None
+    
+async def extract_job_data(job_url, crawler, page_pool, count):
+    job_markdown, job_metadata = await scrape_job_details(job_url, crawler, page_pool)
+    if not job_metadata:
+        return {"status": SKIPPED, "job": None, "job_metadata": None}
+    
+    if not job_markdown:
+        return {"status": SKIPPED, "job": None, "job_metadata": job_metadata}
+    
+    job_data = await parse_job_data_from_markdown(job_markdown, count)
+    if not job_data:
+        return {"status": SKIPPED, "job": None, "job_metadata": job_metadata}
+
+    return {"status": SUCCESS, "job": job_data, "job_metadata": job_metadata}
+
+async def validate_and_enrich_job_data(job_data, job_url, location_search, job_metadata, day_range_limit, terminate_event):
+    job_url, quick_apply_url = get_job_urls(job_url)
+    enrich_job_data(job_data, location_search, job_url, quick_apply_url, job_metadata)
+
+    if not is_recent_job(job_data, day_range_limit):
+        terminate_event.set()
+        return {"status": TERMINATE, "job": None}
+
+    return {"status": SUCCESS, "job": job_data}
          
-async def process_job_with_backoff(job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit):
+async def process_job_with_retries(job_url, count, crawler, page_pool, location_search, terminate_event, day_range_limit):
     try:
-        sentry_sdk.add_breadcrumb(
-            category="process_job",
-            message=f"Processing job {count + 1}: {job_link}",
-            level="info",
-        )
-
         await backoff_if_high_cpu()
-
-        job_markdown, job_metadata = await scrape_individual_job_url(job_link, crawler, page_pool)
+        job_extraction = await extract_job_data(job_url, crawler, page_pool, count)
         await pause_briefly(0.05, 0.25)
 
-        if not job_metadata:
-            sentry_sdk.add_breadcrumb(
-                category="process_job",
-                message=f"Skipping job due to empty metadata: {job_link}",
-                level="warning",
-            )
-            return {"status": SKIPPED, "job": None}
+        if job_extraction ["status"] != SUCCESS:
+            return job_extraction 
 
-        job_data = await parse_job_data_from_markdown(job_markdown, count)
+        job_result = await validate_and_enrich_job_data(
+            job_extraction["job"],
+            job_url,
+            location_search,
+            job_extraction["job_metadata"],
+            day_range_limit,
+            terminate_event
+        )
         await pause_briefly(0.05, 0.25)
-
-        if not job_data:
-            sentry_sdk.add_breadcrumb(
-                category="process_job",
-                message=f"Skipping job due to no JSON extracted: {job_link}",
-                level="warning",
-            )
-            return {"status": SKIPPED, "job": None}
-
-        job_url, quick_apply_url = get_job_urls(job_link)
-        enrich_job_data(job_data, location_search, job_url, quick_apply_url, job_metadata)
-        logging.debug(f"Enriched job data: {job_data}")
-
-        if not is_recent_job(job_data, day_range_limit):
-            terminate_event.set()
-            sentry_sdk.add_breadcrumb(
-                category="process_job",
-                message=f"Early termination triggered by job date limit: {job_link}",
-                level="info",
-            )
-            return {"status": TERMINATE, "job": None}
-
-        return {"status": SUCCESS, "job": job_data}
+        return job_result
 
     except Exception as e:
         with sentry_sdk.push_scope() as scope:
-            scope.set_tag("component", "process_job_with_backoff")
-            scope.set_extra("job_url", job_link)
+            scope.set_tag("component", "process_job_with_retries")
+            scope.set_extra("job_url", job_url)
             sentry_sdk.capture_exception(e)
         return {"status": ERROR, "job": None}
             
-async def bounded_process_job(job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit, semaphore):
+async def process_job_with_semaphore(job_url, count, crawler, page_pool, location_search, terminate_event, day_range_limit, semaphore):
     if terminate_event.is_set():
-        return {"status": "terminate", "job": None, "error": None}
+        return {"status": "terminate", "job": None}
 
     async with semaphore: 
         await backoff_if_high_cpu()  
         await pause_briefly(0.05, 0.25) 
-        return await process_job_with_backoff(
-            job_link, count, crawler, page_pool, location_search, terminate_event, day_range_limit
+        return await process_job_with_retries(
+            job_url, count, crawler, page_pool, location_search, terminate_event, day_range_limit
         )
     
-async def process_all_jobs_concurrently(job_urls, crawler, page_pool, page_num, location_search, day_range_limit):
-    terminate_event = asyncio.Event()
-    semaphore = asyncio.Semaphore(CONCURRENT_JOBS_NUM)
-    tasks = []
-
-    sentry_sdk.add_breadcrumb(
-        category="batch",
-        message=f"Starting concurrent job processing for page {page_num} with {len(job_urls)} jobs",
-        level="info",
-    )
-
-    for idx, job_link in enumerate(job_urls):
-        await backoff_if_high_cpu() 
-        task = asyncio.create_task(
-            bounded_process_job(
-                job_link, idx, crawler, page_pool, location_search, terminate_event, day_range_limit, semaphore
-            )
-        )
-        tasks.append(task)
-
-    job_results = await asyncio.gather(*tasks)
-
+def aggregate_job_results(job_results):
     final_jobs = []
     early_termination = False
     n_skipped = 0
@@ -366,10 +292,30 @@ async def process_all_jobs_concurrently(job_urls, crawler, page_pool, page_num, 
             n_skipped += 1
         elif status == ERROR:
             n_errors += 1
+
+    return final_jobs, early_termination, n_skipped, n_errors
     
+async def process_jobs_concurrently(job_urls, crawler, page_pool, page_num, location_search, day_range_limit):
+    terminate_event = asyncio.Event()
+    semaphore = asyncio.Semaphore(CONCURRENT_JOBS_NUM)
+    tasks = []
+
+    for idx, job_url in enumerate(job_urls):
+        await backoff_if_high_cpu() 
+        task = asyncio.create_task(
+            process_job_with_semaphore(
+                job_url, idx, crawler, page_pool, location_search, terminate_event, day_range_limit, semaphore
+            )
+        )
+        tasks.append(task)
+
+    job_results = await asyncio.gather(*tasks)
+
+    final_jobs, early_termination, n_skipped, n_errors = aggregate_job_results(job_results)
     n_success = len(final_jobs)
+    
     with sentry_sdk.push_scope() as scope:
-        scope.set_tag("component", "process_all_jobs_concurrently")
+        scope.set_tag("component", "process_jobs_concurrently")
         scope.set_tag("page_num", page_num)
         scope.set_extra("total_jobs_attempted", len(job_results))
         scope.set_extra("jobs_successful", n_success)
@@ -378,28 +324,17 @@ async def process_all_jobs_concurrently(job_urls, crawler, page_pool, page_num, 
         scope.set_extra("early_termination", early_termination)
         sentry_sdk.capture_message("Scraping job batch completed", level="info")
 
-    sentry_sdk.add_breadcrumb(
-        category="batch",
-        message=f"Completed concurrent job processing for page {page_num}: success={n_success}, skipped={n_skipped}, errors={n_errors}, early_termination={early_termination}",
-        level="info",
-    )
-
     return final_jobs, early_termination
 
-async def scrape_page_markdown(base_url, crawler, page_num):
+async def fetch_page_markdown(base_url, crawler, page_num):
     page_url = f"{base_url}&page={page_num}"
     await pause_briefly(1.0, 2.5)
 
     try:
-        sentry_sdk.add_breadcrumb(
-            category="crawl",
-            message=f"Fetching markdown for page {page_num}: {page_url}",
-            level="info",
-        )
         result = await crawler.arun(page_url)
     except Exception as e:
         with sentry_sdk.push_scope() as scope:
-            scope.set_tag("component", "scrape_page_markdown")
+            scope.set_tag("component", "fetch_page_markdown")
             scope.set_tag("page_num", page_num)
             scope.set_extra("page_url", page_url)
             sentry_sdk.capture_exception(e)
@@ -409,7 +344,7 @@ async def scrape_page_markdown(base_url, crawler, page_num):
 
     if not result.success:
         with sentry_sdk.push_scope() as scope:
-            scope.set_tag("component", "scrape_page_markdown")
+            scope.set_tag("component", "fetch_page_markdown")
             scope.set_tag("page_num", page_num)
             scope.set_extra("page_url", page_url)
             scope.set_extra("status_code", result.status_code)
@@ -421,7 +356,7 @@ async def scrape_page_markdown(base_url, crawler, page_num):
 
     if not result.markdown:
         with sentry_sdk.push_scope() as scope:
-            scope.set_tag("component", "scrape_page_markdown")
+            scope.set_tag("component", "fetch_page_markdown")
             scope.set_tag("page_num", page_num)
             scope.set_extra("page_url", page_url)
             sentry_sdk.capture_message(
@@ -432,36 +367,79 @@ async def scrape_page_markdown(base_url, crawler, page_num):
 
     return result.markdown
 
-async def scrape_job_listing_page(base_url, location_search, crawler, page_pool, page_num, job_count, day_range_limit):
-    markdown = await scrape_page_markdown(base_url, crawler, page_num)
+async def process_job_listing_page(base_url, location_search, crawler, page_pool, page_num, job_count, day_range_limit):
+    markdown = await fetch_page_markdown(base_url, crawler, page_num)
     if not markdown:
-        return {'job_count': job_count, 'terminated_early': False, 'invalid_jobs': []}
+        return {'job_count': job_count, 'terminated_early': False}
 
-    job_urls = process_markdown_to_job_links(markdown)
+    job_urls = process_markdown_to_job_urls(markdown)
     if not job_urls:
         with sentry_sdk.push_scope() as scope:
-            scope.set_tag("component", "scrape_job_listing_page")
+            scope.set_tag("component", "process_job_listing_page")
             scope.set_tag("page_num", page_num)
             scope.set_extra("base_url", base_url)
             scope.set_extra("markdown_preview", markdown[:500] if markdown else "N/A")
             sentry_sdk.capture_message(
                 f"No job links found in markdown on page {page_num}", level="warning"
             )
-        return {'job_count': job_count, 'terminated_early': False, 'invalid_jobs': []}
+        return {'job_count': job_count, 'terminated_early': False}
 
-    page_job_data, terminated_early = await process_all_jobs_concurrently(job_urls, crawler, page_pool, page_num, location_search, day_range_limit)
+    page_job_data, terminated_early = await process_jobs_concurrently(job_urls, crawler, page_pool, page_num, location_search, day_range_limit)
 
-    invalid_jobs = []
     if page_job_data:
-        job_count, invalid_jobs = await validate_and_insert_jobs(page_job_data, page_num, job_count)
+        cleaned_jobs = await validate_jobs(page_job_data)
+        job_count = await insert_jobs_into_database(cleaned_jobs, page_num, job_count)
     
     await pause_briefly(0.05, 0.25)
     await backoff_if_high_cpu()
 
     return {
         'job_count': job_count, 
-        'terminated_early': terminated_early,
-        'invalid_jobs': invalid_jobs  
+        'terminated_early': terminated_early
+    }
+
+async def setup_scraping_context():
+    playwright, browser, context = await create_browser_context()
+    page_pool = PagePool(context, max_pages=CONCURRENT_JOBS_NUM)
+    await page_pool.init_pages()
+    return playwright, browser, page_pool
+
+
+async def teardown_scraping_context(playwright, browser, page_pool):
+    await page_pool.close_all()
+    await browser.close()
+    await playwright.stop()
+
+
+async def scrape_pages(base_url, location_search, crawler, page_pool, total_pages, day_range_limit):
+    job_count = 0
+    terminated_early = False
+    terminated_page_num = None
+
+    for page_num in range(1, total_pages + 1):
+        result = await process_job_listing_page(
+            base_url,
+            location_search,
+            crawler,
+            page_pool,
+            page_num,
+            job_count,
+            day_range_limit
+        )
+        job_count = result['job_count']
+
+        if result.get('terminated_early'):
+            terminated_early = True
+            terminated_page_num = page_num
+            break
+
+    message = f"Scraped and inserted {job_count} jobs."
+    if terminated_early:
+        message += f" Early termination triggered on page {terminated_page_num} due to day range limit of {day_range_limit} days."
+
+    return {
+        'message': message,
+        'terminated_early': terminated_early
     }
 
 async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_PAGE, max_pages=None, day_range_limit=DAY_RANGE_LIMIT):
@@ -472,16 +450,13 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
     try:
         async with AsyncWebCrawler() as crawler:
             logging.info("AsyncWebCrawler initialized successfully!")
-            playwright, browser, context = await create_browser_context()
-            page_pool = PagePool(context, max_pages=CONCURRENT_JOBS_NUM)
-            await page_pool.init_pages()
+            playwright, browser, page_pool = await setup_scraping_context()
 
             try: 
-                markdown = await scrape_page_markdown(base_url, crawler, 1)
+                markdown = await fetch_page_markdown(base_url, crawler, 1)
                 if not markdown:
                     return await return_and_report({
                         'message': 'No job search markdown found. Scraped 0 jobs.',
-                        'invalid_jobs': [],
                         'terminated_early': False
                     })
 
@@ -489,72 +464,39 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
                 if total_jobs == 0:
                     return await return_and_report({
                         'message': 'No jobs found. Scraped 0 jobs.',
-                        'invalid_jobs': [],
                         'terminated_early': False
                     })
                 
                 total_pages = get_total_pages(total_jobs, pagesize, max_pages)
                 logging.info(f"Detected {total_jobs} jobs — scraping {total_pages} pages.")
 
-                job_count = 0
-                all_invalid_jobs = []
-                terminated_early = False
-                terminated_page_num = None
+                scrape_summary = await scrape_pages(
+                    base_url,
+                    location_search,
+                    crawler,
+                    page_pool,
+                    total_pages,
+                    day_range_limit
+                )
 
-                for page_num in range(1, total_pages + 1):
-                    sentry_sdk.add_breadcrumb(
-                        category="scraper",
-                        message=f"Starting scrape for page {page_num}",
-                        level="info",
-                    )
-                    result = await scrape_job_listing_page(base_url, location_search, crawler, page_pool, page_num, job_count, all_errors, day_range_limit)
-                    job_count = result['job_count']
-                    if result['invalid_jobs']:
-                        all_invalid_jobs.extend(result['invalid_jobs'])
-                    if result['terminated_early']:
-                        terminated_early = True
-                        terminated_page_num = page_num
-                        break
-                
-                message = f"Scraped and inserted {job_count} jobs."
-                if terminated_early:
-                    message += f" Early termination triggered on page {terminated_page_num} due to day range limit of {day_range_limit} days."
+                return await return_and_report(scrape_summary)
 
             finally:
-                sentry_sdk.add_breadcrumb(
-                    category="scraper",
-                    message="Cleaning up crawler and browser context",
-                    level="info",
-                )
-                await page_pool.close_all()
-                await browser.close()
-                await playwright.stop()
+                await teardown_scraping_context(playwright, browser, page_pool)
 
-            return await return_and_report({
-                'message': message,
-                'invalid_jobs': all_invalid_jobs,
-                'terminated_early': terminated_early
-            })
-        
     except Exception as e:
         sentry_sdk.set_tag("component", "scrape_job_listing")
         sentry_sdk.set_extra("base_url", base_url)
 
-        if 'total_jobs' in locals():
-            sentry_sdk.set_extra("total_jobs", total_jobs)
-        if 'total_pages' in locals():
-            sentry_sdk.set_extra("total_pages", total_pages)
-        if 'terminated_page_num' in locals():
-            sentry_sdk.set_extra("terminated_page_num", terminated_page_num)
-        if 'job_count' in locals():
-            sentry_sdk.set_extra("job_count", job_count)
+        for var in ['total_jobs', 'total_pages', 'terminated_page_num', 'job_count']:
+            if var in locals():
+                sentry_sdk.set_extra(var, locals()[var])
 
         sentry_sdk.capture_message("Fatal error during job scrape startup or teardown — full job run failed")
         sentry_sdk.capture_exception(e)
 
         return await return_and_report({
             'message': f'Fatal exception during job scrape startup or teardown: {type(e).__name__}: {e}',
-            'invalid_jobs': [],
             'terminated_early': False
         })
 
