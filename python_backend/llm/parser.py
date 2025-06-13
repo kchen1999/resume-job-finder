@@ -1,11 +1,16 @@
 import os
+import sentry_sdk
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+
 from groq import Groq
 from dotenv import load_dotenv
-from constants import ALLOWED_WORK_MODEL_VALUES, ALLOWED_EXPERIENCE_LEVEL_VALUES
+from utils.constants import ALLOWED_WORK_MODEL_VALUES, ALLOWED_EXPERIENCE_LEVEL_VALUES
 
-# Only load .env if it exists (i.e., in development)
+# Only load .env if it exists (in development)
 if os.environ.get("FLY_REGION") is None:
-    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
+    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 def get_groq_client():
     api_key = os.environ.get("GROQ_API_KEY")
@@ -88,7 +93,12 @@ async def parse_job_posting(markdown, count):
         return chat_completion.choices[0].message.content
         
     except Exception as e:
-        print("Error calling Groq API (refine_data):", e)
+        logging.error("Error calling Groq API (refine_data):", e)
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("component", "parse_job_posting")
+            scope.set_extra("model", model)
+            scope.set_extra("input_excerpt", markdown[:500]) 
+            sentry_sdk.capture_exception(e)
         return None
 
 async def infer_work_model(job_text):
@@ -118,8 +128,13 @@ async def infer_work_model(job_text):
         return inferred_work_model if inferred_work_model in ALLOWED_WORK_MODEL_VALUES else None
         
     except Exception as e:
-        print("Error calling Groq API: (work_model)", e)
-        return None  
+        logging.error(f"Error calling Groq API (work_model): {e}")
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("component", "infer_work_model")
+            scope.set_extra("model", model)
+            scope.set_extra("input_excerpt", job_text[:500])
+            sentry_sdk.capture_exception(e)
+        return None 
     
 async def infer_experience_level(job_title, job_text):
     try:
@@ -162,5 +177,10 @@ async def infer_experience_level(job_title, job_text):
         return inferred_experience if inferred_experience in ALLOWED_EXPERIENCE_LEVEL_VALUES else None
 
     except Exception as e:
-        print("Error calling Groq API (experience_level):", e)
+        logging.error(f"Error calling Groq API (experience_level): {e}")
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("component", "infer_experience_level")
+            scope.set_extra("model", model)
+            scope.set_extra("input_excerpt", job_text[:500])
+            sentry_sdk.capture_exception(e)
         return None

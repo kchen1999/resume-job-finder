@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import JSONResponse
-from job_scrape import scrape_job_listing
-from constants import DAY_RANGE_LIMIT
+from app.main import scrape_job_listing
+from utils.constants import DAY_RANGE_LIMIT
 
 app = FastAPI()
 
@@ -26,7 +26,6 @@ async def cron_daily_scrape(background_tasks: BackgroundTasks):
     )
 
     return JSONResponse(content={"status": "Scheduled daily scrape"}, status_code=202)
-
 
 # Manual scraping trigger
 @app.post("/start-scraping")

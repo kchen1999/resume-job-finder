@@ -2,10 +2,9 @@ import logging
 from urllib.parse import urlparse
 from datetime import datetime
 import sentry_sdk
-from llm_job_parser import infer_experience_level, infer_work_model
-from utils import flatten_field
-from node_client import send_page_jobs_to_node
-from constants import ALLOWED_EXPERIENCE_LEVEL_VALUES, ALLOWED_WORK_MODEL_VALUES, REQUIRED_FIELDS, NON_REQUIRED_FIELDS, URL_FIELDS, LIST_FIELDS, FALLBACK_EXPERIENCE_LEVEL, FALLBACK_WORK_MODEL, FALLBACK_POSTED_WITHIN
+from llm.parser import infer_experience_level, infer_work_model
+from utils.utils import flatten_field
+from utils.constants import ALLOWED_EXPERIENCE_LEVEL_VALUES, ALLOWED_WORK_MODEL_VALUES, REQUIRED_FIELDS, NON_REQUIRED_FIELDS, URL_FIELDS, LIST_FIELDS, FALLBACK_EXPERIENCE_LEVEL, FALLBACK_WORK_MODEL, FALLBACK_POSTED_WITHIN
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -116,25 +115,3 @@ async def validate_jobs(page_job_data):
         cleaned_job = await validate_job(job)
         cleaned_jobs.append(cleaned_job)
     return cleaned_jobs
-
-
-async def insert_jobs_into_database(cleaned_jobs, page_num, job_count):
-    if not cleaned_jobs:
-        return job_count
-
-    logging.debug(f"Cleaned job data: {cleaned_jobs}")
-
-    try:
-        await send_page_jobs_to_node(cleaned_jobs)
-        job_count += len(cleaned_jobs)
-        logging.info(f"Inserted {len(cleaned_jobs)} jobs from page {page_num}")
-    except Exception as db_error:
-        with sentry_sdk.push_scope() as scope:
-            scope.set_tag("component", "insert_jobs_into_database")
-            scope.set_extra("page_num", page_num)
-            scope.capture_exception(db_error)
-
-    return job_count
-
-
-

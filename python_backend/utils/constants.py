@@ -6,14 +6,14 @@ TERMINATE = "terminate"
 SKIPPED = "skipped"
 ERROR = "error"
 CONCURRENT_JOBS_NUM = 4
-POSTED_TIME_SELECTOR = "x3iy8f0 o3fpgs4z _1i66rlw0 _1i66rlw1 _1i66rlw22 _1g0tbpc4 _1i66rlw7"
+POSTED_DATE_SELECTOR = "x3iy8f0 o3fpgs4z _1i66rlw0 _1i66rlw1 _1i66rlw22 _1g0tbpc4 _1i66rlw7"
 JOB_METADATA_FIELDS = {
-    "location": "job-detail-location",
-    "classification": "job-detail-classifications",
-    "work_type": "job-detail-work-type",
-    "salary": "job-detail-salary",
-    "title": "job-detail-title",
-    "company": "advertiser-name"
+    "location": ["job-detail-location"],
+    "classification": ["job-detail-classifications"],
+    "work_type": ["job-detail-work-type"],
+    "salary": ["job-detail-salary", "job-detail-add-expected-salary"],
+    "title": ["job-detail-title"],
+    "company": ["advertiser-name"]
 }
 BROWSER_USER_AGENT = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36" 
