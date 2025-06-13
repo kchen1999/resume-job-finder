@@ -3,9 +3,8 @@ import asyncio
 import json
 from unittest.mock import patch, AsyncMock
 from httpx import AsyncClient, ASGITransport
-from app import app  
-from job_scrape import scrape_job_listing
-from constants import REQUIRED_FIELDS, NON_REQUIRED_FIELDS, LIST_FIELDS, TOTAL_JOBS_PER_PAGE, OPTIONAL_FIELDS, REQUIRED_JOB_METADATA_FIELDS, DAY_RANGE_LIMIT
+from app.app import app
+from utils.constants import REQUIRED_FIELDS, NON_REQUIRED_FIELDS, LIST_FIELDS, TOTAL_JOBS_PER_PAGE, OPTIONAL_FIELDS, REQUIRED_JOB_METADATA_FIELDS, DAY_RANGE_LIMIT
 from collections import Counter
 
 def assert_valid_job(job):
@@ -28,18 +27,21 @@ def assert_valid_job(job):
 @pytest.mark.asyncio
 async def test_scrape_and_send_jobs():
     jobs_received = []
-    scrape_results = {}
+    summary_reported = {}
 
-    async def mock_send_page_jobs_to_node(job_data_list):
-        jobs_received.extend(job_data_list)
+    async def mock_validate_jobs(page_job_data):
+        return page_job_data
+    
+    async def mock_insert_jobs_into_database(cleaned_jobs, page_num, job_count):
+        jobs_received.extend(cleaned_jobs)
+        return job_count + len(cleaned_jobs)
 
-    async def mock_scrape_job_listing(base_url, location_search, max_pages=None, day_range_limit=DAY_RANGE_LIMIT):
-        result = await scrape_job_listing(base_url, location_search, max_pages=1, day_range_limit=DAY_RANGE_LIMIT)
-        scrape_results.update(result)
-        return result
+    async def mock_send_scrape_summary_to_node(summary):
+        summary_reported.update(summary)
 
-    with patch("job_validate_and_db_insert.send_page_jobs_to_node", new=mock_send_page_jobs_to_node), \
-         patch("app.scrape_job_listing", new=mock_scrape_job_listing):
+    with patch("pages.listing_handler.validate_jobs", new=mock_validate_jobs), \
+        patch("pages.listing_handler.insert_jobs_into_database", new=mock_insert_jobs_into_database), \
+        patch("app.main.send_scrape_summary_to_node", new=mock_send_scrape_summary_to_node):   
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.post(
@@ -51,7 +53,7 @@ async def test_scrape_and_send_jobs():
     
     print(f"Received {len(jobs_received)} jobs")
     print("\nScrape Summary:")
-    print(json.dumps(scrape_results, indent=2))
+    print(json.dumps(summary_reported, indent=2))
 
     if not jobs_received:
         print("No jobs were received. Skipping health checks.")
@@ -60,8 +62,6 @@ async def test_scrape_and_send_jobs():
     for i, job in enumerate(jobs_received, start=1):
         print(f"\n--- Job {i} ---")
         print(json.dumps(job, indent=2))
-    
-    for job in jobs_received:
         assert_valid_job(job)
 
     # --------------------------

@@ -1,6 +1,6 @@
 import pytest
 import os
-from utils import parse_job_json_from_markdown  
+from jobs.parser import parse_job_data_from_markdown
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -9,7 +9,7 @@ async def test_parse_job_json_from_markdown_real():
     with open(file_path, "r", encoding="utf-8") as f:
         markdown = f.read()
 
-    result = await parse_job_json_from_markdown(markdown, count=1)
+    result = await parse_job_data_from_markdown(markdown, count=1)
 
     assert "description" in result
     assert "responsibilities" in result

@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from llm_job_parser import parse_job_posting, infer_work_model, infer_experience_level
+from llm.parser import parse_job_posting, infer_work_model, infer_experience_level
 
 @pytest.mark.asyncio
-@patch("llm_job_parser.client.chat.completions.create")
+@patch("llm.parser.client.chat.completions.create")
 async def test_parse_job_posting(mock_groq_create):
     mock_json = (
         '{"description":"Build stuff.","responsibilities":["Code"],"requirements":["Python"],'
@@ -27,7 +27,7 @@ async def test_parse_job_posting(mock_groq_create):
     (3, "llama-3.1-8b-instant"),
     (4, "llama3-70b-8192"),
 ])
-@patch("llm_job_parser.client.chat.completions.create")
+@patch("llm.parser.client.chat.completions.create")
 async def test_model_selection_based_on_count(mock_groq_create, count, expected_model):
     mock_json = '{"description":"","responsibilities":[],"requirements":[],"experience_level":"mid_or_senior","work_model":"Remote","other":[]}'
     mock_response = MagicMock()
@@ -38,7 +38,7 @@ async def test_model_selection_based_on_count(mock_groq_create, count, expected_
     assert mock_groq_create.call_args.kwargs["model"] == expected_model
 
 @pytest.mark.asyncio
-@patch("llm_job_parser.client.chat.completions.create")
+@patch("llm.parser.client.chat.completions.create")
 async def test_infer_work_model(mock_groq_create):
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content="Remote"))]
@@ -52,7 +52,7 @@ async def test_infer_work_model(mock_groq_create):
 
 
 @pytest.mark.asyncio
-@patch("llm_job_parser.client.chat.completions.create")
+@patch("llm.parser.client.chat.completions.create")
 async def test_infer_experience_level(mock_groq_create):
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content="mid_or_senior"))]
@@ -66,7 +66,7 @@ async def test_infer_experience_level(mock_groq_create):
     mock_groq_create.assert_called_once()
 
 @pytest.mark.asyncio
-@patch("llm_job_parser.client.chat.completions.create")
+@patch("llm.parser.client.chat.completions.create")
 async def test_extract_missing_experience_level_invalid_output(mock_groq_create):
     mock_response = MagicMock()
     mock_response.choices = [MagicMock(message=MagicMock(content="expert"))]
@@ -79,5 +79,3 @@ async def test_extract_missing_experience_level_invalid_output(mock_groq_create)
 
     assert result is None  
     mock_groq_create.assert_called_once()
-
-

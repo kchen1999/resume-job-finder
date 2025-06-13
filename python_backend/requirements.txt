@@ -6,4 +6,6 @@ json_repair==0.41.1
 playwright==1.51.0
 python-dotenv==1.1.0
 uvicorn==0.34.2
+sentry-sdk==2.29.1
+
 

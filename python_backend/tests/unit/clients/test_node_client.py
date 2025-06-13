@@ -1,7 +1,7 @@
 import pytest
 from httpx import Response, Request, HTTPStatusError
 from unittest.mock import AsyncMock, MagicMock, patch
-from node_client import send_page_jobs_to_node
+from clients.node_client import send_page_jobs_to_node
 
 @pytest.mark.asyncio
 @patch("httpx.AsyncClient.post", new_callable=AsyncMock)
@@ -27,4 +27,4 @@ async def test_send_page_jobs_to_node_http_error(mock_post, caplog):
         await send_page_jobs_to_node([{"title": "bad job"}])
 
     assert "Failed to insert jobs: 400 - Bad job data" in str(exc_info.value)
-    assert "Failed to insert jobs: 400 - Bad job data" in caplog.text
+

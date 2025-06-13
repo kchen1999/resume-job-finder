@@ -6,7 +6,8 @@ import pytest
 import numpy as np
 from rapidfuzz import fuzz
 from sentence_transformers import SentenceTransformer, util
-from utils import parse_job_data_from_markdown, override_experience_level_with_title, set_default_work_model, normalize_experience_level
+from jobs.enricher import override_experience_level_with_title, set_default_work_model, normalize_experience_level
+from jobs.parser import parse_job_data_from_markdown
 
 # Threshold constants for matching
 FUZZY_MATCH_THRESHOLD = 75
