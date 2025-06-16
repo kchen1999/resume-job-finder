@@ -2,8 +2,8 @@ name: Daily Scrape Trigger
 
 on:
   schedule:
-    - cron: '20 11 * * *'  # runs daily at midnight UTC, adjust as needed
-  workflow_dispatch:     # manual trigger option
+    - cron: '00 13 * * *'  # runs daily at midnight
+  workflow_dispatch:    
 
 jobs:
   trigger_scrape:

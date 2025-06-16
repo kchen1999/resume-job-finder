@@ -1,0 +1,30 @@
+name: Scraper Healthcheck
+
+on:
+  schedule:
+    - cron: '0 8 * * *' 
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        working-directory: python-backend
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run unit tests
+        working-directory: python-backend
+        run: pytest tests/unit
+
+      - name: Run scraper integration test
+        working-directory: python-backend
+        run: pytest tests/integration/pages/test_sucess_one_page.py
