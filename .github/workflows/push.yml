@@ -10,9 +10,6 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python-backend
     steps:
       - uses: actions/checkout@v4
 
@@ -22,12 +19,16 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
+        working-directory: python_backend
         run: |
           pip install -r requirements.txt
           pip install pytest ruff mypy
 
       - name: Check style
+        working-directory: python_backend
         run: ruff check .
-
+        
       - name: Run unit tests
+        working-directory: python_backend
         run: pytest tests/unit
+        
