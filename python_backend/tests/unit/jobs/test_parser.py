@@ -123,18 +123,15 @@ async def test_parse_job_data_from_markdown_returns_dict_directly(mock_parse_jso
 
 @pytest.mark.asyncio
 @patch("jobs.parser.clean_repair_parse_json")
-@patch("jobs.parser.parse_json_block_from_text")
 @patch("jobs.parser.parse_job_posting", new_callable=AsyncMock)
 async def test_parse_job_data_from_markdown_repairs_and_returns(
-    mock_parse_posting, mock_parse_json_block, mock_clean_repair
+    mock_parse_posting, mock_clean_repair
 ):
     job_md = "broken markdown"
-    mock_parse_posting.return_value = "broken string with json"
-    mock_parse_json_block.return_value = "malformed json string"
+    mock_parse_posting.return_value = '{"bad": "json", unquoted: value}'
     mock_clean_repair.return_value = json.loads(repaired)
 
     result = await parse_job_data_from_markdown(job_md, 1)
-
     assert isinstance(result, dict)
     assert result["experience_level"] == "mid_or_senior"
     assert "responsibilities" in result

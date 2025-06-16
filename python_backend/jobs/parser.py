@@ -1,5 +1,6 @@
 import logging
 import json
+import re
 import sentry_sdk
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -30,27 +31,28 @@ def clean_repair_parse_json(json_block):
 
 def parse_json_block_from_text(response):
     try:
-        start = response.find('{')
-        end = response.rfind('}') + 1
-        extracted = response[start:end]
-        return json.loads(extracted)
+        match = re.search(r'\{.*\}', response, re.DOTALL)
+        if match:
+            json_str = match.group(0)
+            try: 
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                return clean_repair_parse_json(json_str)
+        else:
+            raise ValueError("No JSON block found in response.")
     except Exception as e:
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("component", "parse_json_block_from_text")
             scope.set_extra("raw_response", response)
             sentry_sdk.capture_exception(e)
-        return response
+    return response
 
 async def parse_job_data_from_markdown(job_markdown, count):
     try:
         raw_llm_output  = await parse_job_posting(job_markdown, count)
-        json_block = parse_json_block_from_text(raw_llm_output)
+        job_data = parse_json_block_from_text(raw_llm_output)
 
-        if isinstance(json_block, dict):
-            return json_block
-    
-        job_data = clean_repair_parse_json(json_block)
-        if not job_data:
+        if not isinstance(job_data, dict):
             with sentry_sdk.push_scope() as scope:
                 scope.set_tag("component", "parse_job_data_from_markdown")
                 scope.set_extra("input_markdown", job_markdown[:1000])
