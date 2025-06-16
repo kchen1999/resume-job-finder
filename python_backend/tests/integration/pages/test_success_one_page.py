@@ -1,7 +1,8 @@
 import pytest
 import asyncio
 import json
-from unittest.mock import patch, AsyncMock
+import sentry_sdk
+from unittest.mock import patch
 from httpx import AsyncClient, ASGITransport
 from app.app import app
 from utils.constants import REQUIRED_FIELDS, NON_REQUIRED_FIELDS, LIST_FIELDS, TOTAL_JOBS_PER_PAGE, OPTIONAL_FIELDS, REQUIRED_JOB_METADATA_FIELDS, DAY_RANGE_LIMIT
@@ -75,10 +76,20 @@ async def test_scrape_and_send_jobs():
             if isinstance(val, str):
                 if val.strip(): field_counter[field] += 1
 
-    for required_job_metadata_field in REQUIRED_JOB_METADATA_FIELDS:
-        assert field_counter[required_job_metadata_field] > 0, f"All jobs missing {required_job_metadata_field} — possible selector change."
+    for required_field in REQUIRED_JOB_METADATA_FIELDS:
+        if field_counter[required_field] == 0:
+            sentry_sdk.capture_message(
+                f"[SCRAPER HEALTHCHECK] All jobs missing `{required_field}` — likely selector change or extraction bug.",
+                level="error"
+            )
+        assert field_counter[required_field] > 0, f"All jobs missing {required_field} — possible selector change."
 
     for optional_field in OPTIONAL_FIELDS:
+        if field_counter[optional_field] == 0:
+            sentry_sdk.capture_message(
+                f"[SCRAPER HEALTHCHECK] All jobs missing optional field `{optional_field}` — selector may be broken.",
+                level="warning"
+            )
         assert field_counter[optional_field] > 0, f"All jobs missing {optional_field} — possible selector change."
 
     print("Job metadata selector health checks passed.")
