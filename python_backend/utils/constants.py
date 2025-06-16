@@ -1,12 +1,12 @@
 DAY_RANGE_LIMIT = 1
 TOTAL_JOBS_PER_PAGE = 22
 MAX_RETRIES = 3
+CONCURRENT_JOBS_NUM = 4
 SUCCESS = "success"
 TERMINATE = "terminate" 
 SKIPPED = "skipped"
 ERROR = "error"
-CONCURRENT_JOBS_NUM = 4
-POSTED_DATE_SELECTOR = "x3iy8f0 o3fpgs4z _1i66rlw0 _1i66rlw1 _1i66rlw22 _1g0tbpc4 _1i66rlw7"
+POSTED_DATE_SELECTOR = "_1oozmqe0 l218ib4z _1ljn1h70 _1ljn1h71 _1ljn1h71u _1ljn1h76 _1kdtdvw4"
 JOB_METADATA_FIELDS = {
     "location": ["job-detail-location"],
     "classification": ["job-detail-classifications"],
@@ -32,4 +32,9 @@ FALLBACK_EXPERIENCE_LEVEL = "mid_or_senior"
 FALLBACK_POSTED_WITHIN = "Today"
 NO_ELEMENTS = "__NO_ELEMENTS__"
 NO_MATCHING_TEXT = "__NO_MATCHING_TEXT__"
+INTERN_TITLES = ["intern", "internship"]
+JUNIOR_TITLES = ["junior", "graduate", "entry"]
+LEAD_TITLES = ["lead", "manager", "principal", "head", "director", "vp", "chief"]
+
+
 

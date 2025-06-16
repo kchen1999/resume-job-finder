@@ -1,7 +1,8 @@
 import sentry_sdk
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from utils.utils import get_job_urls
+from utils.constants import INTERN_TITLES, JUNIOR_TITLES, LEAD_TITLES
 
 def get_relative_posted_time(job_data):
     posted_date_str = job_data.get("posted_date")
@@ -34,11 +35,11 @@ def set_default_work_model(job_data):
 
 def infer_experience_level_from_title(title: str) -> str:
     title = title.lower()
-    if any(term in title for term in ["intern", "internship"]):
+    if any(term in title for term in INTERN_TITLES):
         return "intern"
-    if any(term in title for term in ["junior", "graduate", "entry"]):
+    if any(term in title for term in JUNIOR_TITLES):
         return "junior"
-    if any(term in title for term in ["lead", "manager", "principal", "head", "director", "vp", "chief"]):
+    if any(term in title for term in LEAD_TITLES):
         return "lead+"
     return ""
 
