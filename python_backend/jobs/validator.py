@@ -1,12 +1,21 @@
-import logging
-from urllib.parse import urlparse
 from datetime import datetime
+from urllib.parse import urlparse
+
 import sentry_sdk
 from llm.parser import infer_experience_level, infer_work_model
+from utils.constants import (
+    ALLOWED_EXPERIENCE_LEVEL_VALUES,
+    ALLOWED_WORK_MODEL_VALUES,
+    FALLBACK_EXPERIENCE_LEVEL,
+    FALLBACK_POSTED_WITHIN,
+    FALLBACK_WORK_MODEL,
+    LIST_FIELDS,
+    NON_REQUIRED_FIELDS,
+    REQUIRED_FIELDS,
+    URL_FIELDS,
+)
 from utils.utils import flatten_field
-from utils.constants import ALLOWED_EXPERIENCE_LEVEL_VALUES, ALLOWED_WORK_MODEL_VALUES, REQUIRED_FIELDS, NON_REQUIRED_FIELDS, URL_FIELDS, LIST_FIELDS, FALLBACK_EXPERIENCE_LEVEL, FALLBACK_WORK_MODEL, FALLBACK_POSTED_WITHIN
 
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 async def validate_job(job):
     job_url = job.get("job_url", "Unknown URL")
@@ -37,7 +46,7 @@ async def validate_job(job):
                 scope.capture_message(f"Missing required field '{field}', applying fallback", level="warning")
 
             if field == "posted_date":
-                job["posted_date"] = datetime.today().strftime('%d/%m/%Y')
+                job["posted_date"] = datetime.today().strftime("%d/%m/%Y")
                 job["posted_within"] = FALLBACK_POSTED_WITHIN
             else:
                 job[field] = ""
@@ -47,7 +56,7 @@ async def validate_job(job):
         url = job.get(url_field)
         if url:
             parsed = urlparse(url)
-            if not (parsed.scheme in ('http', 'https') and parsed.netloc):
+            if not (parsed.scheme in ("http", "https") and parsed.netloc):
                 with sentry_sdk.push_scope() as scope:
                     scope.set_tag("component", "validate_job")
                     scope.set_extra("job_url", job_url)

@@ -1,14 +1,15 @@
 import logging
+
+logger = logging.getLogger(__name__)
+
 import sentry_sdk
-
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
-
 from crawl4ai import CrawlerRunConfig
-from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
-from utils.retry import retry_with_backoff
-from utils.utils import pause_briefly, backoff_if_high_cpu
+from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from utils.constants import MAX_RETRIES
+from utils.retry import retry_with_backoff
+from utils.utils import backoff_if_high_cpu, pause_briefly
+
 
 async def fetch_page_markdown(base_url, crawler, page_num):
     page_url = f"{base_url}&page={page_num}"
@@ -23,7 +24,7 @@ async def fetch_page_markdown(base_url, crawler, page_num):
             scope.set_extra("page_url", page_url)
             sentry_sdk.capture_exception(e)
         return None
-    
+
     await backoff_if_high_cpu()
 
     if not result.success:
@@ -60,7 +61,7 @@ async def fetch_job_markdown(job_url, crawler):
         )
         config = CrawlerRunConfig(markdown_generator=md_generator)
 
-        logging.debug(f"Starting crawl for job URL: {job_url}")
+        logger.debug(f"Starting crawl for job URL: {job_url}")
         result = await crawler.arun(job_url, config=config)
         await pause_briefly(0.05, 0.25)
         await backoff_if_high_cpu()
@@ -71,8 +72,8 @@ async def fetch_job_markdown(job_url, crawler):
                 scope.set_extra("job_url", job_url)
                 scope.set_extra("crawler_error", result.error_message)
                 sentry_sdk.capture_message("Crawler failed to fetch markdown", level="error")
-            return None 
-        
+            return None
+
         return result.markdown.fit_markdown
 
     result = await retry_with_backoff(

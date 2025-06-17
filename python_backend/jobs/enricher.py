@@ -1,25 +1,26 @@
-import sentry_sdk
-
 from datetime import datetime
-from utils.utils import get_job_urls
+
+import sentry_sdk
 from utils.constants import INTERN_TITLES, JUNIOR_TITLES, LEAD_TITLES
+from utils.utils import get_job_urls
+
 
 def get_relative_posted_time(job_data):
     posted_date_str = job_data.get("posted_date")
     if not posted_date_str:
         return None
 
-    try: 
-        posted_date = datetime.strptime(posted_date_str, '%d/%m/%Y').date()
+    try:
+        posted_date = datetime.strptime(posted_date_str, "%d/%m/%Y").date()
         today = datetime.today().date()
         delta = (today - posted_date).days
-    
+
         if delta == 0:
-            return 'Today'
-        elif delta == 1:
-            return 'Yesterday'
+            return "Today"
+        if delta == 1:
+            return "Yesterday"
         return f"{delta} days ago" if delta > 1 else None
-    
+
     except Exception as e:
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("component", "get_relative_posted_time")

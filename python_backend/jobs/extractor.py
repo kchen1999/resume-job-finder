@@ -1,26 +1,37 @@
 import logging
+
+logger = logging.getLogger(__name__)
 import re
+
 import sentry_sdk
-
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
-
-from utils.constants import LOGO_SELECTOR, NO_ELEMENTS, NO_MATCHING_TEXT, POSTED_DATE_SELECTOR, MAX_RETRIES, JOB_METADATA_FIELDS, SKIPPED, SUCCESS, TERMINATE
-from utils.utils import pause_briefly, backoff_if_high_cpu, get_posted_date, is_recent_job
-from utils.retry import retry_with_backoff
 from markdown.fetcher import fetch_job_markdown
+from utils.constants import (
+    JOB_METADATA_FIELDS,
+    LOGO_SELECTOR,
+    MAX_RETRIES,
+    NO_ELEMENTS,
+    NO_MATCHING_TEXT,
+    POSTED_DATE_SELECTOR,
+    SKIPPED,
+    SUCCESS,
+    TERMINATE,
+)
+from utils.retry import retry_with_backoff
+from utils.utils import backoff_if_high_cpu, get_posted_date, is_recent_job, pause_briefly
+
 from jobs.parser import parse_job_data_from_markdown
+
 
 async def extract_logo_src(page):
     await pause_briefly()
     logo_element = await page.query_selector(LOGO_SELECTOR)
     await backoff_if_high_cpu()
     if logo_element:
-        logo_src = await logo_element.get_attribute('src')
-        logging.debug(f"Logo found with src: {logo_src}")
+        logo_src = await logo_element.get_attribute("src")
+        logger.debug(f"Logo found with src: {logo_src}")
         return logo_src
-    else:
-        logging.warning("Logo element not found.")
-        return ""
+    logger.warning("Logo element not found.")
+    return ""
 
 async def extract_job_metadata_fields(page, job_metadata_fields):
     results = {}
@@ -37,14 +48,14 @@ async def extract_job_metadata_fields(page, job_metadata_fields):
                     results[key] = text
                     value_found = True
                     break
-                
+
             except Exception as e:
-                logging.error(f"Error extracting {key} with selector '{selector}': {e}")
+                logger.exception(f"Error extracting {key} with selector '{selector}': {e}")
                 field_errors[key] = str(e)
 
         if not value_found:
             results[key] = ""
-            logging.warning(f"No valid element found for job field '{key}'")
+            logger.warning(f"No valid element found for job field '{key}'")
             if key not in field_errors:
                 field_errors[key] = "Element not found"
 
@@ -59,26 +70,26 @@ async def extract_posted_date_by_class(page, class_name):
         elements = await page.query_selector_all(selector)
 
         if not elements:
-            logging.warning("No elements found for posted date selector.")
+            logger.warning("No elements found for posted date selector.")
             return {"posted_date": None, "error": NO_ELEMENTS}
 
         for elem in elements:
             await backoff_if_high_cpu()
             text = (await elem.inner_text()).strip()
-            logging.debug(f"Found element text: {text}")
+            logger.debug(f"Found element text: {text}")
 
-            match = re.search(r'Posted (\d+)([dhm]) ago', text)
+            match = re.search(r"Posted (\d+)([dhm]) ago", text)
             if match:
                 value, unit = int(match.group(1)), match.group(2)
-                days_ago = value if unit == 'd' else 0
+                days_ago = value if unit == "d" else 0
                 posted_date = get_posted_date(days_ago)
-                logging.debug(f"Extracted posted date: {posted_date}")
+                logger.debug(f"Extracted posted date: {posted_date}")
                 return {"posted_date": posted_date, "error": None}
-        
+
         return {"posted_date": None, "error": NO_MATCHING_TEXT}
-    
-    except Exception as e:
-        raise 
+
+    except Exception:
+        raise
 
 async def safe_extract_logo_src(page, job_url):
     try:
@@ -129,10 +140,10 @@ async def safe_extract_posted_date_by_class(page, class_name, job_url):
                 scope.set_tag("component", "extract_posted_date_by_class")
                 scope.set_extra("job_url", job_url)
                 scope.capture_message(
-                    f"Posted date extraction warning: {error_message}", 
+                    f"Posted date extraction warning: {error_message}",
                     level="error"
                 )
-            
+
             return None
 
         return result.get("posted_date")
@@ -188,14 +199,14 @@ async def extract_job_data(job_url, crawler, page_pool, count, terminate_event, 
     job_markdown, job_metadata = await scrape_job_details(job_url, crawler, page_pool)
     if not job_metadata:
         return {"status": SKIPPED, "job": None, "job_metadata": None}
-    
+
     if not job_markdown:
         return {"status": SKIPPED, "job": None, "job_metadata": job_metadata}
-    
+
     if not is_recent_job(job_metadata, day_range_limit):
         terminate_event.set()
         return {"status": TERMINATE, "job": None, "job_metadata": job_metadata}
-    
+
     job_data = await parse_job_data_from_markdown(job_markdown, count)
     if not job_data:
         return {"status": SKIPPED, "job": None, "job_metadata": job_metadata}

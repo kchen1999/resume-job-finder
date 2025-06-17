@@ -1,10 +1,13 @@
-import logging
-import sentry_sdk
 import asyncio
+import logging
 
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
-from typing import Callable, Any
+from collections.abc import Callable
+from typing import Any
+
+import sentry_sdk
+
 
 async def retry_with_backoff(
     func: Callable[[], Any],
@@ -21,7 +24,7 @@ async def retry_with_backoff(
         except Exception as e:
             last_exception = e
             attempt += 1
-            logging.warning(f"[Attempt {attempt}] {label} failed: {e}")
+            logger.warning(f"[Attempt {attempt}] {label} failed: {e}")
 
             if attempt < max_retries:
                 await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
@@ -31,5 +34,5 @@ async def retry_with_backoff(
         scope.set_extra("operation_label", label)
         scope.set_extra("last_exception", str(last_exception))
         sentry_sdk.capture_exception(last_exception)
-    
+
     return None

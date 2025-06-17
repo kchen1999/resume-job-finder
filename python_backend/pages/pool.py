@@ -1,5 +1,6 @@
 import asyncio
 
+
 class PagePool:
     def __init__(self, context, max_pages):
         self.context = context

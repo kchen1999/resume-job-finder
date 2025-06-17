@@ -1,9 +1,11 @@
-import sentry_sdk
 import asyncio
 
-from utils.constants import TERMINATE, SUCCESS, SKIPPED, ERROR, CONCURRENT_JOBS_NUM
-from utils.utils import pause_briefly, backoff_if_high_cpu
+import sentry_sdk
+from utils.constants import CONCURRENT_JOBS_NUM, SKIPPED, SUCCESS, TERMINATE
+from utils.utils import backoff_if_high_cpu, pause_briefly
+
 from concurrency.job_runner import process_job_with_semaphore
+
 
 def aggregate_job_results(job_results):
     final_jobs = []
@@ -22,21 +24,21 @@ def aggregate_job_results(job_results):
             n_skipped += 1
 
     return final_jobs, early_termination, n_skipped, n_terminated
-    
+
 async def process_jobs_concurrently(job_urls, crawler, page_pool, page_num, location_search, day_range_limit):
     terminate_event = asyncio.Event()
     semaphore = asyncio.Semaphore(CONCURRENT_JOBS_NUM)
     tasks = []
 
     for idx, job_url in enumerate(job_urls):
-        await backoff_if_high_cpu() 
+        await backoff_if_high_cpu()
         task = asyncio.create_task(
             process_job_with_semaphore(
                 job_url, idx, crawler, page_pool, location_search, terminate_event, day_range_limit, semaphore
             )
         )
         tasks.append(task)
-        await pause_briefly(0.05, 0.25) 
+        await pause_briefly(0.05, 0.25)
 
     job_results = await asyncio.gather(*tasks)
 

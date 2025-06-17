@@ -3,7 +3,7 @@ TOTAL_JOBS_PER_PAGE = 22
 MAX_RETRIES = 3
 CONCURRENT_JOBS_NUM = 4
 SUCCESS = "success"
-TERMINATE = "terminate" 
+TERMINATE = "terminate"
 SKIPPED = "skipped"
 ERROR = "error"
 POSTED_DATE_SELECTOR = "_1oozmqe0 l218ib4z _1ljn1h70 _1ljn1h71 _1ljn1h71u _1ljn1h76 _1kdtdvw4"
@@ -16,7 +16,7 @@ JOB_METADATA_FIELDS = {
     "company": ["advertiser-name"]
 }
 BROWSER_USER_AGENT = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36" 
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
 }
 LOGO_SELECTOR = 'div[data-testid="bx-logo-image"] img'
 REQUIRED_FIELDS = ["title", "company", "classification", "posted_date", "posted_within", "work_type", "work_model"]

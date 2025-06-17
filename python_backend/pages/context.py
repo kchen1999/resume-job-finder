@@ -1,13 +1,15 @@
 import asyncio
 import logging
+
+logger = logging.getLogger(__name__)
+
 import sentry_sdk
-
-logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
-
 from playwright.async_api import async_playwright
-from pages.pool import PagePool
 from utils.constants import BROWSER_USER_AGENT, CONCURRENT_JOBS_NUM
 from utils.retry import retry_with_backoff
+
+from pages.pool import PagePool
+
 
 async def create_browser_context():
     playwright = await async_playwright().start()
@@ -57,10 +59,10 @@ async def setup_scraping_context():
     )
 
     if result is None:
-        logging.error("Failed to create scraping context after retries.")
+        logger.error("Failed to create scraping context after retries.")
         return None, None, None
 
-    return result 
+    return result
 
 async def teardown_scraping_context(playwright, browser, page_pool):
     try:
