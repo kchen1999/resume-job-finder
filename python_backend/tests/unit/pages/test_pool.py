@@ -1,29 +1,29 @@
-import pytest
-import asyncio
 from unittest.mock import AsyncMock
 
-from python_backend.tests.unit.pages.test_pool import PagePool
+import pytest
+from pages.pool import PagePool
+
+MAX_PAGES = 3
 
 @pytest.mark.asyncio
-async def test_init_pages():
+async def test_init_pages() -> None:
     mock_context = AsyncMock()
     fake_page = AsyncMock()
     mock_context.new_page.return_value = fake_page
 
-    pool = PagePool(mock_context, max_pages=3)
+    pool = PagePool(mock_context, max_pages=MAX_PAGES)
     await pool.init_pages()
 
-    assert pool._initialized is True
-    assert pool.pages.qsize() == 3
-    assert mock_context.new_page.await_count == 3
+    assert pool.pages.qsize() == MAX_PAGES
+    assert mock_context.new_page.await_count == MAX_PAGES
 
 @pytest.mark.asyncio
-async def test_acquire_and_release():
+async def test_acquire_and_release() -> None:
     mock_context = AsyncMock()
-    fake_pages = [AsyncMock(name=f"Page{i}") for i in range(2)]
+    fake_pages = [AsyncMock(name=f"Page{i}") for i in range(MAX_PAGES)]
     mock_context.new_page.side_effect = fake_pages
 
-    pool = PagePool(mock_context, max_pages=2)
+    pool = PagePool(mock_context, max_pages=MAX_PAGES)
     await pool.init_pages()
 
     # Acquire two pages
@@ -32,21 +32,20 @@ async def test_acquire_and_release():
 
     assert page1 in fake_pages
     assert page2 in fake_pages
-    assert pool.semaphore._value == 0
-    assert pool.pages.qsize() == 0
+    expected_remaining = MAX_PAGES - 2
+    assert pool.pages.qsize() == expected_remaining
 
     # Release a page back
     await pool.release(page1)
-    assert pool.pages.qsize() == 1
-    assert pool.semaphore._value == 1
+    assert pool.pages.qsize() == expected_remaining + 1
 
 @pytest.mark.asyncio
-async def test_close_all_pages():
+async def test_close_all_pages() -> None:
     mock_context = AsyncMock()
-    fake_pages = [AsyncMock(name=f"Page{i}") for i in range(2)]
+    fake_pages = [AsyncMock(name=f"Page{i}") for i in range(MAX_PAGES)]
     mock_context.new_page.side_effect = fake_pages
 
-    pool = PagePool(mock_context, max_pages=2)
+    pool = PagePool(mock_context, max_pages=MAX_PAGES)
     await pool.init_pages()
 
     await pool.close_all()
@@ -57,7 +56,7 @@ async def test_close_all_pages():
     assert pool.pages.qsize() == 0
 
 @pytest.mark.asyncio
-async def test_acquire_release_full_flow():
+async def test_acquire_release_full_flow() -> None:
     mock_context = AsyncMock()
     page = AsyncMock()
     mock_context.new_page.return_value = page

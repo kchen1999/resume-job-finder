@@ -1,32 +1,37 @@
 {
-  "timestamp": "2025-06-13T20:16:29.116756",
+  "timestamp": "2025-06-30T20:23:03.362794+10:00",
   "num_runs": 3,
   "per_run_results": [
     {
-      "avg_desc_score": 91.21080106868922,
+      "avg_desc_score": 99.03363391855827,
       "avg_resp_score": 100.0,
-      "avg_req_score": 98.41176470588235,
+      "avg_req_score": 85.91176470588235,
+      "exp_match_rate": 80.0,
+      "work_model_match_rate": 90.0,
+      "total_tests": 10,
+      "errors": [
+        "[Test Case 4] [REQUIREMENTS MISMATCH] Match Ratio: 0.00%\nExpected: ['4 + years experience programming with Golang', 'Full Stack experience with TypeScript JavaScript React and Node would help.', '7+ years in software engineering']\nActual: []\nScores: [0, 0, 0]",
+        "[Test Case 4] [EXPERIENCE MISMATCH] Expected: 'mid_or_senior', Got: 'lead+'",
+        "[Test Case 5] [WORK MODEL MISMATCH] Expected: 'on-site', Got: 'remote'",
+        "[Test Case 10] [EXPERIENCE MISMATCH] Expected: 'mid_or_senior', Got: 'lead+'"
+      ]
+    },
+    {
+      "avg_desc_score": 97.55626965309004,
+      "avg_resp_score": 100.0,
+      "avg_req_score": 89.0,
       "exp_match_rate": 100.0,
       "work_model_match_rate": 90.0,
       "total_tests": 10,
       "errors": [
-        "[Test Case 6] [WORK MODEL MISMATCH] Expected: 'on-site', Got: 'hybrid'",
-        "[Test Case 10] [DESCRIPTION MISMATCH] Score: 45.28\nExpected: Join one of Australia\u2019s most exciting deep tech teams, building the software and algorithms that power next-gen autonomous systems \u2014 from aerial platforms to precision robotics and navigation hardware. This is not your average engineering role. We\u2019re hiring **Engineers** who thrive at the intersection of embedded systems and advanced algorithms. If you're excited about writing software that actually interacts with the physical world, this is your calling.\nGot: Take ownership: from algorithm to embedded implementation, all the way to physical deployment."
+        "[Test Case 2] [WORK MODEL MISMATCH] Expected: 'on-site', Got: 'remote'",
+        "[Test Case 4] [REQUIREMENTS MISMATCH] Match Ratio: 0.00%\nExpected: ['4 + years experience programming with Golang', 'Full Stack experience with TypeScript JavaScript React and Node would help.', '7+ years in software engineering']\nActual: []\nScores: [0, 0, 0]"
       ]
     },
     {
-      "avg_desc_score": 97.33502040076482,
-      "avg_resp_score": 95.47619047619048,
-      "avg_req_score": 96.5,
-      "exp_match_rate": 100.0,
-      "work_model_match_rate": 100.0,
-      "total_tests": 10,
-      "errors": []
-    },
-    {
-      "avg_desc_score": 99.18603254749657,
+      "avg_desc_score": 98.86734474010855,
       "avg_resp_score": 100.0,
-      "avg_req_score": 95.5,
+      "avg_req_score": 94.41176470588235,
       "exp_match_rate": 100.0,
       "work_model_match_rate": 100.0,
       "total_tests": 10,
@@ -34,17 +39,17 @@
     }
   ],
   "averages": {
-    "avg_desc_score": 95.91061800565019,
-    "avg_resp_score": 98.4920634920635,
-    "avg_req_score": 96.80392156862744,
-    "exp_match_rate": 100.0,
-    "work_model_match_rate": 96.66666666666667
+    "avg_desc_score": 98.4857494372523,
+    "avg_resp_score": 100.0,
+    "avg_req_score": 89.77450980392156,
+    "exp_match_rate": 93.33333333333333,
+    "work_model_match_rate": 93.33333333333333
   },
   "stddevs": {
-    "avg_desc_score": 4.174059285940497,
-    "avg_resp_score": 2.6118226463340184,
-    "avg_req_score": 1.4794829047722236,
-    "exp_match_rate": 0.0,
+    "avg_desc_score": 0.8092357657642734,
+    "avg_resp_score": 0.0,
+    "avg_req_score": 4.302603755550582,
+    "exp_match_rate": 11.547005383792516,
     "work_model_match_rate": 5.773502691896257
   },
   "total_tests_run": 30

@@ -1,11 +1,14 @@
-import pytest
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
-from markdown.fetcher import fetch_page_markdown, fetch_job_markdown
+
+import pytest
+from markdown.fetcher import fetch_job_markdown, fetch_page_markdown
+
 
 @pytest.mark.asyncio
 @patch("markdown.fetcher.pause_briefly", new_callable=AsyncMock)
 @patch("markdown.fetcher.backoff_if_high_cpu", new_callable=AsyncMock)
-async def test_fetch_page_markdown_success(mock_backoff, mock_pause):
+async def test_fetch_page_markdown_success(mock_backoff: AsyncMock, mock_pause: AsyncMock) -> None:
     mock_crawler = MagicMock()
     mock_crawler.arun = AsyncMock(return_value=MagicMock(
         success=True,
@@ -23,7 +26,11 @@ async def test_fetch_page_markdown_success(mock_backoff, mock_pause):
 @patch("markdown.fetcher.pause_briefly", new_callable=AsyncMock)
 @patch("sentry_sdk.capture_exception")
 @patch("sentry_sdk.push_scope")
-async def test_fetch_page_markdown_arun_exception(mock_push_scope, mock_capture_exception, mock_pause):
+async def test_fetch_page_markdown_arun_exception(
+    mock_push_scope: MagicMock,
+    mock_capture_exception: MagicMock,
+    mock_pause: AsyncMock, # noqa: ARG001
+) -> None:
     mock_crawler = MagicMock()
     mock_crawler.arun = AsyncMock(side_effect=Exception("Network error"))
 
@@ -42,7 +49,12 @@ async def test_fetch_page_markdown_arun_exception(mock_push_scope, mock_capture_
 @patch("markdown.fetcher.backoff_if_high_cpu", new_callable=AsyncMock)
 @patch("sentry_sdk.capture_message")
 @patch("sentry_sdk.push_scope")
-async def test_fetch_page_markdown_failed_result(mock_push_scope, mock_capture_message, mock_backoff, mock_pause):
+async def test_fetch_page_markdown_failed_result(
+    mock_push_scope: MagicMock,
+    mock_capture_message: MagicMock,
+    mock_backoff: AsyncMock, # noqa: ARG001
+    mock_pause: AsyncMock # noqa: ARG001
+) -> None:
     mock_crawler = MagicMock()
     mock_crawler.arun = AsyncMock(return_value=MagicMock(
         success=False,
@@ -64,7 +76,12 @@ async def test_fetch_page_markdown_failed_result(mock_push_scope, mock_capture_m
 @patch("markdown.fetcher.backoff_if_high_cpu", new_callable=AsyncMock)
 @patch("sentry_sdk.capture_message")
 @patch("sentry_sdk.push_scope")
-async def test_fetch_page_markdown_no_markdown(mock_push_scope, mock_capture_message, mock_backoff, mock_pause):
+async def test_fetch_page_markdown_no_markdown(
+    mock_push_scope: MagicMock,
+    mock_capture_message: MagicMock,
+    mock_backoff: AsyncMock, # noqa: ARG001
+    mock_pause: AsyncMock # noqa: ARG001
+) -> None:
     mock_crawler = MagicMock()
     mock_crawler.arun = AsyncMock(return_value=MagicMock(
         success=True,
@@ -82,7 +99,7 @@ async def test_fetch_page_markdown_no_markdown(mock_push_scope, mock_capture_mes
 
 @pytest.mark.asyncio
 @patch("markdown.fetcher.retry_with_backoff", new_callable=AsyncMock)
-async def test_fetch_job_markdown_success(mock_retry_with_backoff):
+async def test_fetch_job_markdown_success(mock_retry_with_backoff: AsyncMock) -> None:
     mock_markdown = "## This is a job posting"
     mock_retry_with_backoff.return_value = mock_markdown
 
@@ -99,14 +116,13 @@ async def test_fetch_job_markdown_success(mock_retry_with_backoff):
 @patch("sentry_sdk.push_scope")
 @patch("markdown.fetcher.retry_with_backoff")
 async def test_fetch_job_markdown_arun_failure(
-    mock_retry_with_backoff,
-    mock_push_scope,
-    mock_capture_message,
-    mock_backoff,
-    mock_pause,
-):
-    # Mock `retry_with_backoff` to execute `crawl` and simulate failure
-    async def mock_retry(crawl, **kwargs):
+    mock_retry_with_backoff: AsyncMock,
+    mock_push_scope: MagicMock,
+    mock_capture_message: MagicMock,
+    mock_backoff: AsyncMock, # noqa: ARG001
+    mock_pause: AsyncMock # noqa: ARG001
+) -> None:
+    async def mock_retry(crawl: AsyncMock, **kwargs: Any): # noqa: ARG001
         mock_result = MagicMock()
         mock_result.success = False
         mock_result.error_message = "Timeout"
@@ -130,7 +146,7 @@ async def test_fetch_job_markdown_arun_failure(
 
 @pytest.mark.asyncio
 @patch("markdown.fetcher.retry_with_backoff", new_callable=AsyncMock)
-async def test_fetch_job_markdown_retries_exhausted(mock_retry_with_backoff):
+async def test_fetch_job_markdown_retries_exhausted(mock_retry_with_backoff: AsyncMock) -> None:
     mock_retry_with_backoff.return_value = None
 
     crawler = MagicMock()

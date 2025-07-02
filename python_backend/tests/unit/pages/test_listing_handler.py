@@ -1,10 +1,14 @@
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 from pages.listing_handler import extract_job_urls_from_markdown, process_job_listing_page, scrape_pages
+from utils.context import ScrapeContext
+
+EXPECTED_PAGES_PROCESSED = 2
 
 @patch("pages.listing_handler.extract_job_urls")
-@patch("pages.listing_handler.logging")
-def test_extract_job_urls_success(mock_logging, mock_extract_job_urls):
+def test_extract_job_urls_success(mock_extract_job_urls: MagicMock) -> None:
     markdown = "some markdown with links"
     job_urls = ["https://seek.com.au/job/123", "https://seek.com.au/job/456"]
     mock_extract_job_urls.return_value = job_urls
@@ -14,8 +18,7 @@ def test_extract_job_urls_success(mock_logging, mock_extract_job_urls):
     assert result == job_urls
 
 @patch("pages.listing_handler.extract_job_urls")
-@patch("pages.listing_handler.logging")
-def test_extract_job_urls_empty(mock_logging, mock_extract_job_urls):
+def test_extract_job_urls_empty(mock_extract_job_urls: MagicMock) -> None:
     markdown = "markdown with no job links"
     mock_extract_job_urls.return_value = []
 
@@ -33,31 +36,37 @@ def test_extract_job_urls_empty(mock_logging, mock_extract_job_urls):
 @patch("pages.listing_handler.extract_job_urls_from_markdown")
 @patch("pages.listing_handler.fetch_page_markdown", new_callable=AsyncMock)
 async def test_process_job_listing_page_success(
-    mock_fetch_markdown,
-    mock_extract_urls,
-    mock_process_jobs,
-    mock_validate_jobs,
-    mock_insert_jobs,
-    mock_pause,
-    mock_backoff
-):
+    mock_fetch_markdown: AsyncMock,
+    mock_extract_urls: MagicMock,
+    mock_process_jobs: AsyncMock,
+    mock_validate_jobs: AsyncMock,
+    mock_insert_jobs: AsyncMock,
+    mock_pause_briefly: AsyncMock, # noqa: ARG001
+    mock_backoff_if_high_cpu: AsyncMock, # noqa: ARG001
+) -> None:
     mock_fetch_markdown.return_value = "## Job Markdown"
     mock_extract_urls.return_value = ["https://seek.com.au/job/123"]
     mock_process_jobs.return_value = ([{"title": "Software Engineer"}], False)
     mock_validate_jobs.return_value = [{"title": "Software Engineer"}]
-    mock_insert_jobs.return_value = 11  # updated job_count
+    mock_insert_jobs.return_value = 11
 
-    result = await process_job_listing_page(
-        base_url="https://seek.com.au/jobs",
-        location_search="Sydney",
+    ctx = ScrapeContext(
         crawler=AsyncMock(),
         page_pool=AsyncMock(),
-        page_num=1,
-        job_count=10,
+        location_search="Sydney",
+        terminate_event=asyncio.Event(),
+        semaphore=asyncio.Semaphore(1),
         day_range_limit=3
     )
 
-    assert result == {'job_count': 11, 'terminated_early': False}
+    result = await process_job_listing_page(
+        base_url="https://seek.com.au/jobs",
+        ctx=ctx,
+        page_num=1,
+        job_count=10,
+    )
+
+    assert result == {"job_count": 11, "terminated_early": False}
     mock_fetch_markdown.assert_awaited_once()
     mock_extract_urls.assert_called_once()
     mock_process_jobs.assert_awaited_once()
@@ -66,20 +75,26 @@ async def test_process_job_listing_page_success(
 
 @pytest.mark.asyncio
 @patch("pages.listing_handler.fetch_page_markdown", new_callable=AsyncMock)
-async def test_process_job_listing_page_empty_markdown(mock_fetch_markdown):
+async def test_process_job_listing_page_empty_markdown(mock_fetch_markdown: AsyncMock) -> None:
     mock_fetch_markdown.return_value = ""
 
-    result = await process_job_listing_page(
-        base_url="https://seek.com.au/jobs",
-        location_search="Sydney",
+    ctx = ScrapeContext(
         crawler=AsyncMock(),
         page_pool=AsyncMock(),
-        page_num=1,
-        job_count=5,
+        location_search="Sydney",
+        terminate_event=asyncio.Event(),
+        semaphore=asyncio.Semaphore(1),
         day_range_limit=3
     )
 
-    assert result == {'job_count': 5, 'terminated_early': False}
+    result = await process_job_listing_page(
+        base_url="https://seek.com.au/jobs",
+        ctx=ctx,
+        page_num=1,
+        job_count=5,
+    )
+
+    assert result == {"job_count": 5, "terminated_early": False}
 
 @pytest.mark.asyncio
 @patch("pages.listing_handler.sentry_sdk.capture_message")
@@ -87,28 +102,34 @@ async def test_process_job_listing_page_empty_markdown(mock_fetch_markdown):
 @patch("pages.listing_handler.extract_job_urls_from_markdown")
 @patch("pages.listing_handler.fetch_page_markdown", new_callable=AsyncMock)
 async def test_process_job_listing_page_no_urls_found(
-    mock_fetch_markdown,
-    mock_extract_urls,
-    mock_push_scope,
-    mock_capture_message
-):
+    mock_fetch_markdown: AsyncMock,
+    mock_extract_urls: MagicMock,
+    mock_push_scope: MagicMock,
+    mock_capture_message: MagicMock
+) -> None:
     mock_fetch_markdown.return_value = "some markdown but no urls"
     mock_extract_urls.return_value = []
 
     scope = MagicMock()
     mock_push_scope.return_value.__enter__.return_value = scope
 
-    result = await process_job_listing_page(
-        base_url="https://seek.com.au/jobs",
-        location_search="Sydney",
+    ctx = ScrapeContext(
         crawler=AsyncMock(),
         page_pool=AsyncMock(),
-        page_num=2,
-        job_count=7,
-        day_range_limit=2
+        location_search="Sydney",
+        terminate_event=asyncio.Event(),
+        semaphore=asyncio.Semaphore(1),
+        day_range_limit=3
     )
 
-    assert result == {'job_count': 7, 'terminated_early': False}
+    result = await process_job_listing_page(
+        base_url="https://seek.com.au/jobs",
+        ctx=ctx,
+        page_num=2,
+        job_count=7,
+    )
+
+    assert result == {"job_count": 7, "terminated_early": False}
     mock_capture_message.assert_called_once_with(
         "No job urls found in markdown on page 2", level="warning"
     )
@@ -116,84 +137,101 @@ async def test_process_job_listing_page_no_urls_found(
     scope.set_tag.assert_any_call("page_num", 2)
 
 @pytest.mark.asyncio
-@patch("pages.listing_handler.backoff_if_high_cpu", new_callable=AsyncMock)
-@patch("pages.listing_handler.pause_briefly", new_callable=AsyncMock)
 @patch("pages.listing_handler.process_jobs_concurrently", new_callable=AsyncMock)
 @patch("pages.listing_handler.extract_job_urls_from_markdown")
 @patch("pages.listing_handler.fetch_page_markdown", new_callable=AsyncMock)
 async def test_process_job_listing_page_terminated_early(
-    mock_fetch_markdown,
-    mock_extract_urls,
-    mock_process_jobs,
-    mock_pause,
-    mock_backoff
-):
+    mock_fetch_markdown: AsyncMock,
+    mock_extract_urls: MagicMock,
+    mock_process_jobs: AsyncMock,
+) -> None:
     mock_fetch_markdown.return_value = "## markdown content"
     mock_extract_urls.return_value = ["https://seek.com.au/job/456"]
-    mock_process_jobs.return_value = (None, True)  
+    mock_process_jobs.return_value = (None, True)
 
-    result = await process_job_listing_page(
-        base_url="https://seek.com.au/jobs",
-        location_search="Sydney",
+    ctx = ScrapeContext(
         crawler=AsyncMock(),
         page_pool=AsyncMock(),
-        page_num=3,
-        job_count=4,
+        location_search="Sydney",
+        terminate_event=asyncio.Event(),
+        semaphore=asyncio.Semaphore(1),
         day_range_limit=3
     )
 
-    assert result == {'job_count': 4, 'terminated_early': True}
+    result = await process_job_listing_page(
+        base_url="https://seek.com.au/jobs",
+        ctx=ctx,
+        page_num=3,
+        job_count=4,
+    )
+
+    assert result == {"job_count": 4, "terminated_early": True}
     mock_fetch_markdown.assert_awaited_once()
     mock_extract_urls.assert_called_once()
     mock_process_jobs.assert_awaited_once()
 
 @pytest.mark.asyncio
 @patch("pages.listing_handler.process_job_listing_page", new_callable=AsyncMock)
-async def test_scrape_pages_normal_completion(mock_process_page):
+async def test_scrape_pages_normal_completion(mock_process_page: AsyncMock) -> None:
     mock_process_page.side_effect = [
-        {'job_count': 3, 'terminated_early': False},
-        {'job_count': 6, 'terminated_early': False},
+        {"job_count": 3, "terminated_early": False},
+        {"job_count": 6, "terminated_early": False},
     ]
 
-    result = await scrape_pages(
-        base_url="https://seek.com.au/jobs",
-        location_search="Sydney",
+    ctx = ScrapeContext(
         crawler=AsyncMock(),
         page_pool=AsyncMock(),
-        total_pages=2,
+        location_search="Sydney",
+        terminate_event=asyncio.Event(),
+        semaphore=asyncio.Semaphore(1),
         day_range_limit=3
     )
 
-    assert result == {
-        'message': 'Scraped and inserted 6 jobs.',
-        'terminated_early': False
-    }
-
-    assert mock_process_page.await_count == 2
-
-@pytest.mark.asyncio
-@patch("pages.listing_handler.process_job_listing_page", new_callable=AsyncMock)
-async def test_scrape_pages_early_termination(mock_process_page):
-    mock_process_page.side_effect = [
-        {'job_count': 2, 'terminated_early': False},
-        {'job_count': 2, 'terminated_early': True},
-    ]
-
     result = await scrape_pages(
         base_url="https://seek.com.au/jobs",
-        location_search="Brisbane",
-        crawler=AsyncMock(),
-        page_pool=AsyncMock(),
-        total_pages=5,
-        day_range_limit=5
+        ctx=ctx,
+        total_pages=2,
     )
 
     assert result == {
-        'message': 'Scraped and inserted 2 jobs. Early termination triggered on page 2 due to day range limit of 5 days.',
-        'terminated_early': True
+        "message": "Scraped and inserted 6 jobs.",
+        "terminated_early": False
     }
 
-    assert mock_process_page.await_count == 2
+    assert mock_process_page.await_count == EXPECTED_PAGES_PROCESSED
+
+@pytest.mark.asyncio
+@patch("pages.listing_handler.process_job_listing_page", new_callable=AsyncMock)
+async def test_scrape_pages_early_termination(mock_process_page: AsyncMock) -> None:
+    mock_process_page.side_effect = [
+        {"job_count": 2, "terminated_early": False},
+        {"job_count": 2, "terminated_early": True},
+    ]
+
+    ctx = ScrapeContext(
+        crawler=AsyncMock(),
+        page_pool=AsyncMock(),
+        location_search="Sydney",
+        terminate_event=asyncio.Event(),
+        semaphore=asyncio.Semaphore(1),
+        day_range_limit=3
+    )
+
+    result = await scrape_pages(
+        base_url="https://seek.com.au/jobs",
+        ctx=ctx,
+        total_pages=5,
+    )
+
+    assert result == {
+        "message": (
+            "Scraped and inserted 2 jobs. Early termination triggered on page 2 due to day range limit of "
+            "3 days."
+        ),
+        "terminated_early": True
+    }
+
+    assert mock_process_page.await_count == EXPECTED_PAGES_PROCESSED
 
 
 

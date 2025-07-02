@@ -1,11 +1,14 @@
-import pytest
-from unittest.mock import AsyncMock, patch
 from datetime import datetime
+from unittest.mock import AsyncMock, patch
+
+import pytest
 from jobs.validator import validate_job, validate_jobs
+from tzlocal import get_localzone
+
 
 @pytest.mark.asyncio
 @patch("jobs.validator.validate_job", new_callable=AsyncMock)
-async def test_validate_jobs_happy_path(mock_validate_job):
+async def test_validate_jobs_happy_path(mock_validate_job: AsyncMock) -> None:
     job1 = {"title": "Dev 1"}
     job2 = {"title": "Dev 2"}
     job3 = {"title": "Dev 3"}
@@ -13,14 +16,14 @@ async def test_validate_jobs_happy_path(mock_validate_job):
     page_job_data = [job1, job2, job3]
 
     job_result = await validate_jobs(page_job_data)
-    assert len(job_result) == 3
-    assert mock_validate_job.await_count == 3
+    assert len(job_result) == len(page_job_data)
+    assert mock_validate_job.await_count == len(page_job_data)
 
 
 @pytest.mark.asyncio
 @patch("jobs.validator.infer_work_model", new_callable=AsyncMock)
 @patch("jobs.validator.infer_experience_level", new_callable=AsyncMock)
-async def test_validate_job_valid_no_inference(mock_infer_exp, mock_infer_work_model):
+async def test_validate_job_valid_no_inference(mock_infer_exp: AsyncMock, mock_infer_work_model: AsyncMock) -> None:
     job = {
         "title": "Software Engineer",
         "company": "Example Corp",
@@ -41,14 +44,17 @@ async def test_validate_job_valid_no_inference(mock_infer_exp, mock_infer_work_m
         "requirements": ["Requirement 1", "Requirement 2"],
         "other": ["Be cool"]
     }
-    job_result = await validate_job(job)
+    await validate_job(job)
     mock_infer_exp.assert_not_awaited()
     mock_infer_work_model.assert_not_awaited()
 
 @pytest.mark.asyncio
 @patch("jobs.validator.infer_work_model", new_callable=AsyncMock)
 @patch("jobs.validator.infer_experience_level", new_callable=AsyncMock)
-async def test_validate_job_infer_invalid_work_model_success(mock_infer_exp, mock_infer_work_model):
+async def test_validate_job_infer_invalid_work_model_success(
+    mock_infer_exp: AsyncMock,
+    mock_infer_work_model: AsyncMock
+) -> None:
     job = {
         "title": "Software Engineer",
         "company": "Example Corp",
@@ -78,7 +84,10 @@ async def test_validate_job_infer_invalid_work_model_success(mock_infer_exp, moc
 @pytest.mark.asyncio
 @patch("jobs.validator.infer_work_model", new_callable=AsyncMock)
 @patch("jobs.validator.infer_experience_level", new_callable=AsyncMock)
-async def test_validate_job_infer_missing_experience_level_success(mock_infer_exp, mock_infer_work_model):
+async def test_validate_job_infer_missing_experience_level_success(
+    mock_infer_exp: AsyncMock,
+    mock_infer_work_model: AsyncMock
+) -> None:
     job = {
         "title": "Software Engineer",
         "company": "Example Corp",
@@ -107,7 +116,10 @@ async def test_validate_job_infer_missing_experience_level_success(mock_infer_ex
 @pytest.mark.asyncio
 @patch("jobs.validator.infer_work_model", new_callable=AsyncMock)
 @patch("jobs.validator.infer_experience_level", new_callable=AsyncMock)
-async def test_validate_job_infer_invalid_experience_level_success(mock_infer_exp, mock_infer_work_model):
+async def test_validate_job_infer_invalid_experience_level_success(
+    mock_infer_exp: AsyncMock,
+    mock_infer_work_model: AsyncMock
+) -> None:
     job = {
         "title": "Software Engineer",
         "company": "Example Corp",
@@ -137,7 +149,7 @@ async def test_validate_job_infer_invalid_experience_level_success(mock_infer_ex
 @pytest.mark.asyncio
 @patch("jobs.validator.infer_experience_level", new_callable=AsyncMock)
 @patch("jobs.validator.infer_work_model", new_callable=AsyncMock)
-async def test_validate_job_missing_posted_date(mock_infer_work_model, mock_infer_exp):
+async def test_validate_job_missing_posted_date(mock_infer_work_model: AsyncMock, mock_infer_exp: AsyncMock) -> None:
     job = {
         "title": "Software Engineer",
         "company": "Example Corp",
@@ -157,7 +169,8 @@ async def test_validate_job_missing_posted_date(mock_infer_work_model, mock_infe
         "other": ["Be cool"]
     }
     job_result = await validate_job(job)
-    today_str = datetime.today().strftime('%d/%m/%Y')
+    local_tz = get_localzone()
+    today_str = datetime.now(local_tz).strftime("%d/%m/%Y")
     assert job_result["posted_date"] == today_str
     assert job_result["posted_within"] == "Today"
     mock_infer_work_model.assert_not_awaited()
@@ -166,7 +179,7 @@ async def test_validate_job_missing_posted_date(mock_infer_work_model, mock_infe
 @pytest.mark.asyncio
 @patch("jobs.validator.infer_experience_level", new_callable=AsyncMock)
 @patch("jobs.validator.infer_work_model", new_callable=AsyncMock)
-async def test_validate_job_missing_required_field(mock_infer_work_model, mock_infer_exp):
+async def test_validate_job_missing_required_field(mock_infer_work_model: AsyncMock, mock_infer_exp: AsyncMock) -> None:
     job = {
         "company": "Example Corp",
         "classification": "Software Design and Development",
@@ -194,7 +207,7 @@ async def test_validate_job_missing_required_field(mock_infer_work_model, mock_i
 @pytest.mark.asyncio
 @patch("jobs.validator.infer_experience_level", new_callable=AsyncMock)
 @patch("jobs.validator.infer_work_model", new_callable=AsyncMock)
-async def test_validate_job_invalid_url(mock_infer_work_model, mock_infer_exp):
+async def test_validate_job_invalid_url(mock_infer_work_model: AsyncMock, mock_infer_exp: AsyncMock) -> None:
     job = {
         "title": "Software Engineer",
         "company": "Example Corp",
@@ -224,7 +237,7 @@ async def test_validate_job_invalid_url(mock_infer_work_model, mock_infer_exp):
 @pytest.mark.asyncio
 @patch("jobs.validator.infer_experience_level", new_callable=AsyncMock)
 @patch("jobs.validator.infer_work_model", new_callable=AsyncMock)
-async def test_validate_job_field_not_list(mock_infer_work_model, mock_infer_exp):
+async def test_validate_job_field_not_list(mock_infer_work_model: AsyncMock, mock_infer_exp: AsyncMock) -> None:
     job = {
         "title": "Software Engineer",
         "company": "Example Corp",
@@ -252,10 +265,10 @@ async def test_validate_job_field_not_list(mock_infer_work_model, mock_infer_exp
     mock_infer_exp.assert_not_awaited()
 
 @pytest.mark.asyncio
-async def test_validate_job_coerce_non_string_and_non_list_fields():
+async def test_validate_job_coerce_non_string_and_non_list_fields() -> None:
     job = {
-        "title": ["Software", "Engineer"],  
-        "company": {"name": "Example Corp"}, 
+        "title": ["Software", "Engineer"],
+        "company": {"name": "Example Corp"},
         "classification": "Software",
         "description": "desc",
         "logo_link": "https://cdn.com/logo",
@@ -268,15 +281,15 @@ async def test_validate_job_coerce_non_string_and_non_list_fields():
         "experience_level": "mid_or_senior",
         "job_url": "https://www.seek.com.au/job/12345678",
         "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
-        "salary": 123456, 
+        "salary": 123456,
         "responsibilities": ["Build stuff"],
         "requirements": ["Know Python"],
-        "other": None  
+        "other": None
     }
     job_result = await validate_job(job)
     assert job_result["title"] == "Software, Engineer"
     assert job_result["company"] == "{'name': 'Example Corp'}"
     assert job_result["salary"] == "123456"
     assert job_result["other"] == []
-  
+
 

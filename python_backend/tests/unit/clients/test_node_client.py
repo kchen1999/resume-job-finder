@@ -1,11 +1,13 @@
-import pytest
-from httpx import Response, Request, HTTPStatusError
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from clients.node_client import send_page_jobs_to_node
+from httpx import HTTPStatusError, Request, Response
+
 
 @pytest.mark.asyncio
 @patch("httpx.AsyncClient.post", new_callable=AsyncMock)
-async def test_send_page_jobs_to_node_success(mock_post):
+async def test_send_page_jobs_to_node_success(mock_post: AsyncMock) -> None:
     mock_post.return_value.status_code = 200
     mock_post.return_value.raise_for_status = MagicMock()
 
@@ -15,7 +17,7 @@ async def test_send_page_jobs_to_node_success(mock_post):
 
 @pytest.mark.asyncio
 @patch("httpx.AsyncClient.post", new_callable=AsyncMock)
-async def test_send_page_jobs_to_node_http_error(mock_post, caplog):
+async def test_send_page_jobs_to_node_http_error(mock_post: AsyncMock) -> None:
     request = Request("POST", "http://localhost:3000/api/jobs/page-batch")
     response = Response(400, request=request, content=b"Bad job data")
     response.raise_for_status = lambda: (_ for _ in ()).throw(

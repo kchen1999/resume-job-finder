@@ -1,9 +1,10 @@
 import pytest
 from llm.parser import infer_experience_level, infer_work_model
 
+
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_infer_missing_work_model():
+async def test_infer_missing_work_model() -> None:
     job_text = (
         "We are looking for a software engineer to join our remote team. "
         "You will work from anywhere and collaborate with teams via Zoom and Slack. "
@@ -14,7 +15,7 @@ async def test_infer_missing_work_model():
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_infer_missing_experience_level():
+async def test_infer_missing_experience_level() -> None:
     job_title = "Senior Backend Engineer"
     job_text = (
         "We're hiring a Senior Backend Engineer with 5+ years of experience in Python and distributed systems. "

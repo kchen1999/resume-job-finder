@@ -21,8 +21,7 @@ jobs:
       - name: Install dependencies
         working-directory: python_backend
         run: |
-          pip install -r requirements.txt
-          pip install pytest ruff mypy
+          pip install -r requirements-dev.txt
 
       - name: Check style
         working-directory: python_backend

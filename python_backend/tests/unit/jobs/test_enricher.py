@@ -1,31 +1,40 @@
-import pytest
-from unittest.mock import patch, AsyncMock
-from freezegun import freeze_time
+from unittest.mock import MagicMock, patch
 
-from jobs.enricher import set_default_work_model, infer_experience_level_from_title, override_experience_level_with_title, normalize_experience_level, get_relative_posted_time, enrich_job_data, enrich_job
+import pytest
+from freezegun import freeze_time
+from jobs.enricher import (
+    enrich_job,
+    enrich_job_data,
+    get_relative_posted_time,
+    infer_experience_level_from_title,
+    normalize_experience_level,
+    override_experience_level_with_title,
+    set_default_work_model,
+)
+
 
 @freeze_time("2024-05-08")
-def test_get_relative_posted_time():
+def test_get_relative_posted_time() -> None:
     assert get_relative_posted_time({"posted_date": "08/05/2024"}) == "Today"
     assert get_relative_posted_time({"posted_date": "07/05/2024"}) == "Yesterday"
     assert get_relative_posted_time({"posted_date": "06/05/2024"}) == "2 days ago"
     assert get_relative_posted_time({"posted_date": "24/04/2024"}) == "14 days ago"
-    assert get_relative_posted_time({"posted_date": "23/04/2024"}) == "15 days ago" 
+    assert get_relative_posted_time({"posted_date": "23/04/2024"}) == "15 days ago"
     assert get_relative_posted_time({"posted_date": "2024-05-08"}) is None
     assert get_relative_posted_time({"posted_date": ""}) is None
     assert get_relative_posted_time({}) is None
 
-def test_sets_work_model_to_onsite_if_none():
+def test_sets_work_model_to_onsite_if_none() -> None:
     job = {"title": "Software Engineer", "work_model": None}
     job = set_default_work_model(job)
     assert job["work_model"] == "On-site"
 
-def test_does_not_override_existing_work_model():
+def test_does_not_override_existing_work_model() -> None:
     job = {"title": "Software Engineer", "work_model": "Remote"}
     job = set_default_work_model(job)
     assert job["work_model"] == "Remote"
 
-@pytest.mark.parametrize("title, expected", [
+@pytest.mark.parametrize(("title", "expected"), [
     ("Software Engineering Intern", "intern"),
     ("Internship for Penultimate Students", "intern"),
     ("Junior Data Analyst", "junior"),
@@ -37,10 +46,10 @@ def test_does_not_override_existing_work_model():
     ("Principal ML Engineer", "lead+"),
     ("Regular Software Developer", ""),
 ])
-def test_infer_experience_level_from_title(title, expected):
+def test_infer_experience_level_from_title(title: str, expected: str) -> None:
     assert infer_experience_level_from_title(title) == expected
 
-@pytest.mark.parametrize("input_job, expected_level, should_override", [
+@pytest.mark.parametrize(("input_job", "expected_level", "should_override"), [
     ({"title": "Software Engineering Intern"}, "intern", True),
     ({"title": "Junior Backend Developer"}, "junior", True),
     ({"title": "Senior Frontend Engineer"}, "", False),
@@ -51,27 +60,26 @@ def test_infer_experience_level_from_title(title, expected):
     ({"title": "Lead Backend Developer", "experience_level": "mid_or_senior"}, "lead+", True),
     ({"title": "Senior Software Engineer", "experience_level": "mid_or_senior"}, "mid_or_senior", False),
 ])
-def test_override_experience_level_with_title(input_job, expected_level, should_override):
+def test_override_experience_level_with_title(input_job: dict, expected_level: str, should_override: bool) -> None:
     original = input_job.get("experience_level")
     result = override_experience_level_with_title(input_job)
     if should_override:
         assert result["experience_level"] == expected_level
+    elif original is not None:
+        assert result["experience_level"] == original
     else:
-        if original is not None:
-            assert result["experience_level"] == original
-        else:
-            assert "experience_level" not in result
+        assert "experience_level" not in result
 
-@pytest.mark.parametrize("input_job, expected_level", [
+@pytest.mark.parametrize(("input_job", "expected_level"), [
     ({"experience_level": "mid"}, "mid_or_senior"),
     ({"experience_level": "senior"}, "mid_or_senior"),
-    ({"experience_level": "MID"}, "mid_or_senior"), 
+    ({"experience_level": "MID"}, "mid_or_senior"),
     ({"experience_level": "junior"}, "junior"),
     ({"experience_level": "entry"}, "entry"),
-    ({}, ""), 
+    ({}, ""),
 ])
-def test_normalize_experience_level(input_job, expected_level):
-    result = normalize_experience_level(input_job)  
+def test_normalize_experience_level(input_job: dict, expected_level: str) -> None:
+    result = normalize_experience_level(input_job)
     assert result.get("experience_level", "") == expected_level
 
 @patch("jobs.enricher.normalize_experience_level")
@@ -79,11 +87,11 @@ def test_normalize_experience_level(input_job, expected_level):
 @patch("jobs.enricher.set_default_work_model")
 @patch("jobs.enricher.get_relative_posted_time")
 def test_enrich_job_data(
-    mock_get_relative_posted_time,
-    mock_set_default_work_model,
-    mock_override_experience_level_with_title,
-    mock_normalize_experience_level
-):
+    mock_get_relative_posted_time: MagicMock,
+    mock_set_default_work_model: MagicMock,
+    mock_override_experience_level_with_title: MagicMock,
+    mock_normalize_experience_level: MagicMock
+) -> None:
     job_data = {
         "description": "This is a job description.",
         "responsibilities": ["Responsibility 1", "Responsibility 2"],
@@ -142,7 +150,7 @@ def test_enrich_job_data(
 @pytest.mark.asyncio
 @patch("jobs.enricher.enrich_job_data")
 @patch("jobs.enricher.get_job_urls")
-async def test_enrich_job(mock_get_job_urls, mock_enrich_job_data):
+async def test_enrich_job(mock_get_job_urls: MagicMock, mock_enrich_job_data: MagicMock) -> None:
     job_data = {
         "description": "Job desc",
         "requirements": ["Req A"],
@@ -170,7 +178,7 @@ async def test_enrich_job(mock_get_job_urls, mock_enrich_job_data):
     mock_get_job_urls.return_value = (job_url, quick_apply_url)
     mock_enrich_job_data.return_value = expected_job_data
 
-    result = await enrich_job(job_data, job_url, location_search, job_metadata)
+    result = enrich_job(job_data, job_url, location_search, job_metadata)
 
     assert result == expected_job_data
     mock_get_job_urls.assert_called_once_with(job_url)

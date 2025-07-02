@@ -1,14 +1,21 @@
-import pytest
+from collections.abc import Callable
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
-from pages.pool import PagePool
+
+import pytest
 from pages.context import setup_scraping_context, teardown_scraping_context
 from utils.constants import CONCURRENT_JOBS_NUM
+
 
 @pytest.mark.asyncio
 @patch("pages.context.create_browser_context", new_callable=AsyncMock)
 @patch("pages.context.PagePool")
 @patch("pages.context.retry_with_backoff", new_callable=AsyncMock)
-async def test_setup_scraping_context_success(mock_retry_with_backoff, mock_page_pool_cls, mock_create_browser_context):
+async def test_setup_scraping_context_success(
+    mock_retry_with_backoff: AsyncMock,
+    mock_page_pool_cls: AsyncMock,
+    mock_create_browser_context: AsyncMock
+) -> None:
     mock_playwright = MagicMock()
     mock_browser = MagicMock()
     mock_context = MagicMock()
@@ -17,7 +24,8 @@ async def test_setup_scraping_context_success(mock_retry_with_backoff, mock_page
     mock_page_pool = AsyncMock()
     mock_page_pool_cls.return_value = mock_page_pool
 
-    async def fake_retry_with_backoff(func, *args, **kwargs):
+    async def fake_retry_with_backoff(
+        func: Callable, *_args: Any, **_kwargs: Any):
         return await func()
     mock_retry_with_backoff.side_effect = fake_retry_with_backoff
 
@@ -31,21 +39,20 @@ async def test_setup_scraping_context_success(mock_retry_with_backoff, mock_page
 
 
 @pytest.mark.asyncio
+@patch("pages.context.logger")
 @patch("pages.context.retry_with_backoff", new_callable=AsyncMock)
-@patch("pages.context.logging")
-async def test_setup_scraping_context_failure(mock_logging, mock_retry_with_backoff):
+async def test_setup_scraping_context_failure(mock_retry_with_backoff: AsyncMock, mock_logger: MagicMock) -> None:
     mock_retry_with_backoff.return_value = None
 
     result = await setup_scraping_context()
 
     mock_retry_with_backoff.assert_awaited()
-    mock_logging.error.assert_called_once_with("Failed to create scraping context after retries.")
+    mock_logger.error.assert_called_once_with("Failed to create scraping context after retries.")
     assert result == (None, None, None)
 
 @pytest.mark.asyncio
 @patch("pages.context.sentry_sdk.capture_exception")
-@patch("pages.context.sentry_sdk.push_scope")
-async def test_teardown_scraping_context_success(mock_push_scope, mock_capture_exception):
+async def test_teardown_scraping_context_success(mock_capture_exception: MagicMock) -> None:
     playwright = AsyncMock()
     browser = AsyncMock()
     page_pool = AsyncMock()
@@ -59,8 +66,7 @@ async def test_teardown_scraping_context_success(mock_push_scope, mock_capture_e
 
 @pytest.mark.asyncio
 @patch("pages.context.sentry_sdk.capture_exception")
-@patch("pages.context.sentry_sdk.push_scope")
-async def test_teardown_scraping_context_page_pool_error(mock_push_scope, mock_capture_exception):
+async def test_teardown_scraping_context_page_pool_error(mock_capture_exception: MagicMock) -> None:
     playwright = AsyncMock()
     browser = AsyncMock()
     page_pool = AsyncMock()
@@ -74,8 +80,7 @@ async def test_teardown_scraping_context_page_pool_error(mock_push_scope, mock_c
 
 @pytest.mark.asyncio
 @patch("pages.context.sentry_sdk.capture_exception")
-@patch("pages.context.sentry_sdk.push_scope")
-async def test_teardown_scraping_context_browser_error(mock_push_scope, mock_capture_exception):
+async def test_teardown_scraping_context_browser_error(mock_capture_exception: MagicMock) -> None:
     playwright = AsyncMock()
     browser = AsyncMock()
     page_pool = AsyncMock()
@@ -89,8 +94,7 @@ async def test_teardown_scraping_context_browser_error(mock_push_scope, mock_cap
 
 @pytest.mark.asyncio
 @patch("pages.context.sentry_sdk.capture_exception")
-@patch("pages.context.sentry_sdk.push_scope")
-async def test_teardown_scraping_context_playwright_error(mock_push_scope, mock_capture_exception):
+async def test_teardown_scraping_context_playwright_error(mock_capture_exception: MagicMock) -> None:
     playwright = AsyncMock()
     browser = AsyncMock()
     page_pool = AsyncMock()
