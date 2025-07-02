@@ -2,11 +2,12 @@ DAY_RANGE_LIMIT = 1
 TOTAL_JOBS_PER_PAGE = 22
 MAX_RETRIES = 3
 CONCURRENT_JOBS_NUM = 4
+HTTP_STATUS_ACCEPTED = 202
 SUCCESS = "success"
 TERMINATE = "terminate"
 SKIPPED = "skipped"
 ERROR = "error"
-POSTED_DATE_SELECTOR = "_1oozmqe0 l218ib4z _1ljn1h70 _1ljn1h71 _1ljn1h71u _1ljn1h76 _1kdtdvw4"
+POSTED_DATE_SELECTOR = "xhgj00 ciuj3f4z eu0zaq0 eu0zaq1 eu0zaq1u eu0zaq6 _1lwlriv4"
 JOB_METADATA_FIELDS = {
     "location": ["job-detail-location"],
     "classification": ["job-detail-classifications"],
@@ -16,11 +17,16 @@ JOB_METADATA_FIELDS = {
     "company": ["advertiser-name"]
 }
 BROWSER_USER_AGENT = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/119.0.0.0 Safari/537.36"
+    )
 }
 LOGO_SELECTOR = 'div[data-testid="bx-logo-image"] img'
 REQUIRED_FIELDS = ["title", "company", "classification", "posted_date", "posted_within", "work_type", "work_model"]
-NON_REQUIRED_FIELDS = ["description", "logo_link", "location", "location_search", "experience_level", "salary", "quick_apply_url", "job_url"]
+NON_REQUIRED_FIELDS = ["description", "logo_link", "location", "location_search", "experience_level", "salary",
+                       "quick_apply_url", "job_url"]
 ALLOWED_WORK_MODEL_VALUES = {"Remote", "Hybrid", "On-site"}
 ALLOWED_EXPERIENCE_LEVEL_VALUES = ["intern", "junior", "mid_or_senior", "lead+"]
 URL_FIELDS = ["quick_apply_url", "job_url"]

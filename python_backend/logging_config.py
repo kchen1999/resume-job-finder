@@ -1,13 +1,15 @@
 import logging
 import os
 import sys
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 if os.environ.get("ENV") is None:
-    load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
+    file_path = Path(__file__).parent.parent / ".env"
+    load_dotenv(file_path)
 
-def setup_logging():
+def setup_logging() -> None:
     env = os.getenv("ENV")
     log_level = logging.DEBUG if env == "development" else logging.INFO
 

@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 import sentry_sdk
 from llm.parser import infer_experience_level, infer_work_model
+from tzlocal import get_localzone
 from utils.constants import (
     ALLOWED_EXPERIENCE_LEVEL_VALUES,
     ALLOWED_WORK_MODEL_VALUES,
@@ -17,10 +18,7 @@ from utils.constants import (
 from utils.utils import flatten_field
 
 
-async def validate_job(job):
-    job_url = job.get("job_url", "Unknown URL")
-
-    # 1. Validate work_model
+async def validate_work_model(job: dict, job_url: str) -> None:
     if job.get("work_model") not in ALLOWED_WORK_MODEL_VALUES:
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("component", "validate_job")
@@ -36,7 +34,8 @@ async def validate_job(job):
         inferred_work_model = await infer_work_model(job_text)
         job["work_model"] = inferred_work_model or FALLBACK_WORK_MODEL
 
-    # 2. Check required fields presence
+
+def apply_required_field_fallbacks(job: dict, job_url: str) -> None:
     for field in REQUIRED_FIELDS:
         if not job.get(field):
             with sentry_sdk.push_scope() as scope:
@@ -46,12 +45,14 @@ async def validate_job(job):
                 scope.capture_message(f"Missing required field '{field}', applying fallback", level="warning")
 
             if field == "posted_date":
-                job["posted_date"] = datetime.today().strftime("%d/%m/%Y")
+                local_tz = get_localzone()
+                job["posted_date"] = datetime.now(local_tz).strftime("%d/%m/%Y")
                 job["posted_within"] = FALLBACK_POSTED_WITHIN
             else:
                 job[field] = ""
 
-    # 3. Validate URL fields
+
+def validate_url_fields(job: dict, job_url: str) -> None:
     for url_field in URL_FIELDS:
         url = job.get(url_field)
         if url:
@@ -65,7 +66,8 @@ async def validate_job(job):
                     scope.capture_message(f"Invalid URL format in '{url_field}'", level="error")
                 job[url_field] = ""
 
-    # 4. Validate experience_level
+
+async def validate_experience_level(job: dict, job_url: str) -> None:
     exp = job.get("experience_level")
     if not exp or exp not in ALLOWED_EXPERIENCE_LEVEL_VALUES:
         with sentry_sdk.push_scope() as scope:
@@ -82,7 +84,8 @@ async def validate_job(job):
         inferred_exp = await infer_experience_level(job.get("title", ""), job_text)
         job["experience_level"] = inferred_exp or FALLBACK_EXPERIENCE_LEVEL
 
-    # 5. Validate all string fields
+
+def normalize_string_fields(job: dict, job_url: str) -> None:
     for field in REQUIRED_FIELDS + NON_REQUIRED_FIELDS:
         val = job.get(field)
         if val is not None and not isinstance(val, str):
@@ -91,7 +94,10 @@ async def validate_job(job):
                 scope.set_extra("job_url", job_url)
                 scope.set_extra("field", field)
                 scope.set_extra("original_type", type(val).__name__)
-                scope.capture_message(f"Field '{field}' expected string but got {type(val).__name__}, converting", level="warning")
+                scope.capture_message(
+                    f"Field '{field}' expected string but got {type(val).__name__}, converting",
+                    level="warning"
+                )
             try:
                 job[field] = ", ".join(map(str, val)) if isinstance(val, list) else str(val)
             except Exception as e:
@@ -102,7 +108,8 @@ async def validate_job(job):
                     sentry_sdk.capture_exception(e)
                 job[field] = ""
 
-    # 6. Validate list fields
+
+def normalize_list_fields(job: dict, job_url: str) -> None:
     for list_field in LIST_FIELDS:
         val = job.get(list_field)
         if val is None:
@@ -113,12 +120,40 @@ async def validate_job(job):
                 scope.set_extra("job_url", job_url)
                 scope.set_extra("field", list_field)
                 scope.set_extra("original_type", type(val).__name__)
-                scope.capture_message(f"Field '{list_field}' expected list but got {type(val).__name__}, converting", level="warning")
+                msg = (
+                    f"Field '{list_field}' expected list but got {type(val).__name__}, converting"
+                )
+                scope.capture_message(msg, level="warning")
             job[list_field] = [val] if isinstance(val, str) else []
+        else:
+            cleaned_list = []
+            for item in val:
+                try:
+                    cleaned_list.append(str(item))
+                except Exception as e:
+                    with sentry_sdk.push_scope() as scope:
+                        scope.set_tag("component", "validate_job")
+                        scope.set_extra("job_url", job_url)
+                        scope.set_extra("field", list_field)
+                        scope.set_extra("bad_item", repr(item))
+                        sentry_sdk.capture_exception(e)
+            job[list_field] = cleaned_list
+
+
+async def validate_job(job: dict) -> dict:
+    job_url = job.get("job_url", "Unknown URL")
+
+    await validate_work_model(job, job_url)
+    apply_required_field_fallbacks(job, job_url)
+    validate_url_fields(job, job_url)
+
+    await validate_experience_level(job, job_url)
+    normalize_string_fields(job, job_url)
+    normalize_list_fields(job, job_url)
 
     return job
 
-async def validate_jobs(page_job_data):
+async def validate_jobs(page_job_data: list) -> list:
     cleaned_jobs = []
     for job in page_job_data:
         cleaned_job = await validate_job(job)

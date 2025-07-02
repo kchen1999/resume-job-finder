@@ -1,18 +1,25 @@
+import asyncio
 import logging
-
-logger = logging.getLogger(__name__)
 
 from clients.node_client import send_scrape_summary_to_node
 from crawl4ai import AsyncWebCrawler
 from markdown.fetcher import fetch_page_markdown
 from pages.context import setup_scraping_context, teardown_scraping_context
 from pages.listing_handler import scrape_pages
-from utils.constants import DAY_RANGE_LIMIT, TOTAL_JOBS_PER_PAGE
-from utils.sentry import *
+from utils.constants import CONCURRENT_JOBS_NUM, DAY_RANGE_LIMIT, TOTAL_JOBS_PER_PAGE
+from utils.context import ScrapeContext
+from utils.sentry import sentry_sdk
 from utils.utils import get_total_job_count, get_total_pages
 
+logger = logging.getLogger(__name__)
 
-async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_PAGE, max_pages=None, day_range_limit=DAY_RANGE_LIMIT):
+async def scrape_job_listing(
+        base_url: str,
+        location_search: str,
+        pagesize: int = TOTAL_JOBS_PER_PAGE,
+        max_pages: int | None = None,
+        day_range_limit: int = DAY_RANGE_LIMIT
+    ) -> dict:
     async def return_and_report(summary: dict):
         await send_scrape_summary_to_node(summary)
         return summary
@@ -38,15 +45,21 @@ async def scrape_job_listing(base_url, location_search, pagesize=TOTAL_JOBS_PER_
                     })
 
                 total_pages = get_total_pages(total_jobs, pagesize, max_pages)
-                logger.info(f"Detected {total_jobs} jobs — scraping {total_pages} pages.")
+                logger.info("Detected %s jobs — scraping %s pages.", total_jobs, total_pages)
 
-                scrape_summary = await scrape_pages(base_url,
-                    location_search,
-                    crawler,
-                    page_pool,
-                    total_pages,
-                    day_range_limit
+                terminate_event = asyncio.Event()
+                semaphore = asyncio.Semaphore(CONCURRENT_JOBS_NUM)
+
+                ctx = ScrapeContext(
+                    crawler=crawler,
+                    page_pool=page_pool,
+                    location_search=location_search,
+                    terminate_event=terminate_event,
+                    semaphore=semaphore,
+                    day_range_limit=day_range_limit
                 )
+
+                scrape_summary = await scrape_pages(base_url, ctx, total_pages)
 
                 return await return_and_report(scrape_summary)
 

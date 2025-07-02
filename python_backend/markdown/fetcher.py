@@ -1,17 +1,16 @@
 import logging
 
-logger = logging.getLogger(__name__)
-
 import sentry_sdk
-from crawl4ai import CrawlerRunConfig
+from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 from crawl4ai.content_filter_strategy import PruningContentFilter
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from utils.constants import MAX_RETRIES
 from utils.retry import retry_with_backoff
 from utils.utils import backoff_if_high_cpu, pause_briefly
 
+logger = logging.getLogger(__name__)
 
-async def fetch_page_markdown(base_url, crawler, page_num):
+async def fetch_page_markdown(base_url: str, crawler: AsyncWebCrawler, page_num: int) -> str | None:
     page_url = f"{base_url}&page={page_num}"
     await pause_briefly(1.0, 2.5)
 
@@ -52,7 +51,7 @@ async def fetch_page_markdown(base_url, crawler, page_num):
 
     return result.markdown
 
-async def fetch_job_markdown(job_url, crawler):
+async def fetch_job_markdown(job_url: str, crawler: AsyncWebCrawler) -> str | None:
     async def crawl():
         prune_filter = PruningContentFilter(threshold=0.5, threshold_type="fixed")
         md_generator = DefaultMarkdownGenerator(
@@ -61,7 +60,7 @@ async def fetch_job_markdown(job_url, crawler):
         )
         config = CrawlerRunConfig(markdown_generator=md_generator)
 
-        logger.debug(f"Starting crawl for job URL: {job_url}")
+        logger.debug("Starting crawl for job URL: %s", job_url)
         result = await crawler.arun(job_url, config=config)
         await pause_briefly(0.05, 0.25)
         await backoff_if_high_cpu()
@@ -76,10 +75,10 @@ async def fetch_job_markdown(job_url, crawler):
 
         return result.markdown.fit_markdown
 
-    result = await retry_with_backoff(
+    return await retry_with_backoff(
         crawl,
         max_retries=MAX_RETRIES,
         base_delay=1.0,
         label=f"fetch_job_markdown: {job_url}"
     )
-    return result
+

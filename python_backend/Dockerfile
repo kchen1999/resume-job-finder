@@ -19,4 +19,4 @@ COPY . .
 EXPOSE 5000
 
 # Run FastAPI with uvicorn, no reload in production
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["uvicorn", "app.app:app", "--host", "0.0.0.0", "--port", "5000"]

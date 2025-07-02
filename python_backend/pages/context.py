@@ -1,17 +1,15 @@
 import asyncio
 import logging
 
-logger = logging.getLogger(__name__)
-
 import sentry_sdk
-from playwright.async_api import async_playwright
+from pages.pool import PagePool
+from playwright.async_api import Browser, BrowserContext, Playwright, async_playwright
 from utils.constants import BROWSER_USER_AGENT, CONCURRENT_JOBS_NUM
 from utils.retry import retry_with_backoff
 
-from pages.pool import PagePool
+logger = logging.getLogger(__name__)
 
-
-async def create_browser_context():
+async def create_browser_context() -> tuple[Playwright, Browser, BrowserContext]:
     playwright = await async_playwright().start()
     browser = await playwright.chromium.launch(
         headless=True,
@@ -44,7 +42,7 @@ async def create_browser_context():
 
     return playwright, browser, context
 
-async def setup_scraping_context():
+async def setup_scraping_context() -> tuple[Playwright | None, Browser | None, PagePool | None]:
     async def create_context_wrapper():
         playwright, browser, context = await create_browser_context()
         page_pool = PagePool(context, max_pages=CONCURRENT_JOBS_NUM)
@@ -64,7 +62,11 @@ async def setup_scraping_context():
 
     return result
 
-async def teardown_scraping_context(playwright, browser, page_pool):
+async def teardown_scraping_context(
+    playwright: Playwright | None,
+    browser: Browser | None,
+    page_pool: PagePool | None
+) -> None:
     try:
         await page_pool.close_all()
     except Exception as e:

@@ -1,30 +1,32 @@
 import asyncio
 import logging
-
-logger = logging.getLogger(__name__)
-
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
 
 import sentry_sdk
 
+logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 async def retry_with_backoff(
-    func: Callable[[], Any],
+    func: Callable[[], Awaitable[T]],
     max_retries: int = 3,
     base_delay: float = 1.0,
     label: str = "operation"
-):
+) -> T | None:
     attempt = 0
     last_exception = None
 
     while attempt < max_retries:
         try:
             return await func()
+        except (KeyboardInterrupt, asyncio.CancelledError, SystemExit):
+            raise
         except Exception as e:
             last_exception = e
             attempt += 1
-            logger.warning(f"[Attempt {attempt}] {label} failed: {e}")
+            logger.warning("[Attempt %s] %s failed: %s", attempt, label, e)
 
             if attempt < max_retries:
                 await asyncio.sleep(base_delay * (2 ** (attempt - 1)))

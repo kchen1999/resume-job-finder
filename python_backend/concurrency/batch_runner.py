@@ -1,13 +1,13 @@
 import asyncio
 
 import sentry_sdk
-from utils.constants import CONCURRENT_JOBS_NUM, SKIPPED, SUCCESS, TERMINATE
+from concurrency.job_runner import process_job_with_semaphore
+from utils.constants import SKIPPED, SUCCESS, TERMINATE
+from utils.context import ScrapeContext
 from utils.utils import backoff_if_high_cpu, pause_briefly
 
-from concurrency.job_runner import process_job_with_semaphore
 
-
-def aggregate_job_results(job_results):
+def aggregate_job_results(job_results: list) -> tuple:
     final_jobs = []
     early_termination = False
     n_skipped = 0
@@ -25,17 +25,13 @@ def aggregate_job_results(job_results):
 
     return final_jobs, early_termination, n_skipped, n_terminated
 
-async def process_jobs_concurrently(job_urls, crawler, page_pool, page_num, location_search, day_range_limit):
-    terminate_event = asyncio.Event()
-    semaphore = asyncio.Semaphore(CONCURRENT_JOBS_NUM)
+async def process_jobs_concurrently(job_urls: list, ctx: ScrapeContext, page_num: int) -> tuple:
     tasks = []
 
     for idx, job_url in enumerate(job_urls):
         await backoff_if_high_cpu()
         task = asyncio.create_task(
-            process_job_with_semaphore(
-                job_url, idx, crawler, page_pool, location_search, terminate_event, day_range_limit, semaphore
-            )
+            process_job_with_semaphore(job_url, idx, ctx)
         )
         tasks.append(task)
         await pause_briefly(0.05, 0.25)

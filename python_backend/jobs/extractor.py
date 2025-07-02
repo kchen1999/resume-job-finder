@@ -1,10 +1,12 @@
 import logging
-
-logger = logging.getLogger(__name__)
 import re
 
 import sentry_sdk
+from crawl4ai import AsyncWebCrawler
+from jobs.parser import parse_job_data_from_markdown
 from markdown.fetcher import fetch_job_markdown
+from pages.pool import PagePool
+from playwright.async_api import Page
 from utils.constants import (
     JOB_METADATA_FIELDS,
     LOGO_SELECTOR,
@@ -16,24 +18,24 @@ from utils.constants import (
     SUCCESS,
     TERMINATE,
 )
+from utils.context import ScrapeContext
 from utils.retry import retry_with_backoff
 from utils.utils import backoff_if_high_cpu, get_posted_date, is_recent_job, pause_briefly
 
-from jobs.parser import parse_job_data_from_markdown
+logger = logging.getLogger(__name__)
 
-
-async def extract_logo_src(page):
+async def extract_logo_src(page: Page) -> str:
     await pause_briefly()
     logo_element = await page.query_selector(LOGO_SELECTOR)
     await backoff_if_high_cpu()
     if logo_element:
         logo_src = await logo_element.get_attribute("src")
-        logger.debug(f"Logo found with src: {logo_src}")
+        logger.debug("Logo found with src: %s", logo_src)
         return logo_src
     logger.warning("Logo element not found.")
     return ""
 
-async def extract_job_metadata_fields(page, job_metadata_fields):
+async def extract_job_metadata_fields(page: Page, job_metadata_fields: dict) -> tuple:
     results = {}
     field_errors = {}
 
@@ -50,12 +52,12 @@ async def extract_job_metadata_fields(page, job_metadata_fields):
                     break
 
             except Exception as e:
-                logger.exception(f"Error extracting {key} with selector '{selector}': {e}")
+                logger.exception("Error extracting %s with selector '%s'", key, selector)
                 field_errors[key] = str(e)
 
         if not value_found:
             results[key] = ""
-            logger.warning(f"No valid element found for job field '{key}'")
+            logger.warning("No valid element found for job field '%s'", key)
             if key not in field_errors:
                 field_errors[key] = "Element not found"
 
@@ -63,35 +65,32 @@ async def extract_job_metadata_fields(page, job_metadata_fields):
 
     return results, field_errors
 
-async def extract_posted_date_by_class(page, class_name):
+async def extract_posted_date_by_class(page: Page, class_name: str) -> dict:
     await pause_briefly()
-    try:
-        selector = f'span.{class_name.replace(" ", ".")}'
-        elements = await page.query_selector_all(selector)
 
-        if not elements:
-            logger.warning("No elements found for posted date selector.")
-            return {"posted_date": None, "error": NO_ELEMENTS}
+    selector = f'span.{class_name.replace(" ", ".")}'
+    elements = await page.query_selector_all(selector)
 
-        for elem in elements:
-            await backoff_if_high_cpu()
-            text = (await elem.inner_text()).strip()
-            logger.debug(f"Found element text: {text}")
+    if not elements:
+        logger.warning("No elements found for posted date selector.")
+        return {"posted_date": None, "error": NO_ELEMENTS}
 
-            match = re.search(r"Posted (\d+)([dhm]) ago", text)
-            if match:
-                value, unit = int(match.group(1)), match.group(2)
-                days_ago = value if unit == "d" else 0
-                posted_date = get_posted_date(days_ago)
-                logger.debug(f"Extracted posted date: {posted_date}")
-                return {"posted_date": posted_date, "error": None}
+    for elem in elements:
+        await backoff_if_high_cpu()
+        text = (await elem.inner_text()).strip()
+        logger.debug("Found element text: %s", text)
 
-        return {"posted_date": None, "error": NO_MATCHING_TEXT}
+        match = re.search(r"Posted (\d+)([dhm]) ago", text)
+        if match:
+            value, unit = int(match.group(1)), match.group(2)
+            days_ago = value if unit == "d" else 0
+            posted_date = get_posted_date(days_ago)
+            logger.debug("Extracted posted date: %s", posted_date)
+            return {"posted_date": posted_date, "error": None}
 
-    except Exception:
-        raise
+    return {"posted_date": None, "error": NO_MATCHING_TEXT}
 
-async def safe_extract_logo_src(page, job_url):
+async def safe_extract_logo_src(page: Page, job_url: str) -> str:
     try:
         return await extract_logo_src(page)
     except Exception as e:
@@ -101,7 +100,7 @@ async def safe_extract_logo_src(page, job_url):
             sentry_sdk.capture_exception(e)
         return ""
 
-async def safe_extract_job_metadata_fields(page, fields, job_url):
+async def safe_extract_job_metadata_fields(page: Page, fields: dict, job_url: str) -> dict:
     try:
         results, field_errors = await extract_job_metadata_fields(page, fields)
 
@@ -116,8 +115,6 @@ async def safe_extract_job_metadata_fields(page, fields, job_url):
                     level="error"
                 )
 
-        return results
-
     except Exception as e:
         with sentry_sdk.push_scope() as scope:
             scope.set_tag("component", "extract_job_metadata_fields")
@@ -125,7 +122,10 @@ async def safe_extract_job_metadata_fields(page, fields, job_url):
             sentry_sdk.capture_exception(e)
         return {}
 
-async def safe_extract_posted_date_by_class(page, class_name, job_url):
+    else:
+        return results
+
+async def safe_extract_posted_date_by_class(page: Page, class_name: str, job_url: str) -> str | None:
     try:
         result = await extract_posted_date_by_class(page, class_name)
         error = result.get("error")
@@ -156,7 +156,7 @@ async def safe_extract_posted_date_by_class(page, class_name, job_url):
         return None
 
 
-async def extract_metadata_from_page(page, job_url, fields):
+async def extract_metadata_from_page(page: Page, job_url: str, fields: dict) -> dict:
     logo_src = await safe_extract_logo_src(page, job_url)
     job_metadata = await safe_extract_job_metadata_fields(page, fields, job_url)
     posted_date = await safe_extract_posted_date_by_class(page, POSTED_DATE_SELECTOR, job_url)
@@ -166,19 +166,18 @@ async def extract_metadata_from_page(page, job_url, fields):
         **job_metadata
     }
 
-async def navigate_to_page(page, job_url):
-    async def go():
+async def navigate_to_page(page: Page, job_url: str) -> None:
+    async def go() -> None:
         await backoff_if_high_cpu()
         await page.goto(job_url, timeout=60000, wait_until="domcontentloaded")
         await pause_briefly(0.05, 0.25)
 
-    result = await retry_with_backoff(
+    return await retry_with_backoff(
         go, max_retries=MAX_RETRIES, base_delay=1.0, label=f"page.goto({job_url})"
     )
-    return result
 
 
-async def extract_job_metadata(job_url, job_metadata_fields, page_pool):
+async def extract_job_metadata(job_url: str, job_metadata_fields: dict, page_pool: PagePool) -> dict:
     page = await page_pool.acquire()
     try:
         await navigate_to_page(page, job_url)
@@ -189,22 +188,22 @@ async def extract_job_metadata(job_url, job_metadata_fields, page_pool):
         await pause_briefly(0.05, 0.25)
     return metadata
 
-async def scrape_job_details(job_url, crawler, page_pool):
+async def scrape_job_details(job_url: str, crawler: AsyncWebCrawler, page_pool: PagePool) -> tuple:
     markdown = await fetch_job_markdown(job_url, crawler)
     job_metadata = await extract_job_metadata(job_url, JOB_METADATA_FIELDS, page_pool)
     await pause_briefly(0.05, 0.25)
     return markdown, job_metadata
 
-async def extract_job_data(job_url, crawler, page_pool, count, terminate_event, day_range_limit):
-    job_markdown, job_metadata = await scrape_job_details(job_url, crawler, page_pool)
+async def extract_job_data(job_url : str, ctx: ScrapeContext, count: int) -> dict:
+    job_markdown, job_metadata = await scrape_job_details(job_url, ctx.crawler, ctx.page_pool)
     if not job_metadata:
         return {"status": SKIPPED, "job": None, "job_metadata": None}
 
     if not job_markdown:
         return {"status": SKIPPED, "job": None, "job_metadata": job_metadata}
 
-    if not is_recent_job(job_metadata, day_range_limit):
-        terminate_event.set()
+    if not is_recent_job(job_metadata, ctx.day_range_limit):
+        ctx.terminate_event.set()
         return {"status": TERMINATE, "job": None, "job_metadata": job_metadata}
 
     job_data = await parse_job_data_from_markdown(job_markdown, count)
