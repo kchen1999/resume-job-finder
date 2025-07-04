@@ -21,7 +21,7 @@ services:
       dockerfile: Dockerfile 
     init: true
     environment:
-      - NODE_BACKEND_URL={NODE_BACKEND_URL} 
+      - NODE_BACKEND_URL=${NODE_BACKEND_URL} 
       - GROQ_API_KEY=${GROQ_API_KEY}
       - SENTRY_DSN=${SENTRY_DSN}
     ports:

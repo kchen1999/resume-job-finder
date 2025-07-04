@@ -1,6 +1,7 @@
 import logging
 
 from app.main import scrape_job_listing
+from clients.node_client import delete_all_jobs_from_node
 from fastapi import BackgroundTasks, FastAPI, Request
 from fastapi.responses import JSONResponse
 from logging_config import setup_logging
@@ -22,6 +23,11 @@ async def cron_daily_scrape(background_tasks: BackgroundTasks) -> JSONResponse:
     max_pages = 1
 
     base_url = f"https://www.seek.com.au/jobs?keywords={job_title}&where={location}&sortmode=ListedDate"
+
+    try:
+        await delete_all_jobs_from_node()
+    except Exception:
+        logger.exception("Failed to clear existing jobs before scrape.")
 
     background_tasks.add_task(
         scrape_job_listing,

@@ -8,6 +8,16 @@ router.get('/', async (req, res) => {
   res.json(jobs)
 })
 
+router.delete('/', async (req, res) => {
+  try {
+    const deleted = await Job.destroy({ where: {} })  
+    return res.status(200).json({ deleted })
+  } catch (err) {
+    console.error('Failed to clear jobs:', err)
+    return res.status(500).json({ error: 'Failed to delete jobs' })
+  }
+})
+
 router.post('/scrape-summary', async (req, res) => {
   try {
     const { message, terminated_early } = req.body

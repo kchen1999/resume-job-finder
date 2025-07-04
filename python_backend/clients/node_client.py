@@ -43,6 +43,39 @@ async def send_page_jobs_to_node(jobs: dict) -> None:
             sentry_sdk.capture_exception(exc)
         raise
 
+async def delete_all_jobs_from_node() -> None:
+    url = get_node_backend_url()
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(15.0)) as client:
+            response = await client.delete(f"{url}/jobs")
+            response.raise_for_status()
+
+            data = response.json()
+            deleted_count = data.get("deleted", "unknown")
+
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("component", "delete_all_jobs_from_node")
+                scope.set_extra("deleted_count", deleted_count)
+                scope.set_extra("url", url)
+                sentry_sdk.capture_message("Successfully deleted jobs from Node backend", level="info")
+
+    except httpx.HTTPStatusError as exc:
+        error_msg = f"Failed to delete jobs: {exc.response.status_code} - {exc.response.text}"
+        logger.exception(error_msg)
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("component", "delete_all_jobs_from_node")
+            scope.set_extra("status_code", exc.response.status_code)
+            scope.set_extra("response_text", exc.response.text)
+            sentry_sdk.capture_exception(exc)
+        raise RuntimeError(error_msg) from exc
+
+    except Exception as exc:
+        logger.exception("Unexpected error while deleting jobs")
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("component", "delete_all_jobs_from_node")
+            sentry_sdk.capture_exception(exc)
+        raise
+
 # Note: This is a best-effort reporting step. Failure to send the summary does not interrupt scraping.
 async def send_scrape_summary_to_node(summary: dict) -> None:
     url = get_node_backend_url()
