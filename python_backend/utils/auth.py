@@ -4,9 +4,11 @@ import sentry_sdk
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
+def get_scraper_bearer_token() -> str:
+    return os.getenv("SCRAPER_BEARER_TOKEN", "")
 
 def get_validated_token(credentials: HTTPAuthorizationCredentials) -> None:
-    expected_token = os.getenv("SCRAPER_BEARER_TOKEN")
+    expected_token = get_scraper_bearer_token()
 
     if credentials.scheme.lower() != "bearer" or credentials.credentials != expected_token:
         with sentry_sdk.push_scope() as scope:
