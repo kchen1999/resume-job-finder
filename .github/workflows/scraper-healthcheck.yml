@@ -7,6 +7,9 @@ on:
 jobs:
   healthcheck:
     runs-on: ubuntu-latest
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     defaults:
       run:
         working-directory: python-backend

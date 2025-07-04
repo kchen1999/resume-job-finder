@@ -2,22 +2,29 @@ import logging
 
 from app.main import scrape_job_listing
 from clients.node_client import delete_all_jobs_from_node
-from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from logging_config import setup_logging
 from utils.constants import DAY_RANGE_LIMIT
+from utils.auth import get_validated_token
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+security = HTTPBearer()
 
 @app.get("/")
 def root() -> dict:
     return {"message": "Python backend is running!"}
 
 @app.get("/cron-daily-scrape")
-async def cron_daily_scrape(background_tasks: BackgroundTasks) -> JSONResponse:
+async def cron_daily_scrape(
+    background_tasks: BackgroundTasks,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> JSONResponse:
+    get_validated_token(credentials)
     job_title = "software engineer"
     location = "sydney"
     max_pages = 1
