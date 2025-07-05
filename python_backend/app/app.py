@@ -1,13 +1,14 @@
 import logging
+from typing import Annotated
 
 from app.main import scrape_job_listing
 from clients.node_client import delete_all_jobs_from_node
-from fastapi import BackgroundTasks, FastAPI, Request, Depends
+from fastapi import BackgroundTasks, Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from logging_config import setup_logging
-from utils.constants import DAY_RANGE_LIMIT
 from utils.auth import get_validated_token
+from utils.constants import DAY_RANGE_LIMIT
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ def root() -> dict:
 @app.get("/cron-daily-scrape")
 async def cron_daily_scrape(
     background_tasks: BackgroundTasks,
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
 ) -> JSONResponse:
     get_validated_token(credentials)
     job_title = "software engineer"

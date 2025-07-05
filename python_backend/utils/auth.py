@@ -4,6 +4,7 @@ import sentry_sdk
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
+
 def get_scraper_bearer_token() -> str:
     return os.getenv("SCRAPER_BEARER_TOKEN", "")
 
