@@ -13,4 +13,4 @@ jobs:
       - name: Trigger Python backend daily scrape
         run: |
           curl -X GET https://python-backend-cold-feather-2329.fly.dev/cron-daily-scrape \
-            -H "Authorization: Bearer $BEARER_TOKEN"
+            -H "Authorization: Bearer ${{ secrets.SCRAPER_BEARER_TOKEN }}"
