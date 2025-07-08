@@ -11,7 +11,9 @@ services:
       - 3001:3000
     volumes:
       - ./node-backend:/usr/src/app
+      - /usr/src/app/node_modules
       - ./node-backend/certs:/usr/src/app/certs:ro
+    command: sh -c "npm install && npm run dev"
     restart: unless-stopped
 
   python-backend:
