@@ -27,6 +27,9 @@ jobs:
           pip install -r requirements-dev.txt
           pip install pytest
 
+      - name: Install Playwright browsers
+        run: playwright install --with-deps
+
       - name: Run unit tests
         working-directory: python_backend
         run: pytest tests/unit
