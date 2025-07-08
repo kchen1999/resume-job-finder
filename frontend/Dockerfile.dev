@@ -12,7 +12,7 @@ COPY package*.json ./
 # Install ALL dependencies (including dev)
 RUN npm install
 
-# Copy the rest of your code
+# Copy the rest of the code
 COPY . .
 
 # Expose Vite's default port

@@ -9,7 +9,7 @@ RUN npm ci
 
 COPY . .
 
-# Build the frontend app (vite, react, etc.)
+# Build the frontend app 
 RUN npm run build
 
 # Production stage: serve static files with nginx
