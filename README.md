@@ -2,7 +2,7 @@
 
 A resume matching platform that helps users find jobs based on experiences extracted from their uploaded resume using AI and vector similarity search. 
 
-## 🧩 Tech Stack
+## Tech Stack
 
 | Layer        | Tech                                                         |
 |--------------|--------------------------------------------------------------|
@@ -11,7 +11,7 @@ A resume matching platform that helps users find jobs based on experiences extra
 | AI & Parsing | Python (FastAPI), Playwright, Groq API (LLM), Jina Embeddings|
 | Infrastructure | Docker Compose, Fly.io, Aiven (PostgreSQL), Nginx, GitHub Actions|
 
-## 🔧 Features
+## Features
 
 - Upload a resume (PDF only)
 - Extract experiences from resume using LLMs 
@@ -57,7 +57,7 @@ docker compose -f docker-compose.dev.yml -p dev up --build
 ```
 Open the app at: http://localhost:8081
 
-### 5. 📤 Resume Upload Workflow
+### 5. Resume Upload Workflow
 
 - Drag-and-drop a PDF resume into the UI
 - LLM extracts structured experiences from the resume
@@ -131,19 +131,19 @@ After execution, the test writes a summary report (JSON) that includes average m
 }
 ```
 ---
-## 🚀 Production Deployment
+## Production Deployment
 
 This project is deployed to Fly.io with each service running independently:
 
-### 🖥️ Frontend 
+### Frontend 
 [https://frontend-falling-forest-6159.fly.dev](https://frontend-falling-forest-6159.fly.dev)  
 Serves the UI where users can upload resumes and explore matched jobs.
 
-### 🧠 Python Backend 
+### Python Backend 
 [https://python-backend-cold-feather-2329.fly.dev](https://python-backend-cold-feather-2329.fly.dev)  
 Handles resume parsing, scraping job data, and calling AI services.
 
-### 🗃️ Node.js Backend 
+### Node.js Backend 
 [https://node-backend-proud-wildflower-5990.fly.dev](https://node-backend-proud-wildflower-5990.fly.dev)  
 Stores and serves structured job listings, matches resumes to jobs, and exposes REST endpoints.
 
