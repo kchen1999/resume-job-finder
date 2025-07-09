@@ -1,6 +1,8 @@
 const express = require('express')
 const app = express()
 
+const fs = require('fs')
+const path = require('path')
 const { PORT } = require('./util/config')
 const { connectToDatabase } = require('./util/db')
 const cors = require('cors')
@@ -8,6 +10,11 @@ const cors = require('cors')
 const resumeRouter = require('./controllers/resume')
 const jobsRouter = require('./controllers/jobs')
 const pingRouter = require('./controllers/ping')
+
+const uploadsDir = path.join(__dirname, 'uploads')
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir)
+}
 
 app.use(express.json())
 app.use(cors())
