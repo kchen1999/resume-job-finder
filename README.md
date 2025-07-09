@@ -156,7 +156,7 @@ Job scraping from Seek.com.au runs daily at midnight via GitHub Actions
 
 ### 🔁 Daily Integration Test (one page)
 
-A GitHub Actions workflow (.github/workflows/healthcheck.yml) runs daily executing the full integration test of one jobs listing page (22 jobs) to ensure the scraping pipeline still functions before the daily job scraping at midnight. This helps detect:
+A GitHub Actions workflow runs daily executing the full integration test of one jobs listing page (22 jobs) to ensure the scraping pipeline still functions before the daily job scraping at midnight. This helps detect:
 
 - Broken DOM selectors  (e.g., site layout changes)
 - LLM parsing errors resulting in incomplete or malformed job data
