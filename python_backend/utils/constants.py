@@ -8,7 +8,7 @@ SUCCESS = "success"
 TERMINATE = "terminate"
 SKIPPED = "skipped"
 ERROR = "error"
-POSTED_DATE_SELECTOR = "xhgj00 ciuj3f4z eu0zaq0 eu0zaq1 eu0zaq1u eu0zaq6 _1lwlriv4"
+POSTED_DATE_SELECTOR = "ube6hn0 wc8kxl4z m81yar0 m81yar1 m81yar1u m81yar6 _1lwlriv4"
 JOB_METADATA_FIELDS = {
     "location": ["job-detail-location"],
     "classification": ["job-detail-classifications"],
