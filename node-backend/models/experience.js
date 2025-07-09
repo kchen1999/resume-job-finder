@@ -40,7 +40,7 @@ Experience.init({
   },
   embedding: {
     type: DataTypes.VECTOR(768),
-    allowNull: true // Optional if you embed individual experiences
+    allowNull: true 
   }
 }, {
   sequelize,

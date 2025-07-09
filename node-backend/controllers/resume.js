@@ -1,25 +1,22 @@
 const router = require('express').Router()
 const multerValidation = require('../middleware/multerValidation')
 const jobMatchingService = require('../services/jobMatchingService')
+const fs = require('fs/promises');
 const { Experience } = require('../models')
 const { sequelize } = require("../util/db")
 const { QueryTypes } = require('sequelize')
 
-// Route + Controller in one file
 router.post('/upload', multerValidation.single('resume'), async (req, res) => {
   const filePath = req.file.path
-
   try {
     const { jobMatches: matchedJobs, experiences } = await jobMatchingService.matchResumeToJobs(filePath, "software engineer")
-    console.log("experiences:")
-    console.log(experiences)
+    await fs.unlink(filePath);
     res.json({ matchedJobs, experiences })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
 })
 
-// POST /api/resume/rematch
 router.post('/rematch', async (req, res) => {
   const { experienceIds } = req.body;
 
@@ -51,8 +48,6 @@ router.post('/rematch', async (req, res) => {
       }
     }
     const averagedEmbedding = sum.map(x => x / validEmbeddings.length)
-    console.log("Average embedding: ")
-    console.log(averagedEmbedding)
 
     // 3. Query jobs using pgvector cosine distance
     const results = await sequelize.query(

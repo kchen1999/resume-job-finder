@@ -9,17 +9,17 @@ Resume.init({
     primaryKey: true,
     autoIncrement: true
   },
-  name: {
-    type: DataTypes.STRING, // optional label like filename
+  name: { 
+    type: DataTypes.STRING, 
     allowNull: true
   },
-  original_text: {
+  original_text: { // full resume text
     type: DataTypes.TEXT,
-    allowNull: false // full resume text
+    allowNull: false 
   },
-  relevant_text: {
+  relevant_text: { // LLM-extracted relevant sections
     type: DataTypes.TEXT,
-    allowNull: true // LLM-extracted relevant sections
+    allowNull: true 
   }
 }, {
   sequelize,

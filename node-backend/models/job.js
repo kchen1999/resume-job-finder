@@ -81,7 +81,7 @@ Job.init({
   },
   quick_apply_url: {
     type: DataTypes.STRING,
-    allowNull: true, // This will store the job application link
+    allowNull: true, 
     validate: {
       isUrl: {
         msg: 'Must be a valid URL.'

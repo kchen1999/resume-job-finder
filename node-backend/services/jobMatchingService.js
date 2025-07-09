@@ -16,8 +16,6 @@ const matchResumeToJobs = async (filePath, jobTitle) => {
     const relevantResumeSections = await extractResumeSections(fullText, jobTitle);
     const repaired = jsonrepair(relevantResumeSections);
     const parsedSections = JSON.parse(repaired);
-    console.log("Parsed sections:");
-    console.log(parsedSections);
 
     // Step 3: Store resume
     const resume = await Resume.create({
@@ -54,9 +52,6 @@ const matchResumeToJobs = async (filePath, jobTitle) => {
         experiences: storedExperiences
       };
     }
-    console.log("firstExperience embedding:")
-    console.log(firstExperience.embedding)
-
     // Step 6: Retrieve matching jobs using first embedding
     const jobMatches = await sequelize.query(
       `
