@@ -26,7 +26,7 @@ async def cron_daily_scrape(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(security)],
 ) -> JSONResponse:
     get_validated_token(credentials)
-    job_title = "software engineer"
+    job_title = "junior software engineer"
     location = "sydney"
     max_pages = 1
 
