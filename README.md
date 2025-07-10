@@ -73,7 +73,7 @@ This project includes both unit and integration tests for the Python backend.
 ### Unit Tests
 Located in: `python_backend/tests/unit`
 
-Run all unit tests locally at once:
+Run all unit tests (182 in total) locally at once:
 ```bash
 cd python_backend
 pytest tests/unit

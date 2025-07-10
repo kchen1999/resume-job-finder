@@ -292,4 +292,30 @@ async def test_validate_job_coerce_non_string_and_non_list_fields() -> None:
     assert job_result["salary"] == "123456"
     assert job_result["other"] == []
 
+@pytest.mark.asyncio
+async def test_validate_job_unspecified_salary() -> None:
+    job = {
+        "title": "Software Engineer",
+        "company": "Example Corp",
+        "classification": "Software Design and Development",
+        "description": "This is a job description.",
+        "logo_link": "https://image-service-cdn.seek.com.au/1a2b3c4d5e6f",
+        "posted_date": "09/05/2024",
+        "posted_within": "7 days",
+        "location_search": "Sydney",
+        "location": "Sydney NSW",
+        "work_type": "Full-time",
+        "work_model": "Hybrid",
+        "experience_level": "mid_or_senior",
+        "job_url": "https://www.seek.com.au/job/12345678",
+        "quick_apply_url": "https://www.seek.com.au/job/12345678/apply",
+        "salary": "Add expected salary to your profile for insights",
+        "responsibilities": ["Responsibility 1", "Responsibility 2"],
+        "requirements": ["Requirement 1", "Requirement 2"],
+        "other": ["Be cool"]
+    }
+    job_result = await validate_job(job)
+    assert job_result["salary"] == "Salary unspecified"
+
+
 

@@ -139,6 +139,12 @@ def normalize_list_fields(job: dict, job_url: str) -> None:
                         sentry_sdk.capture_exception(e)
             job[list_field] = cleaned_list
 
+def normalize_salary_field(job: dict) -> None:
+    original_salary = job.get("salary", "").strip().lower()
+
+    if original_salary == "add expected salary to your profile for insights":
+        job["salary"] = "Salary unspecified"
+
 
 async def validate_job(job: dict) -> dict:
     job_url = job.get("job_url", "Unknown URL")
@@ -150,6 +156,7 @@ async def validate_job(job: dict) -> dict:
     await validate_experience_level(job, job_url)
     normalize_string_fields(job, job_url)
     normalize_list_fields(job, job_url)
+    normalize_salary_field(job)
 
     return job
 
