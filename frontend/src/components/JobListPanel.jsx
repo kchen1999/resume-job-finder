@@ -24,7 +24,7 @@ const JobListPanel = ({ results, onJobClick }) => {
                   objectFit: 'contain',
                   width: '96%',
                   height: '96%',
-              }}} // Circular logo
+              }}} 
             >
               {!job.logo_link && job.company?.[0]?.toUpperCase()}
             </Avatar>

@@ -33,7 +33,7 @@ const ResumeAnalyzer = () => {
     fetchJobs()
   }, []) 
 
-    // Re-match jobs whenever selected resume experienceIds change
+  // Re-match jobs whenever selected resume experienceIds change
   useEffect(() => {
     const rematch = async () => {
       if (filters.experienceIds.length === 0) return;
@@ -64,8 +64,6 @@ const ResumeAnalyzer = () => {
         const res = await axios.post(`${API_BASE_URL}/resume/upload`, formData)
         if (res.data.matchedJobs.length > 0) {
           setResults(res.data.matchedJobs)
-          console.log("matchedJobs:")
-          console.log(res.data.matchedJobs)
           setUserExperiences(res.data.experiences);      // Set parsed resume experiences
           if (res.data.experiences.length > 0) {
             setFilters(prev => ({

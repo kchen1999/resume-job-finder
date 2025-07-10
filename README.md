@@ -1,6 +1,6 @@
 # AI Resume Job Matcher
 
-A resume matching platform that helps users find jobs based on experiences extracted from their uploaded resume using AI and vector similarity search. 
+A resume matching platform that helps users find jobs based on experiences extracted from their uploaded resume using AI and vector similarity search. Users have the ability to filter jobs based on their experience level (intern, junior, mid/senior, lead+), posted within period (1 day ago, 3 days ago, 7 days ago), domain (software engineering only at this stage), and location (Sydney only at this stage). 
 
 ## Tech Stack
 
