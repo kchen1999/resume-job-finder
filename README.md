@@ -1,6 +1,8 @@
-# AI Resume Job Matcher for Entry Level Roles
+# AI Resume Job Matcher for Entry Level Tech Roles
 
-A resume matching platform that helps users (primarily entry level/recent graduates) find jobs based on experiences extracted from their uploaded resume using AI and vector similarity search. Users have the ability to filter jobs based on their experience level (intern, junior, mid/senior, lead+), posted within period (1 day ago, 3 days ago, 7 days ago), domain (software engineer roles only at this stage), and location (Sydney only at this stage). 
+A resume matching platform that helps users (primarily entry level/recent graduates) find jobs based on experiences extracted from their uploaded resume using AI and vector similarity search. 
+
+Users have the ability to filter jobs based on their experience level (intern, junior, mid/senior, lead+), posted within period (1 day ago, 3 days ago, 7 days ago), domain (software engineer roles only at this stage), and location (Sydney only at this stage). 
 
 ## Tech Stack
 
