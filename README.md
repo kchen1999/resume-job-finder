@@ -1,8 +1,8 @@
-# AI Resume Job Matcher for Entry Level Tech Roles
+# AI Resume Job Matcher for Junior Tech Roles
 
 A resume matching platform that helps users (primarily entry level/recent graduates) find jobs based on experiences extracted from their uploaded resume using AI and vector similarity search. 
 
-Users have the ability to filter jobs based on their experience level (intern, junior, mid/senior, lead+), posted within period (1 day ago, 3 days ago, 7 days ago), domain (software engineer roles only at this stage), and location (Sydney only at this stage). 
+Users have the ability to filter jobs based on their experience level (intern, junior, mid/senior, lead+), posted within period (1 day ago, 3 days ago, 7 days ago), domain (software engineering roles only at this stage), and location (Sydney only at this stage). 
 
 ## Tech Stack
 
@@ -152,11 +152,11 @@ Stores and serves structured job listings, matches resumes to jobs, and exposes 
 Each service is deployed independently using its own `fly.toml`.  
 See the corresponding `frontend/`, `python_backend/`, and `node-backend/` folders for Dockerfiles and deployment configuration.  
 
-### 🔁 Daily Cron Job
+### Daily Cron Job
 
 Job scraping from Seek.com.au runs daily at midnight via GitHub Actions
 
-### 🔁 Daily Integration Test (one page)
+### Daily Integration Test (one page)
 
 A GitHub Actions workflow runs daily executing the full integration test of one jobs listing page (22 jobs) to ensure the scraping pipeline still functions before the daily job scraping at midnight. This helps detect:
 
@@ -164,7 +164,7 @@ A GitHub Actions workflow runs daily executing the full integration test of one 
 - LLM parsing errors resulting in incomplete or malformed job data
 - Missing required metadata such as title, location, or company
 
-### 🔒 Security
+### Security
 
 - The /cron-daily-scrape endpoint is protected via bearer token
 - Uploaded resume files are automatically deleted after parsing
